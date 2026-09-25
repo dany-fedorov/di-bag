@@ -8,15 +8,15 @@ The guides below describe the current public API.
 
 | Document | Purpose |
 | --- | --- |
-| [Tutorial](guides/tutorial.md) | Build a first graph, then learn ownership, scopes, modules, tokens, and advanced APIs. |
+| [Tutorial](guides/tutorial.md) | Build a first graph, then learn ownership, child containers, modules, tokens, and advanced APIs. |
 | [Comparison with alternatives](guides/comparison.md) | Assess DI Bag alongside manual DI and other libraries, with primary sources and tradeoffs. |
 | [Server guide](guides/server-integration.md) | Connect application services to Node HTTP, Express, Fastify, Bun, and Deno. |
 | [React guide](guides/react-integration.md) | Own application and project runtimes from React effects in the browser: Strict Mode, cancellation, bounded teardown, and external stores. |
-| [Integration recipes](guides/enterprise-integration.md) | Own request scopes, substitute test services, and manage dynamic features. |
+| [Integration recipes](guides/enterprise-integration.md) | Own request containers, substitute test services, and manage dynamic features. |
 | [Agent harnesses and graphs](guides/agent-harnesses-and-graphs.md) | One worked application of the module pattern: model and tool modules, metadata inspection, and node tests with typed fixtures. |
 | [Agent docs](../AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](agent/recipes.md) and [errors and messages](agent/errors.md). Shipped in the package. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |
-| [Generated reference](reference/index.md) | Read exact signatures and source comments for both package entries. |
+| [Generated reference](reference/index.md) | Read exact signatures and source comments for the package entry point. |
 | [Runnable examples](../examples) | Execute focused examples from the repository. |
 
 ## Why DI Bag? In practice

@@ -4,9 +4,8 @@ Static check for [DI Bag](https://github.com/dany-fedorov/di-bag) builder
 chains. It reads a TypeScript project, finds every `DiBag.createBuilder()`
 chain that ends in `buildContainer()` or
 `buildModule({ exportedServiceKeys, moduleLabel })`; a `buildContainer()`
-followed by `ensureServicesReady()` counts. The 0.4 `build()`,
-`buildModule(keys, { label })`, and `buildAndStart()` forms remain accepted for
-migration analysis.
+followed by `ensureServicesReady()` counts. Legacy builder terminals remain
+readable for migration analysis.
 It reports dependency cycles and unresolved names before any factory runs.
 The established schema remains version 1: a source `buildContainer()` unit is
 emitted with `kind: "bag"`.
@@ -42,19 +41,21 @@ usage or tsconfig error.
   as in runtime messages, and otherwise the expression passed to the module
   install call. `withInstalledModules([...])` expands modules in list order. A
   cycle inside one module is reported once, on that module.
-- **unresolved**: a bag (`buildContainer()`, or 0.4 `build()`) has a declared
+- **unresolved**: a container built with `buildContainer()` has a declared
   dependency that no registration, alias, installed module export, or its
   requirement supplier provides. A module's unmet names are not issues; they are
   its `requirements`.
 
-It does not fail on type mismatches (`tsc` and `verifyGraph()` do) and it does
+It does not fail on type mismatches (`tsc` and `verifyGraphAtCompileTime()` do) and it does
 not run factories.
 
 It reads providers built with `DiBag.createProvider`,
 `DiBag.createProviderFromFunction({ dependencies, factoryFunction })`,
 `DiBag.createProviderFromClass({ dependencies, serviceClass })`, and
 `DiBag.createProviderFromPlugin({ dependencies, pluginDescriptor, ... })`.
-The 0.4 provider wrappers remain readable for migration analysis. Named
+The five `DiBag.providerWith*` modifier functions are recognized. The extractor
+reads the wrapped factory's dependencies. Legacy provider wrappers remain readable
+for migration analysis. Named
 factory dependencies appear as edges; positional symbol-token dependencies do
 not acquire invented string labels.
 
@@ -66,7 +67,7 @@ not acquire invented string labels.
 
 - `Unit`: one builder chain.
   - `id`: `<file>:<line>` of the chain start, relative to the working directory.
-  - `kind`: `bag` or `module`.
+  - `kind`: `bag` for a container unit, or `module`. The `bag` value is retained by schema version 1.
   - `label` (modules only, when given): the `buildModule` label.
   - `exports`: keys passed to `buildModule`.
   - `installs`: ids of installed module units, or the source text of an
@@ -75,8 +76,9 @@ not acquire invented string labels.
   - `nodes`: `{ key, line, dependencies, async, lifetime, owned }` per
     registration. `dependencies` are the property names of the factory's first
     parameter type; `async` means the factory returns a `Promise`; `lifetime`
-    is a full 0.5.0 lifetime value, or `dynamic` when the extractor cannot statically
-    read the argument; old facade values are normalized. `owned` means a disposal stage.
+    is a full lifetime value, or `dynamic` when the extractor cannot statically
+    read the argument. Unmarked providers are `scoped:one-per-container`.
+    Legacy values are normalized. `owned` means a disposal stage.
   - `edges`: `{ from, to }` for the unit's own registrations, sorted.
 - `Issue`: `{ kind: 'cycle', unit, path }` or
   `{ kind: 'unresolved', unit, consumer, dependency }`.

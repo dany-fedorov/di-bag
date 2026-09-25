@@ -14,10 +14,10 @@ optimized code, so the ceiling is a bracket, not a constant. The same
 library-free chain overflows at 575 calls when compiled alone and passes at
 1,015 when the program first checks the library.
 
-- **Classic TypeScript 6.0.3.** A chain of 1,000 `.register()` calls is accepted;
+- **Classic TypeScript 6.0.3.** A chain of 1,000 `.withServices()` calls is accepted;
   1,015 calls overflow the stack, one step below a library-free chain compiled
   under the same conditions (accepted at 1,015, overflowing at 1,031). A bulk
-  map followed by individual `.replace()` calls is accepted at 952; at 968 one
+  map followed by individual `.withReplacedService()` calls is accepted at 952; at 968 one
   of three runs exceeded the 60-second budget, and 1,000 overflows the stack.
   The overflow is V8's stack budget: the same 1,000-replacement expression passes
   unchanged with a larger stack (`--stack-size=4000`, an attribution instrument,
@@ -41,11 +41,11 @@ The same 1,000 linearly dependent providers, valid graph, on the recorded host
 
 | Shape | Classic 6.0.3 | Native 7.0.2 |
 | --- | --- | --- |
-| One bulk `register({ … })` map | 3.4 s, 606 MiB, 2.5 M | 1.1 s, 207 MiB, 2.5 M |
-| Twenty registration maps of 50, one `register` each | 3.5 s, 643 MiB, 3.5 M | 1.2 s, 240 MiB, 3.5 M |
-| Twenty named modules of 50, one `installModule` each | 15.5 s, 3,112 MiB, 3.5 M | 7.1 s, 2,469 MiB, 3.5 M |
-| 1,000 chained `register` calls | 35.9 s, 2,713 MiB, 53.8 M | 17.0 s, 1,684 MiB, 53.8 M |
-| Bulk map, then 1,000 `replace` calls | stack overflow at the default stack | 23.9 s, 2,606 MiB, 85.9 M |
+| One bulk `withServices({ … })` map | 3.4 s, 606 MiB, 2.5 M | 1.1 s, 207 MiB, 2.5 M |
+| Twenty provider maps of 50, one `withServices` call each | 3.5 s, 643 MiB, 3.5 M | 1.2 s, 240 MiB, 3.5 M |
+| Twenty named modules of 50, one `withInstalledModules([module])` call each | 15.5 s, 3,112 MiB, 3.5 M | 7.1 s, 2,469 MiB, 3.5 M |
+| 1,000 chained `withServices` calls | 35.9 s, 2,713 MiB, 53.8 M | 17.0 s, 1,684 MiB, 53.8 M |
+| Bulk map, then 1,000 `withReplacedService` calls | stack overflow at the default stack | 23.9 s, 2,606 MiB, 85.9 M |
 
 Bulk maps and registration groups are the cheapest shapes. Named modules keep
 the instantiation count of groups but cost more time and memory: at 1,000
@@ -65,6 +65,9 @@ matrix (`npm run benchmark:types`). The host was shared with other workloads
 noise. "Rejected at the boundary" counts the missing and wrong-shape scenarios
 whose intended diagnostic occurred exactly once at the generated boundary with
 no TS2589.
+
+The method names on this page describe the current equivalents of the measured shapes.
+The values remain tied to the recorded source commit and were not remeasured for 0.5.0.
 
 ### Classic 6.0.3
 
@@ -145,7 +148,7 @@ typing of the innermost bulk map; a separate run of that case with
 native, 1,398 chained calls passed twice and then exceeded the memory budget, so
 it is flaky and counts as failed. No native probe overflowed or timed out.
 
-Moving the graph admissions of `register` onto `this` (the one type change that
+Moving the graph admissions of `withServices` onto `this` (the one type change that
 could lower the innermost constant) was not attempted: it was gated on a gap of
 at least 200 calls between the control and a DI Bag form with a stack-bound
 failure, and the measured gaps are 15 (chained) and 63 (replacement, whose

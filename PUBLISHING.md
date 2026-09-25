@@ -79,7 +79,7 @@ Install the explicit archive path into fresh consumers with:
 npm install --offline --ignore-scripts --no-audit --no-fund --no-package-lock <archive-path>
 ```
 
-Consumers must exercise the root and Node entry points in CommonJS and ESM under
+Consumers must exercise the root entry point in CommonJS and ESM under
 Node and Bun, compile the physical declarations with producer source removed
 under both supported compilers, and prove the archive has zero runtime
 dependencies. Any timeout, signal, memory/output bound, changed input,
