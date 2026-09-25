@@ -14,8 +14,8 @@ checking with the [supported compiler](development.md).
 
 ## Contents
 
-- [Build the application once](#build-the-application-once)
 - [One child container per request](#request-containers)
+- [Build the application once](#build-the-application-once)
 - [Close each request container](#close-each-request-container)
 - [Choose the owner of each service](#choose-the-owner-of-each-service)
 - [Connect a shutdown signal](#connect-a-shutdown-signal)
@@ -32,50 +32,13 @@ checking with the [supported compiler](development.md).
 - [Organize a larger application](#organize-a-larger-application)
 - [Troubleshooting](#troubleshooting)
 
-## Build the application once
-
-Most servers can use one container for every request. Save this as
-`application.ts`. The in-memory catalog makes the example runnable without a
-database. In an application, its async factory could open a client or pool.
-Its disposer could call that client's shutdown method.
-
-```ts
-import { DiBag } from 'di-bag';
-
-type Catalog = Map<string, string>;
-
-export function createApplication() {
-  const app = DiBag.createBuilder()
-    .withServices({
-      catalog: DiBag.providerWithDisposal({
-        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
-        disposeService: catalog => catalog.clear(),
-      }),
-      handler: ({ catalog }: { catalog: Promise<Catalog> }) => ({
-        async list() {
-          return { items: Array.from((await catalog).values()) };
-        },
-      }),
-    })
-    .buildContainer();
-  return app.ensureServicesReady(['catalog']);
-}
-
-export type Application = Awaited<ReturnType<typeof createApplication>>;
-```
-
-`buildContainer()` creates the application container. `ensureServicesReady`
-waits for the catalog before the server listens. The catalog still resolves as
-`Promise<Catalog>`. Readiness does not rewrite its public type. Every request
-can call `app.resolve('handler').list()`. The container closes during server
-shutdown.
-
 ## One child container per request {#request-containers}
 
-Use a child container when a service needs request state. Replace
-`application.ts` with this version. The catalog is explicitly shared across
-the container tree. The request and its dependent handler use the scoped
-default, so each child gets its own instances.
+Save this as `application.ts`. The in-memory catalog makes the example runnable
+without a database. In an application, its async factory could open a client
+or pool. Its disposer could call that client's shutdown method. The catalog is
+explicitly shared across the container tree. The request and its dependent
+handler use the scoped default, so each child gets its own instances.
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -118,6 +81,42 @@ the child container so it sees the request's replacement. A scoped provider is
 the default. The compiler rejects a singleton that depends on a scoped
 provider. Keep application services independent of the HTTP library so jobs
 and tests can use them too.
+
+## Build the application once
+
+When no service needs request state, one container can serve every request.
+Use this smaller `application.ts` instead:
+
+```ts
+import { DiBag } from 'di-bag';
+
+type Catalog = Map<string, string>;
+
+export function createApplication() {
+  const app = DiBag.createBuilder()
+    .withServices({
+      catalog: DiBag.providerWithDisposal({
+        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+        disposeService: catalog => catalog.clear(),
+      }),
+      handler: ({ catalog }: { catalog: Promise<Catalog> }) => ({
+        async list() {
+          return { items: Array.from((await catalog).values()) };
+        },
+      }),
+    })
+    .buildContainer();
+  return app.ensureServicesReady(['catalog']);
+}
+
+export type Application = Awaited<ReturnType<typeof createApplication>>;
+```
+
+`buildContainer()` creates the application container. `ensureServicesReady`
+waits for the catalog before the server listens. The catalog still resolves as
+`Promise<Catalog>`. Readiness does not rewrite its public type. Every request
+can call `app.resolve('handler').list()`. The container closes during server
+shutdown.
 
 ## Close each request container {#close-each-request-container}
 
@@ -221,21 +220,26 @@ uncooperative factory or disposer to settle. Use `waitTimeoutMs` to bound the
 wait while disposal continues:
 
 ```ts
+import { DiBag, DiBagCloseCancelledError } from 'di-bag';
+
+const app = DiBag.createBuilder()
+  .withServices({ resource: () => ({ ready: true }) })
+  .buildContainer();
+
 try {
   await app.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
   if (error instanceof DiBagCloseCancelledError) {
     // Disposal continues after this bounded wait ends.
-    await error.cleanupPromise;
+    await error.disposalPromise;
   } else {
     throw error;
   }
 }
 ```
 
-Import `DiBagCloseCancelledError` from `di-bag` for this example. The deadline
-does not release pending resources or cancel a disposer. `abortSignal` can also
-end the wait. The same principle applies to `disposalPromise` on
+The deadline does not release pending resources or cancel a disposer.
+`abortSignal` can also end the wait. The same principle applies to `disposalPromise` on
 `DiBagServiceReadinessCancelledError`.
 
 ## Node HTTP
@@ -477,6 +481,13 @@ const app = await DiBag.createBuilder()
   .buildContainer()
   .ensureServicesReady(['catalog']);
 
+const closingContainers = new WeakSet<object>();
+function closeRequestContainer(requestContainer: { close(): Promise<void> } | undefined) {
+  if (!requestContainer || closingContainers.has(requestContainer)) return;
+  closingContainers.add(requestContainer);
+  void requestContainer.close().catch(error => console.error(error));
+}
+
 const requestContainerPlugin = new Elysia({ name: 'di-bag-request-container' })
   .derive({ as: 'global' }, () => ({
     requestContainer: app.createChildContainer(['request'], {
@@ -484,10 +495,10 @@ const requestContainerPlugin = new Elysia({ name: 'di-bag-request-container' })
     }),
   }))
   .onAfterResponse({ as: 'global' }, ({ requestContainer }) => {
-    void requestContainer.close().catch(error => console.error(error));
+    closeRequestContainer(requestContainer);
   })
   .onError({ as: 'global' }, ({ requestContainer }) => {
-    void requestContainer?.close().catch(error => console.error(error));
+    closeRequestContainer(requestContainer);
   });
 
 const server = new Elysia()
@@ -499,10 +510,10 @@ const server = new Elysia()
 process.once('SIGTERM', () => { void server.stop(); });
 ```
 
-The hooks initiate disposal for a child container created by `derive` and
-observe disposal failures. A failure before `derive` can leave
-`requestContainer` undefined in the error hook. Repeated `close()` calls use
-the same disposal operation. The `onStop` hook closes the application
+The response and error hooks may both run for one request. Either hook can
+also run before `derive` creates a child container. The helper tolerates that
+absence, starts disposal once per child container, and observes failures.
+The `onStop` hook closes the application
 container. Coordinate request draining and process exit with the host's
 shutdown policy; a TypeScript check does not establish their runtime order.
 
