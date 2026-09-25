@@ -5,14 +5,14 @@
 # Type Alias: CheckedLifetimes\<R *extends* `Registrations`, C *extends* `NeedConstraint`\>
 
 ```ts
-type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [Captives<R, C>] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'root-capture'>}`, {
+type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [Captives<R, C>] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<`singleton lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'singleton-captures-scoped'>}`, {
     readonly captives: Captives<R, C>;
 }> : unknown;
 ```
 
 Defined in: [lifetime-types.ts:198](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L198)
 
-Reject strict root providers that transitively capture scoped dependencies.
+Reject strict singleton providers that transitively capture scoped dependencies.
 
 ## Type Parameters
 
@@ -23,4 +23,4 @@ Reject strict root providers that transitively capture scoped dependencies.
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped

@@ -191,5 +191,5 @@ test('sealing rejects unknown keys and forged modules exactly as before', () => 
   expect(() => (builder.buildModule as Function)({ exportedServiceKeys: 'a' })).toThrow('key tuple');
   const module = builder.buildModule({ exportedServiceKeys: ['a'] });
   expect(() => (DiBag.createBuilder().withInstalledModules as Function)([{ ...module }])).toThrow('withInstalledModules requires genuine modules: element 0 is not one');
-  expect(() => (DiBag.createBuilder().withServices({ a: () => 2 }).withInstalledModules as Function)([module])).toThrow('duplicate registration: a');
+  expect(() => (DiBag.createBuilder().withServices({ a: () => 2 }).withInstalledModules as Function)([module])).toThrow('duplicate service key: a');
 });

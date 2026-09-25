@@ -81,7 +81,7 @@ test('all adapters snapshot mixed references by index and authenticate every han
     }
   }
   expect(() => Reflect.apply(DiBag.createBuilder().withTokenService, DiBag.createBuilder(), [optional, () => 1])).toThrow('token');
-  expect(() => Reflect.apply(DiBag.createBuilder().withServices, DiBag.createBuilder(), [{ invalid: lazy }])).toThrow('registration');
+  expect(() => Reflect.apply(DiBag.createBuilder().withServices, DiBag.createBuilder(), [{ invalid: lazy }])).toThrow('invalid provider or factory');
 });
 
 test('lazy reads preserve lexical private tokens, export renames and external optional absence', async () => {
@@ -162,7 +162,7 @@ test('observed reference reads retain strict root checks before routing', async 
   const root = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: get => ({ get }) }), lifetime: 'singleton:one-per-container-tree' });
   const builder = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ root });
   const bag = Reflect.apply(builder.buildContainer, builder, []) as { resolve(key: string): { get(): number }; close(): Promise<void> };
-  expect(bag.resolve('root').get).toThrow('root lifetime'); await bag.close();
+  expect(bag.resolve('root').get).toThrow('singleton lifetime'); await bag.close();
 });
 
 test('lazy reads detect a cycle between already ready consumers', async () => {
@@ -190,5 +190,5 @@ test('root explicit capture and optional reads retain the root lexical context',
   const strict = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value }), lifetime: 'singleton:one-per-container-tree' });
   const builder = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ strict });
   const unchecked = Reflect.apply(builder.buildContainer, builder, []) as { resolve(key: string): unknown; close(): Promise<void> };
-  expect(() => unchecked.resolve('strict')).toThrow('root lifetime'); await unchecked.close();
+  expect(() => unchecked.resolve('strict')).toThrow('singleton lifetime'); await unchecked.close();
 });

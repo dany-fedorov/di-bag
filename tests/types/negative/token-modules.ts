@@ -5,7 +5,7 @@ import type { TokenBase } from '../../../src/tokens';
 const key = Symbol('database'); const database = DiBag.createToken(key).forService<{ read(): number }>();
 const conflict = DiBag.createToken(key).forService<{ write(): void }>();
 const feature = DiBag.createBuilder().withServices({ handler: DiBag.createProviderFromFunction({ dependencies: [database], factoryFunction: db => db.read() }) }).buildModule({ exportedServiceKeys: ['handler'] });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([feature]).withServices({ ordinary: () => 1 }).buildContainer();
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([feature]).withTokenService(conflict, () => ({ read: () => 1, write() {} }));
@@ -27,5 +27,5 @@ DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).buil
 DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).buildModule({ exportedServiceKeys: [database] as typeof database[] });
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([publicFeature]).withReplacedService(database, () => ({ write() {} }));
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'handler', newExportKey: 'renamed' })]).buildContainer();

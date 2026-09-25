@@ -10,7 +10,7 @@ type ProviderNamedDependencies<R extends ProviderOrFactory> = ProviderBase exten
 
 Defined in: [provider.ts:96](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L96)
 
-Extract the registration's named dependency object.
+Extract the provider's named dependency object.
 
 ## Type Parameters
 

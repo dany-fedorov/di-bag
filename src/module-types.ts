@@ -60,7 +60,7 @@ export type IncrementalConstraints<
   : CheckedConstraints<C | MC, import('./types').OverrideRegistrations<Old, Incoming>>;
 export type CompleteConstraints<C extends NeedConstraint, A extends Registrations> =
   [MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>] extends [never] ? CompleteContributions<C, A>
-    : Unsatisfied<`required service registrations are missing: ${NameText<MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>>}${SeeErrors<'missing-service'>}`, { missing: MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>; relationships: MissingConstraintRelationships<C, ServicesOf<A>> }>;
+    : Unsatisfied<`required services are missing: ${NameText<MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>>}${SeeErrors<'missing-service'>}`, { missing: MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>; relationships: MissingConstraintRelationships<C, ServicesOf<A>> }>;
 
 // Separate exported and external references even when a later rename makes
 // their lookup keys equal. Keep consumers distributive, never intersect needs
@@ -79,7 +79,7 @@ export type RegistrationConstraints<V extends Registrations[string], R extends R
     | ([ProviderGraphContract<V>] extends [{ readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] }] ? never : { readonly kind: 'opaque' })
   : never;
 /**
- * Retained requirements of a module's public and private registrations.
+ * Retained requirements of a module's public and private providers.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 export type ModuleConstraints<R extends Registrations, Public extends keyof R> = [R] extends [unknown] ? {
@@ -121,7 +121,7 @@ export type PublicProvider<R> = R extends Registrations[string]
 type PublicGraph<G> = G extends { readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] } ? { [K in keyof G]: K extends 'required' | 'optional' | 'collections' ? readonly [] : G[K] } : never;
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<OutputFactory<ProviderOutput<R>>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraphContract<R>>, ProviderAcquiredValue<R>>;
 /**
- * Project registrations to dependency-free public descriptions while retaining behavioral contracts.
+ * Project providers to dependency-free public descriptions while retaining behavioral contracts.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
@@ -146,7 +146,7 @@ type SymbolProviders<R extends Registrations, P extends keyof R, K = P> =
   Extract<Intersect<K extends symbol ? Record<K, SealedProvider<R, P, R[K & keyof R]>> : never>, Registrations>;
 /**
  * Project selected module exports to dependency-free providers that keep behavioral contracts.
- * The conditional answer carries no alias, so declarations print the providers, not the registrations.
+ * The conditional answer carries no alias, so declarations print the providers directly.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 export type ModulePublicProviders<R extends Registrations, P extends keyof R> = [Extract<P, symbol>] extends [never]
@@ -201,7 +201,7 @@ type InvalidRename<Operation extends string> =
   Unsatisfied<`${Operation} requires an existing export and a noncolliding singleton string-literal name`, {}>;
 
 /**
- * Re-scope every constraint a builder retained from installed modules and
+ * Nest every constraint a builder retained from installed modules and
  * contributions when that builder seals into a module with exports `P`.
  * Needs on an export stay checkable by the host; needs satisfied privately are
  * final and drop; unsatisfied needs remain external requirements of the module.
@@ -219,7 +219,7 @@ export type SealedConstraints<C extends NeedConstraint, R extends Registrations,
     ? TokenConstraint<K, T, R, P, true>
   : C;
 /**
- * Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations.
+ * Every constraint a sealed module carries: its own providers' needs, nested retained constraints, and compact lifetime obligations.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 // The outer conditional keeps this exported alias name off the result, so declarations print its members.

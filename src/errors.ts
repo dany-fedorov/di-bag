@@ -75,7 +75,7 @@ export class DiBagPluginValidationError extends Error {
 }
 
 /**
- * One or more disposers failed during `close()`; every cleanup was still attempted.
+ * One or more disposers failed during `close()`; every disposal was still attempted.
  * `failures` lists each original error with the label of the service it belonged to, in attempt order.
  * @example
  * ```ts
@@ -90,7 +90,7 @@ export class DiBagPluginValidationError extends Error {
 export class DiBagDisposalError extends AggregateError {
   declare readonly code: 'DI_BAG_DISPOSAL_FAILED';
   declare readonly details: Readonly<Record<string, unknown>>;
-  /** Frozen cleanup failures in finalizer invocation order. */
+  /** Frozen disposal failures in finalizer invocation order. */
   readonly failures: readonly DisposalFailure[];
 
   /** @param failures - Structured failures whose original errors also populate `AggregateError.errors`. */
@@ -130,7 +130,7 @@ export class DiBagServiceReadinessError extends Error {
    * @param disposalError - The complete shutdown error, when closing itself rejected.
    */
   constructor(cause: unknown, disposalFailures: readonly DisposalFailure[], readonly disposalError?: unknown) {
-    super(diagnosticMessage('DI_BAG_SERVICE_READINESS_FAILED', 'The listed services are not ready: a factory failed; this bag is closed'), { cause });
+    super(diagnosticMessage('DI_BAG_SERVICE_READINESS_FAILED', 'The listed services are not ready: a factory failed; this container is closed'), { cause });
     this.name = 'DiBagServiceReadinessError';
     this.disposalFailures = Object.freeze(disposalFailures.map(item => Object.freeze({ ...item })));
     diagnostic(this, 'DI_BAG_SERVICE_READINESS_FAILED', { operation: 'ensureServicesReady', disposalFailures: this.disposalFailures });
@@ -171,7 +171,7 @@ export class DiBagServiceReadinessCancelledError extends Error {
   ) {
     const waiting = progress.acquisitionsStillPending.length ? `; acquisitions still pending: ${progress.acquisitionsStillPending.join(', ')}`
       : progress.disposersStillRunning.length ? `; disposers still running: ${progress.disposersStillRunning.join(', ')}` : '';
-    super(diagnosticMessage('DI_BAG_SERVICE_READINESS_CANCELLED', `The listed services were not ready: the wait ${reason === 'timeout' ? `timed out after ${totalTimeoutMs}ms` : 'was aborted'}${waiting}; this bag is closing`), { cause });
+    super(diagnosticMessage('DI_BAG_SERVICE_READINESS_CANCELLED', `The listed services were not ready: the wait ${reason === 'timeout' ? `timed out after ${totalTimeoutMs}ms` : 'was aborted'}${waiting}; this container is closing`), { cause });
     this.name = 'DiBagServiceReadinessCancelledError';
     diagnostic(this, 'DI_BAG_SERVICE_READINESS_CANCELLED', {
       operation: 'ensureServicesReady', reason, ...(totalTimeoutMs === undefined ? {} : { totalTimeoutMs }),
@@ -194,7 +194,7 @@ export interface CloseProgress {
 }
 
 /**
- * A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running.
+ * A `close({ waitTimeoutMs, abortSignal })` wait stopped before disposal finished; disposal keeps running.
  * `code` is `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the signal.
  * @example
  * ```ts
@@ -215,7 +215,7 @@ export class DiBagCloseCancelledError extends Error {
   /**
    * @param reason - Whether an external abort or the close deadline stopped the wait.
    * @param cause - The abort reason, or a `TimeoutError` DOMException for the deadline.
-   * @param disposalPromise - The container's shared shutdown promise; it settles when cleanup eventually finishes.
+   * @param disposalPromise - The container's shared shutdown promise; it settles when disposal eventually finishes.
    * @param progress - Labels still in progress when the wait stopped.
    * @param waitTimeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
    */

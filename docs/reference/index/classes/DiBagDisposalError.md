@@ -6,7 +6,7 @@
 
 Defined in: [errors.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L90)
 
-One or more disposers failed during `close()`; every cleanup was still attempted.
+One or more disposers failed during `close()`; every disposal was still attempted.
 `failures` lists each original error with the label of the service it belonged to, in attempt order.
 
 ## Example
@@ -76,4 +76,4 @@ readonly failures: readonly DisposalFailure[];
 
 Defined in: [errors.ts:94](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L94)
 
-Frozen cleanup failures in finalizer invocation order.
+Frozen disposal failures in finalizer invocation order.

@@ -10,7 +10,7 @@ type ProviderAcquiredValue<R extends ProviderOrFactory> = ProviderBase extends R
 
 Defined in: [provider.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L87)
 
-Extract the fulfilled or raw value passed to the registration's outer disposer.
+Extract the fulfilled or raw value passed to the provider's outer disposer.
 
 ## Type Parameters
 

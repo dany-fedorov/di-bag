@@ -12,7 +12,7 @@ export type ScannerReferences<T extends { readonly camelKey: unknown }> = {
   readonly operation: OperationLabel<'createScope'>;
   readonly omitted: Exclude<keyof T, 'allowScopedDependencies'>;
   readonly indexed: T['camelKey'];
-  readonly diagnostic: SeeErrors<'root-capture'>;
+  readonly diagnostic: SeeErrors<'singleton-captures-scoped'>;
   readonly isCompared: 'allowScopedDependencies' extends keyof T ? true : false;
 };
 export type StandardKeyReferences<T extends { readonly camelKey: unknown; readonly anotherKey: unknown }> = {

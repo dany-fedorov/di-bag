@@ -552,7 +552,7 @@ test('startup rollback releases the stack of a service that had already succeede
   expect((failure as DiBagServiceReadinessError).disposalFailures.map(item => (item.error as Error).message)).toEqual(['b.stack failed']);
 });
 
-test('a factory that succeeds while the bag is closing still has its stack disposed', async () => {
+test('a factory that succeeds while the container is closing still has its stack disposed', async () => {
   const events: string[] = [];
   const gate = deferred<void>();
   const bag = DiBag.createBuilder().withServices({

@@ -90,7 +90,7 @@ test('rename preserves original parameter names even when an export takes a priv
 test('invalid installations and export views fail atomically and reject forged modules', async () => {
   const module = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildModule({ exportedServiceKeys: ['a', 'b'] });
   const builder = DiBag.createBuilder().withServices({ b: () => 9 });
-  expect(() => (builder.withInstalledModules as Function)([module])).toThrow('duplicate registration: b');
+  expect(() => (builder.withInstalledModules as Function)([module])).toThrow('duplicate service key: b');
   expect(() => (DiBag.createBuilder().withInstalledModules as Function)([{ ...module }])).toThrow('module');
   expect(() => (module.withRenamedExport as Function)({ currentExportKey: 'a', newExportKey: 'b' })).toThrow('duplicate export');
   expect(() => (module.withRenamedExport as Function)({ currentExportKey: 'absent', newExportKey: 'x' })).toThrow('existing export');
@@ -105,7 +105,7 @@ test('exports use indexed tuple snapshots and preserve hidden local registration
   const all = { publicValue: () => 4, hidden: () => 8 };
   const visible: { publicValue: () => number } = all;
   const builder = DiBag.createBuilder().withServices(visible);
-  expect(() => (builder.withServices as Function)({ hidden: () => 9 })).toThrow('duplicate registration');
+  expect(() => (builder.withServices as Function)({ hidden: () => 9 })).toThrow('duplicate service key');
   const keys = ['publicValue'] as const;
   Object.defineProperty(keys, Symbol.iterator, { value: function* () { yield 'hidden'; } });
   const root = DiBag.createBuilder().withInstalledModules([builder.buildModule({ exportedServiceKeys: keys })]).buildContainer();

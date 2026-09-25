@@ -121,7 +121,7 @@ npx tsc --noEmit -p src/features/<name>/tsconfig.json
 ```
 
 A missing requirement fails with its key:
-`required service registrations are missing: config`.
+`required services are missing: config`.
 
 ## Fast check
 

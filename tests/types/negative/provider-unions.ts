@@ -18,7 +18,7 @@ DiBag.providerWithDisposal({ provider: mixed, disposeService: (value: number) =>
 DiBag.providerWithRegistrationMetadata({ provider: mixed, registrationMetadata: { owner: 'duplicate' } });
 // diagnostic: duplicate metadata
 DiBag.providerWithRegistrationMetadata({ provider: reversed, registrationMetadata: { owner: 'duplicate' } });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: mixed, transformService: value => value.read(), callbackReceives: 'exposed-service' }) }).buildContainer();
 
 type Registration = ProviderOrFactory;
@@ -29,5 +29,5 @@ DiBag.providerWithTransformedService({ provider: opaqueMixed, transformService: 
 // diagnostic: not assignable
 DiBag.providerWithDisposal({ provider: opaqueMixed, disposeService: (value: number) => {} });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: opaqueMixed, transformService: () => 42, callbackReceives: 'exposed-service' }) }).buildContainer();

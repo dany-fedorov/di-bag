@@ -10,7 +10,7 @@ type OverrideRegistrations<F extends Registrations, N extends Registrations> = O
 
 Defined in: [types.ts:48](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L48)
 
-Replace overlapping registrations in `F` with registrations from `N`.
+Replace overlapping providers in `F` with providers from `N`.
 
 ## Type Parameters
 

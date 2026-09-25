@@ -24,9 +24,9 @@ to report it there, and set `"noErrorTruncation": true` to print the details.
 ### Missing service {#missing-service}
 
 **When:** `buildContainer()`, `verifyGraphAtCompileTime()`, or `check.ts` reports
-`required service registrations are missing: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
+`required services are missing: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
 
-**Cause:** a factory declares a dependency that no registration, installed
+**Cause:** a factory declares a dependency that no provider, installed
 module, or host supplies. A module's unmet dependencies become requirements of
 the builder that installs it.
 
@@ -34,7 +34,7 @@ the builder that installs it.
 and tests.
 
 ```ts
-// expect-error: required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
+// expect-error: required services are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
@@ -86,9 +86,9 @@ DiBag.createBuilder()
 
 **Recipe:** [review a merge](recipes.md#review-merge).
 
-### Root capture {#root-capture}
+### Singleton captures scoped {#singleton-captures-scoped}
 
-**When:** `root lifetime cannot capture scoped dependency: <root> -> <scoped>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture`.
+**When:** `singleton lifetime cannot capture scoped dependency: <singleton> -> <scoped>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped`.
 
 **Cause:** a singleton service would keep one child container's scoped dependency
 for the whole container tree. Providers are scoped per container by default.
@@ -100,7 +100,7 @@ allowsScopedDependencies: true })` only for a deliberate capture of the root
 container's instance.
 
 ```ts
-// expect-error: root lifetime cannot capture scoped dependency: client -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+// expect-error: singleton lifetime cannot capture scoped dependency: client -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
@@ -248,7 +248,7 @@ app.withServices({ server: ({ port }: { port: string }) => port.length });
 ### Wrong override {#wrong-override}
 
 **When:** `createIndependentContainer` or `createChildContainer` reports
-`override value is not assignable to the original token: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override`,
+`replacement value is not assignable to the original token: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override`,
 or a plain `Type 'X' is not assignable to type 'Y'` on an override factory.
 
 **Cause:** an override's service value is not assignable to the type the
@@ -277,11 +277,11 @@ app.createIndependentContainer(['port'], { port: () => 'eighty' });
 `process.getBuiltinModule`: browsers, Web Workers, and other non-Node runtimes.
 Node, Bun, and Deno never raise it.
 
-**Cause:** a registration uses automatic acquisition, no native-Promise classifier
+**Cause:** a provider uses automatic acquisition, no native-Promise classifier
 is configured, and the host offers none. The message and `details.bindings` name
-every such registration, sorted, with private module services as `<label>/<key>`;
+every such provider, sorted, with private module services as `<label>/<key>`;
 a direct `providerWithTransformedService` without a `transformReturnKind` counts under its
-registration's name.
+provider's name.
 
 **Fix:** add each named service with `DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })`
 or `'native-promise'`; give positional providers an explicit return kind and direct
@@ -484,7 +484,7 @@ reports cycles before running).
 disposer.
 
 **Cause:** one or more disposers threw or rejected. The others still ran and the
-bag is closed; `failures` lists `bindingLabel` and `error` for each.
+container is closed; `failures` lists `bindingLabel` and `error` for each.
 
 **Fix:** fix the failing disposer; log the failures where the application closes.
 
@@ -752,13 +752,13 @@ export const clock = DiBag.createToken(clockKey).forService<{ now(): number }>()
 
 ### DI_BAG_LIFETIME_DEPENDENCY {#di-bag-lifetime-dependency}
 
-**When:** a `root` service resolves a `scoped` dependency at runtime;
+**When:** a singleton service resolves a scoped dependency at runtime;
 `details.consumer` and `details.dependency` name both.
 
-**Cause:** the [root capture](#root-capture) check was bypassed by a cast or
+**Cause:** the [singleton captures scoped](#singleton-captures-scoped) check was bypassed by a cast or
 untyped code.
 
-**Fix:** as for root capture: make the dependency `root`, or the consumer scoped.
+**Fix:** as for singleton capture: make the dependency singleton, or the consumer scoped.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
@@ -821,7 +821,7 @@ report [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 `reason` `'aborted'` or `'timeout'`.
 
 **Cause:** `abortSignal` aborted or `totalTimeoutMs` elapsed before the listed
-services were ready. This bag is closing. `details.acquisitionsStillPending`
+services were ready. This container is closing. `details.acquisitionsStillPending`
 names the services that were not ready yet, `details.disposersStillRunning` the
 disposers that had started.
 

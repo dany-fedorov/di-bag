@@ -6,7 +6,7 @@ export const siteUrl = 'https://dany-fedorov.github.io/di-bag/';
 export const agentsBudget = 150;
 export const cardBudget = 400;
 export const recipeBudget = 60;
-export const familyIds = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
+export const familyIds = ['missing-service', 'unsatisfied-consumer', 'singleton-captures-scoped', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
 
 /** VitePress's heading slugifier, so implicit anchors match the rendered site. */
 export function slugify(text) {

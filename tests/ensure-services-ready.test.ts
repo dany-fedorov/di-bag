@@ -139,7 +139,7 @@ test('a factory failure closes this bag and reports disposal failures', async ()
   expect(Object.isFrozen(error.disposalFailures)).toBe(true);
   expect(error.disposalError).toBeInstanceOf(DiBagDisposalError);
   expect(error.details).toEqual({ operation: 'ensureServicesReady', disposalFailures: error.disposalFailures });
-  expect(error.message).toContain('DI_BAG_SERVICE_READINESS_FAILED: The listed services are not ready: a factory failed; this bag is closed;');
+  expect(error.message).toContain('DI_BAG_SERVICE_READINESS_FAILED: The listed services are not ready: a factory failed; this container is closed;');
   expect(error.message).toContain('#di-bag-service-readiness-failed');
   expect(calls).toEqual(['owned', 'db']);
   expect(() => bag.resolve('owned')).toThrow('DI_BAG_CLOSED');
@@ -155,7 +155,7 @@ test('a timeout names the services that were still pending and closes the bag', 
   expect(error.reason).toBe('timeout');
   expect(error.code).toBe('DI_BAG_SERVICE_READINESS_CANCELLED');
   expect(error.details).toEqual({ operation: 'ensureServicesReady', reason: 'timeout', totalTimeoutMs: 5, disposersStillRunning: [], acquisitionsStillPending: ['slow'] });
-  expect(error.message).toContain('The listed services were not ready: the wait timed out after 5ms; acquisitions still pending: slow; this bag is closing;');
+  expect(error.message).toContain('The listed services were not ready: the wait timed out after 5ms; acquisitions still pending: slow; this container is closing;');
   const cause = error.cause as { name: string; code?: string; details?: unknown };
   expect(cause.name).toBe('TimeoutError');
   expect(cause.code).toBe('DI_BAG_SERVICE_READINESS_TIMEOUT');
@@ -269,12 +269,12 @@ test('the readiness errors carry their code, their details and a message that sa
   expect(failed.name).toBe('DiBagServiceReadinessError');
   expect(failed.code).toBe('DI_BAG_SERVICE_READINESS_FAILED');
   expect(failed.cause).toBe(cause);
-  expect(failed.message).toContain('The listed services are not ready: a factory failed; this bag is closed;');
+  expect(failed.message).toContain('The listed services are not ready: a factory failed; this container is closed;');
   const cancelled = new DiBagServiceReadinessCancelledError('timeout', cause, Promise.resolve(), { disposersStillRunning: [], acquisitionsStillPending: ['db'] }, 5);
   expect(cancelled.name).toBe('DiBagServiceReadinessCancelledError');
   expect(cancelled.code).toBe('DI_BAG_SERVICE_READINESS_CANCELLED');
   expect(cancelled.details).toEqual({ operation: 'ensureServicesReady', reason: 'timeout', totalTimeoutMs: 5, disposersStillRunning: [], acquisitionsStillPending: ['db'] });
-  expect(cancelled.message).toContain('the wait timed out after 5ms; acquisitions still pending: db; this bag is closing;');
+  expect(cancelled.message).toContain('the wait timed out after 5ms; acquisitions still pending: db; this container is closing;');
 });
 
 test('the 0.4 startup names are gone at run time', async () => {

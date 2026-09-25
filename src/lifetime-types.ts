@@ -10,18 +10,18 @@ import type { SelectionKey } from './token-types';
 /**
  * Where a sealed lifetime walk leaves its module: an export or external name the installing
  * host resolves, a typed-token collection the host completes, or a private scoped dead end.
- * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped
  */
 export type Reach =
   | { readonly kind: 'export' | 'external'; readonly key: PropertyKey }
   | { readonly kind: 'collection'; readonly key: symbol }
   | { readonly kind: 'scoped'; readonly key: PropertyKey };
 /**
- * A compact seal-time lifetime record that replaces a module's private registrations:
- * `singleton-reach` names a private strict singleton, `export-reach` an export the host checks as a root or
+ * A compact seal-time lifetime record that replaces a module's private providers:
+ * `singleton-reach` names a private strict singleton, `export-reach` an export the host checks as a singleton or
  * walks through as a transient or alias, and `contribution-reach` a sealed contribution group
- * that is checked as a root or walked by collecting roots. Each record carries one reach.
- * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+ * that is checked as a singleton or walked by collecting singleton providers. Each record carries one reach.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped
  */
 export type LifetimeObligation =
   | { readonly kind: 'singleton-reach'; readonly singleton: PropertyKey; readonly reach: Reach }
@@ -111,12 +111,12 @@ export type SealedLifetimes<R extends Registrations, P extends PropertyKey, C> =
       | ExportObligations<R, P, C>
       | Extract<ContributionObligations<R, P, C>, { readonly policy: 'transient' }>
     : never;
-/** Reject sealing when a root the host cannot replace captures a scoped service of the same module. */
+/** Reject sealing when a singleton the host cannot replace captures a scoped service of the same module. */
 export type SealAdmission<R extends Registrations, P extends PropertyKey, C> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [SealCaptives<R, P, C>] extends [never] ? unknown
   // Shape errors were already reported by register; do not add a captive report on top of them.
   : unknown extends CheckDependencyCompatibility<R>
-    ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${SealCaptiveText<SealCaptives<R, P, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: SealCaptives<R, P, C> }>
+    ? Unsatisfied<`singleton lifetime cannot capture scoped dependency: ${SealCaptiveText<SealCaptives<R, P, C>>}${SeeErrors<'singleton-captures-scoped'>}`, { readonly captives: SealCaptives<R, P, C> }>
     : unknown;
 type RenamedReach<X, Old, New> = X extends { readonly kind: 'export'; readonly key: Old } ? { readonly kind: 'export'; readonly key: New } : X;
 /** Rename one export inside retained lifetime obligations. */
@@ -192,24 +192,24 @@ type ObligationCaptives<R extends Registrations, C, O = C> =
   : never;
 type Captives<R extends Registrations, C> = SingletonCaptives<R, C, keyof R> | ContributionSingletonCaptives<R, C> | ObligationCaptives<R, C>;
 /**
- * Reject strict root providers that transitively capture scoped dependencies.
- * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+ * Reject strict singleton providers that transitively capture scoped dependencies.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped
  */
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [Captives<R, C>] extends [never] ? unknown
     : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
-      ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: Captives<R, C> }>
+      ? Unsatisfied<`singleton lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'singleton-captures-scoped'>}`, { readonly captives: Captives<R, C> }>
       : unknown;
 // Inherited roots construct in their already-validated ancestor graph. Only
 // roots newly introduced by this child container can capture its replaced dependencies.
 type OverrideCaptives<R extends Registrations, O extends Registrations, C> = SingletonCaptives<R, C, keyof O & keyof R>;
 /**
- * Reject root providers introduced by a child-container replacement when they capture scoped dependencies.
- * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+ * Reject singleton providers introduced by a child-container replacement when they capture scoped dependencies.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped
  */
 export type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [OverrideCaptives<R, O, C>] extends [never] ? unknown
-    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
+    : Unsatisfied<`singleton lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'singleton-captures-scoped'>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
 
 
 // Sharing needs the current canonical policy, including public replacements and

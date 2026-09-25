@@ -58,7 +58,7 @@ export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G exten
   : never;
 
 /**
- * A registration rebound to an invariant typed-token service contract.
+ * A provider rebound to an invariant typed-token service contract.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
 export type TokenBinding<T extends TokenBase, R extends ProviderOrFactory> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;

@@ -10,7 +10,7 @@ type ProviderOutput<R extends ProviderOrFactory> = ProviderBase extends R ? unkn
 
 Defined in: [provider.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L82)
 
-Extract the exact service value exposed by a registration, including Promise identity.
+Extract the exact service value exposed by a provider, including Promise identity.
 
 ## Type Parameters
 

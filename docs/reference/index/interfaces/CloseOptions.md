@@ -6,7 +6,7 @@
 
 Defined in: [startup.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L10)
 
-Bounds the wait of [Container.close](Container.md#close); cleanup itself keeps running after either fires.
+Bounds the wait of [Container.close](Container.md#close); disposal itself keeps running after either fires.
 
 ## See
 
@@ -22,7 +22,7 @@ readonly abortSignal?: AbortSignal;
 
 Defined in: [startup.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L12)
 
-Aborting it stops the wait promptly. Cleanup keeps running.
+Aborting it stops the wait promptly. Disposal keeps running.
 
 ***
 
@@ -34,4 +34,4 @@ readonly waitTimeoutMs?: number;
 
 Defined in: [startup.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L14)
 
-A finite positive deadline in milliseconds for the wait, not for the cleanup.
+A finite positive deadline in milliseconds for the wait, not for the disposal.

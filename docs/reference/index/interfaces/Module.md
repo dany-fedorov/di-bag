@@ -6,7 +6,7 @@
 
 Defined in: [module.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L44)
 
-A sealed, non-resolving module with private registrations and selected public exports.
+A sealed, non-resolving module with private providers and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
 type-only class has no public constructor.
 
@@ -36,7 +36,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 
 Defined in: [module.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L72)
 
-Return a module view with one string-named export renamed through an options bag.
+Return a module view with one string-named export renamed through an options object.
 
 #### Type Parameters
 
@@ -57,7 +57,7 @@ A new sealed module, or the same instance when both names are equal.
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed options bag or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
 
 #### Example
 

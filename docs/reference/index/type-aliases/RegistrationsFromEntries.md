@@ -12,7 +12,7 @@ type RegistrationsFromEntries<E extends Entry> = {
 
 Defined in: [types.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L40)
 
-Reconstruct a registration map from a builder's retained entry union.
+Reconstruct a provider map from a builder's retained entry union.
 
 ## Type Parameters
 

@@ -32,7 +32,7 @@ const descriptions = new WeakMap<object, ModuleDescription>();
 declare const moduleInvariant: unique symbol;
 
 /**
- * A sealed, non-resolving module with private registrations and selected public exports.
+ * A sealed, non-resolving module with private providers and selected public exports.
  * Create modules through {@link DiBagApi.createBuilder} and {@link Builder.buildModule}; this
  * type-only class has no public constructor.
  * @typeParam ExportedServices - The services this module exports, keyed by export name or token symbol.
@@ -58,10 +58,10 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
   }
 
   /**
-   * Return a module view with one string-named export renamed through an options bag.
+   * Return a module view with one string-named export renamed through an options object.
    * @param options - The current export and its noncolliding new name.
    * @returns A new sealed module, or the same instance when both names are equal.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options bag or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
    * @example
    * ```ts
    * const feature = DiBag.createBuilder().withServices({ service: () => 1 })

@@ -22,7 +22,7 @@ readonly onLifecycleEvent: ObserverCallback;
 
 Defined in: [observers.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L68)
 
-Receives events in transition and observer-registration order on a microtask queue.
+Receives events in transition and observer attachment order on a microtask queue.
 
 ***
 

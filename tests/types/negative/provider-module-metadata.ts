@@ -2,7 +2,7 @@ import { DiBag, type Module, type ModuleExportedServices, type ModuleRequiredSer
 const decorated = DiBag.providerWithRegistrationMetadata({ provider: ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }), registrationMetadata: { owner: 'team' } });
 const unit = DiBag.createBuilder().withServices({ service: decorated }).buildModule({ exportedServiceKeys: ['service'] });
 const renamed = unit.withRenamedExport({ currentExportKey: 'service', newExportKey: 'client' });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([renamed]).buildContainer();
 // diagnostic: consumer dependency
 DiBag.createBuilder().withInstalledModules([renamed]).withServices({ clock: () => ({ now: () => 'wrong' }) });
@@ -22,5 +22,5 @@ const erasedChoice: Module<{ choice: number }, {}> = choice;
 type Registration = ProviderOrFactory;
 declare const opaqueModule: Module<{ value: unknown }, {}, never, { value: Registration }>;
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withInstalledModules([opaqueModule]).buildContainer();

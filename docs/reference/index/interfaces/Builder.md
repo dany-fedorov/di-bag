@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `Entries` | The union of accepted registration entries, one per public key. |
+| `Entries` | The union of accepted provider entries, one per public key. |
 | `Constraints` | The requirements, contributions and lifetime obligations that installed modules retain on this graph. |
 
 ## Properties
@@ -36,7 +36,7 @@ Defined in: [di-bag.ts:609](https://github.com/dany-fedorov/di-bag/blob/main/src
 Seal this graph as a reusable module and select its public names and typed tokens.
 Unselected services stay private to each installation; unmet dependencies
 become requirements of the module. Installed modules nest: their private
-bindings and retained constraints are re-scoped inside this module.
+bindings and retained constraints are nested inside this module.
 
 #### Param
 

@@ -6,7 +6,7 @@
 
 Defined in: [inspection.ts:35](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L35)
 
-A frozen registration description and copied acquisition state returned by container inspection.
+A frozen binding description and copied acquisition state returned by container inspection.
 
 ## See
 

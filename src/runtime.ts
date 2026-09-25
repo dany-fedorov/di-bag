@@ -459,7 +459,7 @@ export class BindingGraph {
   withInstallation(description: GraphDescription): BindingGraph {
     const operation = 'withInstalledModules';
     for (const key of description.publicSlots.keys()) {
-      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${String(key)}`, { operation, serviceKey: key });
+      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate service key: ${String(key)}`, { operation, serviceKey: key });
     }
     const installation = new BindingGraph(description);
     for (const [key, kind] of installation.#tokenKinds) {
@@ -590,7 +590,7 @@ export class BagRuntime {
   }
 
   assertOpen(): void {
-    if (this.state !== 'open') throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
+    if (this.state !== 'open') throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `container is ${this.state}`, { state: this.state });
     this.acquisitions.assertOpen();
   }
 

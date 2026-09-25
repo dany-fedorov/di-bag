@@ -30,7 +30,7 @@ for (const [name, changed, errors] of [
   expect(matchNativeDiagnosticMarkers(changed, '/fixture.ts', errors).accepted).toBe(false);
 });
 test('native gap cannot replace a supplemental expectation', () => {
-  const text = source.replace('replace();', '// diagnostic-also: TS2684 required service registrations are missing\nreplace();');
+  const text = source.replace('replace();', '// diagnostic-also: TS2684 required services are missing\nreplace();');
   expect(matchNativeDiagnosticMarkers(text, '/fixture.ts', [{ ...error, line: 4 }]).accepted).toBe(false);
 });
 
@@ -47,10 +47,10 @@ test('union and open-template fingerprints require their own exact declarations'
 });
 
 test('native gap cannot satisfy a different primary even when that primary matches its fingerprint', () => {
-  const text = source + '\n// diagnostic: required service registrations are missing\nend();';
+  const text = source + '\n// diagnostic: required services are missing\nend();';
   const result = matchNativeDiagnosticMarkers(text, '/fixture.ts', [error]);
   expect(result.accepted).toBe(false);
-  expect(result.unresolved.map(marker => marker.message)).toEqual(['required service registrations are missing']);
+  expect(result.unresolved.map(marker => marker.message)).toEqual(['required services are missing']);
 });
 
 const contextualFingerprints = [

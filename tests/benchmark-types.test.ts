@@ -15,7 +15,7 @@ import { evaluateWorker, type MatrixCase, type WorkerEvidence } from '../scripts
 
 test('parent evaluator validates untrusted worker evidence and preserves requested identities', () => {
   const item: MatrixCase = { count: 100, form: 'bulk', scenario: 'missing' };
-  const diagnostic = { file: scalePath, line: 7, code: 2345, message: 'required service registrations are missing' };
+  const diagnostic = { file: scalePath, line: 7, code: 2345, message: 'required services are missing' };
   const result = { ...item, accepted: false, boundaryLine: 7, diagnostics: [diagnostic] };
   const evidence: WorkerEvidence = { status: 0, signal: null, stdout: JSON.stringify(result), stderr: '' };
   const good = evaluateWorker(item, evidence, scalePath);
@@ -83,7 +83,7 @@ for (const form of forms) {
         return;
       }
 
-      const intended = scenario === 'missing' ? 'required service registrations are missing' : 'provided service does not satisfy its consumer dependency';
+      const intended = scenario === 'missing' ? 'required services are missing' : 'provided service does not satisfy its consumer dependency';
       expect(boundaryLine).toBeDefined();
       expect(errors.every(error => error.file === scalePath)).toBe(true);
       expect(errors.some(error => error.code === 2589)).toBe(false);

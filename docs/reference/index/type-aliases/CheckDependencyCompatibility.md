@@ -14,7 +14,7 @@ type CheckDependencyCompatibility<R extends Registrations> = [
     tokens: InvalidGraphs<R>;
 }> : [NonFiniteKeys<R> | Extract<keyof R, number>] extends [never] ? Unsatisfied<'factory dependencies must be finite string-keyed objects', {
     tokens: InvalidNeeds<R>;
-}> : Unsatisfied<'registration keys must be finite string or unique-symbol keys', {
+}> : Unsatisfied<'service keys must be finite string or unique-symbol keys', {
     keys: NonFiniteKeys<R> | Extract<keyof R, number>;
 }>;
 ```

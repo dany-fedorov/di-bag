@@ -92,7 +92,7 @@ export type SharedAliasProviders<R extends Registrations, Parent extends Registr
   [AliasKeys<R, S>] extends [never] ? R
     : Omit<R, AliasKeys<R, S>> & { [K in AliasKeys<R, S>]: SharedAlias<R, Parent, K> };
 /**
- * The registration map visible in a child after clearing and applying selected sharing routes.
+ * The provider map visible in a child after clearing and applying selected sharing routes.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
  */
 export type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = SharedAliasProviders<UnsharedAliases<R>, Parent, S>;

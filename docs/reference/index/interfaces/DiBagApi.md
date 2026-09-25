@@ -444,7 +444,7 @@ const observed = DiBag.providerWithAcquisitionMetadata({ provider: async () => 1
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed bag; `DI_BAG_INVALID_ACQUISITION_METADATA` for an invalid callback result; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_ACQUISITION_METADATA` for an invalid callback result; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
 
 #### Example
 
@@ -494,7 +494,7 @@ const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), dis
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed bag or disposer; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object or disposer; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
 
 #### Example
 
@@ -557,7 +557,7 @@ A fresh immutable provider retaining every other provider stage.
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object, lifetime, or option; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
 
 #### Example
 
@@ -716,7 +716,7 @@ const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbac
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed bag or return policy; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object or return policy; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
 
 #### Example
 

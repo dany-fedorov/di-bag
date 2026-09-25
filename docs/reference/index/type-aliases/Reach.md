@@ -24,4 +24,4 @@ host resolves, a typed-token collection the host completes, or a private scoped 
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped

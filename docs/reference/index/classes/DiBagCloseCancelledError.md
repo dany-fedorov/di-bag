@@ -6,7 +6,7 @@
 
 Defined in: [errors.ts:212](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L212)
 
-A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running.
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before disposal finished; disposal keeps running.
 `code` is `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the signal.
 
 ## Example
@@ -43,7 +43,7 @@ Defined in: [errors.ts:222](https://github.com/dany-fedorov/di-bag/blob/main/src
 | ------ | ------ |
 | `reason` | Whether an external abort or the close deadline stopped the wait. |
 | `cause` | The abort reason, or a `TimeoutError` DOMException for the deadline. |
-| `disposalPromise` | The container's shared shutdown promise; it settles when cleanup eventually finishes. |
+| `disposalPromise` | The container's shared shutdown promise; it settles when disposal eventually finishes. |
 | `progress` | Labels still in progress when the wait stopped. |
 | `waitTimeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
 
@@ -87,7 +87,7 @@ readonly disposalPromise: Promise<void>;
 
 Defined in: [errors.ts:225](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L225)
 
-The container's shared shutdown promise; it settles when cleanup eventually finishes.
+The container's shared shutdown promise; it settles when disposal eventually finishes.
 
 ***
 

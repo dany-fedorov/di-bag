@@ -174,8 +174,8 @@ test('exported classes name their type parameters by role', () => {
   assert.match(moduleInterface, /^# Interface: Module\\<ExportedServices \*extends\* `object`, RequiredServices \*extends\* `object`, Constraints \*extends\* /m);
   assert.match(provider, /^# Interface: Provider\\<ExposedFactory \*extends\* `Factory`, RegistrationMetadata \*extends\* /m);
   assert.match(token, /^# Interface: Token\\<TokenSymbol \*extends\* `symbol`, Service\\>$/m);
-  assert.match(container, /\| `ServiceRegistrations` \| The map from each public service name or token symbol to its registration\. \|/);
-  assert.match(builder, /\| `Entries` \| The union of accepted registration entries, one per public key\. \|/);
+  assert.match(container, /\| `ServiceRegistrations` \| The map from each public service name or token symbol to its provider\. \|/);
+  assert.match(builder, /\| `Entries` \| The union of accepted provider entries, one per public key\. \|/);
   assert.match(moduleInterface, /\| `RequiredServices` \| The services the installing builder must provide\. \|/);
   assert.match(token, /\| `TokenSymbol` \| The unique symbol that is this token's runtime identity\. \|/);
 });

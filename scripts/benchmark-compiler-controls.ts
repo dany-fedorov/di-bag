@@ -84,7 +84,7 @@ const named = (
   scenario,
   generatedPath: 'tests/generated-type-scale.ts',
   ...(scenario === 'valid' ? {} : {
-    expectedMarker: scenario === 'missing' ? 'required service registrations are missing' : 'provided service does not satisfy its consumer dependency',
+    expectedMarker: scenario === 'missing' ? 'required services are missing' : 'provided service does not satisfy its consumer dependency',
   }),
 });
 
@@ -98,7 +98,7 @@ const token = (
   generatedPath: 'tests/generated-token-scale.ts',
   ...(scenario === 'valid' ? {} : {
     expectedMarker: scenario === 'missing-final-token'
-      ? 'required service registrations are missing'
+      ? 'required services are missing'
       : 'token dependency has an incompatible or opaque contract',
   }),
 });

@@ -46,13 +46,13 @@ test('strict replacement audit requires useful primary text at its own region', 
 
   expect(evaluateReplacementDiagnostics(source, file, [useful], false).accepted).toBe(false);
 
-  const separated = `${source}\n// diagnostic: required service registrations are missing\nend();`;
+  const separated = `${source}\n// diagnostic: required services are missing\nend();`;
   expect(evaluateReplacementDiagnostics(separated, file, [{ ...useful, line: 4 }], true).accepted).toBe(false);
 });
 
 test('strict replacement audit requires exact supplemental code and text', () => {
-  const supplemented = `${source.replace('replace();', '// diagnostic-also: TS2684 required service registrations are missing\nreplace();')}`;
-  const supplemental = { ...useful, code: 2684, message: 'required service registrations are missing' };
+  const supplemented = `${source.replace('replace();', '// diagnostic-also: TS2684 required services are missing\nreplace();')}`;
+  const supplemental = { ...useful, code: 2684, message: 'required services are missing' };
 
   expect(evaluateReplacementDiagnostics(supplemented, file, [useful, supplemental], true).accepted).toBe(true);
   expect(evaluateReplacementDiagnostics(supplemented, file, [useful], true).accepted).toBe(false);
@@ -66,14 +66,14 @@ test('strict replacement audit requires exact supplemental code and text', () =>
     true,
     {
       primary: ['provided service does not satisfy its consumer dependency'],
-      supplemental: [{ code: 2684, message: 'required service registrations are missing' }],
+      supplemental: [{ code: 2684, message: 'required services are missing' }],
     },
   );
   expect(removedMarker.accepted).toBe(false);
   expect(removedMarker.inventory.supplementalActual).toBe(0);
 
   const weakenedSupplement = supplemented.replace(
-    'TS2684 required service registrations are missing',
+    'TS2684 required services are missing',
     'TS2345 No overload matches this call',
   );
   const weakenedSupplementResult = evaluateReplacementDiagnostics(
@@ -83,7 +83,7 @@ test('strict replacement audit requires exact supplemental code and text', () =>
     true,
     {
       primary: ['provided service does not satisfy its consumer dependency'],
-      supplemental: [{ code: 2684, message: 'required service registrations are missing' }],
+      supplemental: [{ code: 2684, message: 'required services are missing' }],
     },
   );
   expect(weakenedSupplementResult.missing).toEqual([]);

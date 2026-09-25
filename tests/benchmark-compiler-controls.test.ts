@@ -32,7 +32,7 @@ function completedSample(overrides: Partial<CompilerControlSample> = {}): Compil
       file: '/repo/tests/generated-type-scale.ts',
       line: 102,
       code: 2684,
-      message: 'This context is required service registrations are missing for missingFinal',
+      message: 'This context is required services are missing for missingFinal',
     }],
     boundaryLine: 102,
     accepted: true,

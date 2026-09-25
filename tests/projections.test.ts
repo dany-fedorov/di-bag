@@ -235,7 +235,7 @@ test('completed source proxies cannot borrow a pending projection or retry permi
   expect(() => bag.resolve('service')).toThrow('retry');
   bag.resolve('service');
   const closing = bag.close();
-  expect(() => escaped.dependency).toThrow('bag is closing');
+  expect(() => escaped.dependency).toThrow('container is closing');
   projectionGate.resolve(2);
   sourceGate.resolve(2);
   await closing;
@@ -273,7 +273,7 @@ test('a completed source cannot use its still pending asynchronous projector per
   }).buildContainer();
   bag.resolve('service');
   const closing = bag.close();
-  expect(() => escaped.dependency).toThrow('bag is closing');
+  expect(() => escaped.dependency).toThrow('container is closing');
   gate.resolve(42);
   await closing;
 });

@@ -1,7 +1,7 @@
 import { DiBag, type Provider, type ProviderOrFactory } from '../../../src';
 type Registration = ProviderOrFactory;
 const provider = DiBag.providerWithRegistrationMetadata({ provider: ({ clock }: { clock: number }) => clock, registrationMetadata: { owner: 'team' } });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ provider }).buildContainer();
 // diagnostic: consumer dependency
 DiBag.createBuilder().withServices({ provider, clock: () => 'wrong' });
@@ -34,7 +34,7 @@ const erasedMetadata: Provider<({ clock }: { clock: number }) => number, {}, rea
 const erasedFactory: Provider<() => number, { readonly owner: string }, readonly []> = provider;
 declare const erased: Registration;
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ erased }).buildContainer();
 // diagnostic: factory dependencies must be finite
 DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', erased).buildContainer();

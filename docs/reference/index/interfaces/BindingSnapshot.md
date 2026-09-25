@@ -160,7 +160,7 @@ readonly serviceKeys: readonly (string | symbol)[];
 
 Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
 
-Public names or token symbols that select this binding, in registration order; empty for a private module binding.
+Public names or token symbols that select this binding, in service key order; empty for a private module binding.
 
 ***
 

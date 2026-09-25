@@ -123,7 +123,7 @@ test('ready borrowed transient proxies keep late cycle and root capture checks',
   }).buildContainer();
   const child = bag.createChildContainer();
   const bridge = child.resolve('root');
-  assert.throws(bridge.read, /root lifetime cannot capture scoped dependency: root -> scoped/);
+  assert.throws(bridge.read, /singleton lifetime cannot capture scoped dependency: root -> scoped/);
   const reader = bag.resolve('reader');
   assert.throws(reader.next().next, /^Error: DI_BAG_DEPENDENCY_CYCLE: cycle: reader -> link -> reader; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-dependency-cycle$/);
   assert.equal(child.resolve('scoped'), 42);
@@ -141,9 +141,9 @@ for (const mode of ['raw', 'auto']) test(`failed direct ${mode} sources cannot u
   assert.throws(() => bag.resolve('failed'), error => error === cause);
   assert.equal(read(), 42);
   const closing = bag.close();
-  assert.throws(read, /bag is closing/);
+  assert.throws(read, /container is closing/);
   await closing;
-  assert.throws(read, /bag is closed/);
+  assert.throws(read, /container is closed/);
 });
 
 function gate() {

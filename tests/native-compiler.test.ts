@@ -21,8 +21,8 @@ test('parser exposes configuration errors, TS2589 and unknown output', () => {
   expect(parseNativeDiagnostics('unknown output\n', '/tmp').unparsed).toEqual(['unknown output']);
 });
 test('source marker gate rejects wrong file, region, message, TS2589 and unmatched cascades', () => {
-  const source = '// diagnostic: required service registrations are missing\ncall();\n// diagnostic: consumer dependency\ncall();';
-  const good = [{ file: '/tmp/source.ts', line: 2, code: 2345, message: 'required service registrations are missing' },
+  const source = '// diagnostic: required services are missing\ncall();\n// diagnostic: consumer dependency\ncall();';
+  const good = [{ file: '/tmp/source.ts', line: 2, code: 2345, message: 'required services are missing' },
     { file: '/tmp/source.ts', line: 4, code: 2345, message: 'consumer dependency' }];
   expect(matchDiagnosticMarkers(source, '/tmp/source.ts', good)).toMatchObject({ expected: 2, matched: 2, unexpected: [], missing: [] });
   for (const change of [{ file: '/tmp/config.json' }, { line: 4 }, { message: 'other' }, { code: 2589 }]) {

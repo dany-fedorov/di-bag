@@ -55,11 +55,11 @@ createProviderFromFunction({ dependencies: [token], factoryFunction: (one: { val
 const provider = createProviderFromFunction({ dependencies: [token], factoryFunction: value => value.value });
 // diagnostic: not assignable
 const erased: Provider<() => number> = provider;
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ provider }).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ provider }).buildModule({ exportedServiceKeys: ['provider'] })]).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', provider).buildContainer();
 // diagnostic: not assignable
 withTokenBinding(token, () => 'wrong');

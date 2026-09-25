@@ -64,6 +64,6 @@ export const dependencyReferenceRuntimeAssertions = `
       'deferred transient ownership or context cleanup changed');
     observed = undefined;
     try { sharedReader.get(); } catch (error) { observed = error; }
-    assertReference(observed instanceof Error && /bag is closed/.test(observed.message), 'lazy closure outlived the owner');
+    assertReference(observed instanceof Error && /container is closed/.test(observed.message), 'lazy closure outlived the owner');
   }
 `;

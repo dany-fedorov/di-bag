@@ -39,7 +39,7 @@ const lifetime = DiBag.createBuilder().withServices({
   db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }),
   rootService: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
-// diagnostic: root lifetime cannot capture scoped dependency
+// diagnostic: singleton lifetime cannot capture scoped dependency
 lifetime.createIndependentContainer(['db'], { db: () => 2 });
 
 const transient = DiBag.createBuilder().withServices({

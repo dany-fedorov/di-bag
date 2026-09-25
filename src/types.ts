@@ -12,7 +12,7 @@ import type { BoundToken } from './provider';
 export type Needs<R extends ProviderOrFactory> = ProviderNamedDependencies<R>;
 
 /**
- * Map registrations to the exact service values they expose.
+ * Map providers to the exact service values they expose.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export type ServicesOf<R extends Registrations> = {
@@ -26,7 +26,7 @@ export type Entry = { key: string | symbol; registration: ProviderOrFactory };
 type RegistrationEntry<K extends string | symbol, V extends ProviderOrFactory> = { key: K; registration: V };
 
 /**
- * Convert a registration map to the union of entries retained by a builder.
+ * Convert a provider map to the union of entries retained by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export type RegistrationEntries<R extends Registrations> = {
@@ -34,7 +34,7 @@ export type RegistrationEntries<R extends Registrations> = {
 }[keyof R & (string | symbol)];
 
 /**
- * Reconstruct a registration map from a builder's retained entry union.
+ * Reconstruct a provider map from a builder's retained entry union.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export type RegistrationsFromEntries<E extends Entry> = {
@@ -42,7 +42,7 @@ export type RegistrationsFromEntries<E extends Entry> = {
 };
 
 /**
- * Replace overlapping registrations in `F` with registrations from `N`.
+ * Replace overlapping providers in `F` with providers from `N`.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
 export type OverrideRegistrations<F extends Registrations, N extends Registrations> = Omit<
@@ -155,7 +155,7 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : [NonFiniteKeys<R> | Extract<keyof R, number>] extends [never]
     ? Unsatisfied<'factory dependencies must be finite string-keyed objects', { tokens: InvalidNeeds<R> }>
-    : Unsatisfied<'registration keys must be finite string or unique-symbol keys', { keys: NonFiniteKeys<R> | Extract<keyof R, number> }>;
+    : Unsatisfied<'service keys must be finite string or unique-symbol keys', { keys: NonFiniteKeys<R> | Extract<keyof R, number> }>;
 
 // Builder history has already passed CheckDependencyCompatibility, so only relationships crossing
 // the accepted-history/incoming-registration boundary need validating again.
@@ -215,7 +215,7 @@ export type CheckDependencyCompleteness<R extends Registrations> = [
   ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
-      `required service registrations are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}${SeeErrors<'missing-service'>}`,
+      `required services are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}${SeeErrors<'missing-service'>}`,
       { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>; relationships: MissingRelationships<R> }
     >;
 
@@ -224,7 +224,7 @@ type BadOverrides<F extends Registrations, O extends Registrations> = {
 }[keyof O & keyof F];
 
 /**
- * Admit overrides only for existing keys whose service values remain assignable.
+ * Admit replacements only for existing keys whose service values remain assignable.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
 export type Overrides<
@@ -237,7 +237,7 @@ export type Overrides<
     ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never]
       ? unknown
       : Unsatisfied<
-          `override value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`,
+          `replacement value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`,
           { tokens: BadOverrides<SelectionRegistrations<F, K>, O> }
         >
     : Unsatisfied<
@@ -344,7 +344,7 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
 >;
 
 /**
- * Select registration-valued own fields corresponding to a checked key tuple.
+ * Select provider-valued own fields corresponding to a checked key tuple.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
 export type SelectedRegistrations<K extends readonly unknown[], O> = {
@@ -368,13 +368,13 @@ type CollectionOverrideMember<O, T> = T extends CollectionTokenBase
 export type CollectionOverrideAdmission<K extends readonly unknown[], O> = Intersect<
   K[number] extends infer T ? CollectionOverrideMember<O, T> : never
 >;
-/** Rebind selected symbol-keyed overrides to their original typed-token contracts. */
+/** Rebind selected symbol-keyed replacements to their original typed-token contracts. */
 export type ReboundProviders<R extends Registrations, K extends readonly unknown[], O extends Registrations> = {
   [P in keyof O]: P extends symbol ? SelectedTokenForKey<K, P> extends infer T extends TokenBase
     ? [T] extends [never] ? P extends keyof R ? TokenBinding<BoundToken<R[P]>, O[P]> : O[P]
       : TokenBinding<T, O[P]> : never : O[P];
 };
-/** Preserve named overrides while rebinding selected symbol-keyed providers. */
+/** Preserve named replacements while rebinding selected symbol-keyed providers. */
 export type ReboundSelection<R extends Registrations, K extends readonly unknown[], O extends Registrations> =
   [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, K, O>;
 export type ReboundSelected<R extends Registrations, K extends readonly unknown[], O> = ReboundSelection<
@@ -415,7 +415,7 @@ export type Intersect<U> = (U extends unknown ? (value: U) => void : never) exte
 // Declaration emit cannot serialize an expanded property named by a unique symbol, so symbol keys
 // stay `Record` references, which print by name and carry only the key and service types.
 type SymbolExports<S, K> = Extract<Intersect<K extends symbol ? Record<K, S[K & keyof S]> : never>, object>;
-/** The services a sealed module exports, printed without the registrations they came from. */
+/** The services a sealed module exports, printed without the providers they came from. */
 // Single-kind selections skip the intersection: installs compare this type on every call.
 export type ExportedServices<S, K extends keyof S> = [Extract<K, symbol>] extends [never] ? Resolved<Pick<S, K>>
   : [Extract<K, string>] extends [never] ? SymbolExports<S, K>

@@ -15,12 +15,12 @@ export type Registrations = Record<string, ProviderOrFactory>;
 export function snapshotAdd(providersByName: unknown, hasKey: (key: string) => boolean): Registrations {
   const operation = 'withServices';
   if (typeof providersByName !== 'object' || providersByName === null || Array.isArray(providersByName)) {
-    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'registrations must be a string-keyed object', { operation, argument: 'services', expected: 'an object' });
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'service providers must be a string-keyed object', { operation, argument: 'services', expected: 'an object' });
   }
   const keys = Reflect.ownKeys(providersByName);
   for (const key of keys) {
-    if (typeof key !== 'string') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'registration keys must be strings', { operation, argument: 'services', expected: 'only string keys' });
-    if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${key}`, { operation, serviceKey: key });
+    if (typeof key !== 'string') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'service keys must be strings', { operation, argument: 'services', expected: 'only string keys' });
+    if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate service key: ${key}`, { operation, serviceKey: key });
   }
   const snapshot: Registrations = Object.create(null);
   for (const key of keys as string[]) {

@@ -50,7 +50,7 @@ test('add snapshots every own entry and validates before producing a builder', (
   expect(() => builder.withServices(hiddenDuplicate)).toThrow(/duplicate.*a/);
   const invalid = { b: () => 2, hidden: 42 };
   const narrowed: { b: () => number } = invalid;
-  expect(() => builder.withServices(narrowed)).toThrow(/invalid.*registration/);
+  expect(() => builder.withServices(narrowed)).toThrow(/invalid provider or factory/);
   expect(builder.withServices({ b: () => 3 }).buildContainer().resolve('b')).toBe(3);
   let reads = 0;
   const snapshot = builder.withServices({ get b() { reads++; return () => reads; } });
@@ -178,7 +178,7 @@ test('runtime registration validation rejects cloned and forged owned handles', 
   expect(Object.isFrozen(owned)).toBe(true);
   const builder = DiBag.createBuilder();
   for (const value of [{ ...owned }, { ...owned, create: () => 'wrong' }, Object.create(owned)]) {
-    expect(() => Reflect.apply(builder.withServices, builder, [{ value }])).toThrow(/invalid.*registration/);
+    expect(() => Reflect.apply(builder.withServices, builder, [{ value }])).toThrow(/invalid provider or factory/);
   }
   expect(builder.withServices({ value: owned }).buildContainer().resolve('value')).toBe(1);
 });

@@ -53,9 +53,9 @@ DiBag.createProviderFromFunction({ dependencies: union, factoryFunction: (value?
 DiBag.createProviderFromClass({ dependencies: [{ key }], serviceClass: Client });
 // diagnostic: known properties
 DiBag.createProviderFromFunction({ dependencies: [{ key }], factoryFunction: value => value });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ source: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }) }).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ source: DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => value }) }).buildContainer();
 const conflict = DiBag.createToken(key).forService<string>();
 // diagnostic: incompatible

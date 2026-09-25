@@ -10,7 +10,7 @@ type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extend
 
 Defined in: [module-types.ts:226](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L226)
 
-Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations.
+Every constraint a sealed module carries: its own providers' needs, nested retained constraints, and compact lifetime obligations.
 
 ## Type Parameters
 

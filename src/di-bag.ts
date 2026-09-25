@@ -106,7 +106,7 @@ function positionalIndependentOptions(args: readonly unknown[]): unknown {
  *
  * Create containers through {@link DiBagApi.createBuilder} followed by {@link Builder.buildContainer}, and make services
  * ready ahead of use with {@link Container.ensureServicesReady}; the class is exported as a type and has no public constructor.
- * @typeParam ServiceRegistrations - The map from each public service name or token symbol to its registration.
+ * @typeParam ServiceRegistrations - The map from each public service name or token symbol to its provider.
  * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#container
  */
@@ -127,11 +127,11 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
 
   /**
    * Resolve a registered service, acquiring it lazily when needed.
-   * Scoped and root services are cached according to their lifetime; transient services
+   * Scoped and singleton services are cached according to their lifetime; transient services
    * create a new acquisition for each call. Promise-valued services keep their identity.
    * An async factory's service is its Promise; nothing is awaited for you.
    * @param token - An existing public string name or typed token.
-   * @returns The service exposed by the selected registration.
+   * @returns The service exposed by the selected provider.
    * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_UNKNOWN_SERVICE_KEY` for a bad selection;
    * during acquisition `DI_BAG_MISSING_DEPENDENCY`, `DI_BAG_DEPENDENCY_CYCLE`, `DI_BAG_LIFETIME_DEPENDENCY`, `DI_BAG_INVALID_DEPENDENCY_ACCESS`,
    * `DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_ACQUISITION_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
@@ -182,7 +182,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
   }
 
   /**
-   * Inspect a service registration through any supported public key without resolving it.
+   * Inspect a service binding through any supported public key without resolving it.
    * @param serviceKey - The public service name or typed token to inspect.
    * @returns The service snapshot, or one snapshot per collection contribution.
    * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
@@ -378,13 +378,13 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
   /**
    * Close this container, drain in-flight work, and dispose owned resources once.
    * Dependents are disposed before dependencies; remaining independent acquisitions use
-   * reverse acquisition order. Without options the promise waits for cleanup however long it
-   * takes, and repeated calls return the same promise. With `waitTimeoutMs` or `abortSignal`, cleanup
+   * reverse acquisition order. Without options the promise waits for disposal however long it
+   * takes, and repeated calls return the same promise. With `waitTimeoutMs` or `abortSignal`, disposal
    * starts the same way but the returned promise stops waiting when either fires; child and
    * independent containers accept the same options. Close every derived container you create; a parent closes its live children, never independent containers.
-   * @param options - An optional deadline and abort signal bounding the wait, not the cleanup.
+   * @param options - An optional deadline and abort signal bounding the wait, not the disposal.
    * @returns The shared shutdown promise, or a bounded wait on it when options are given.
-   * @throws {@link DiBagDisposalError} (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all cleanup is attempted;
+   * @throws {@link DiBagDisposalError} (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all disposal is attempted;
    * `DI_BAG_CLOSE_FAILED` for other shutdown failures;
    * {@link DiBagCloseCancelledError} (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
    * naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_ARGUMENT` for malformed options.
@@ -405,7 +405,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
  * {@link Builder.buildContainer} a container once its graph is complete, or
  * {@link Builder.buildModule} a reusable module whose unmet dependencies become
  * requirements the installing host must satisfy.
- * @typeParam Entries - The union of accepted registration entries, one per public key.
+ * @typeParam Entries - The union of accepted provider entries, one per public key.
  * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
  */
@@ -461,7 +461,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
   #withTokenService(token: unknown, provider: unknown): unknown {
     const serviceKey = readSingleServiceKey(token, 'withTokenService');
     const graph = this.#graph.withTokenKind(serviceKey, 'single-service', 'withTokenService');
-    if (graph.hasPublic(serviceKey)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${String(serviceKey)}`, { operation: 'withTokenService', serviceKey });
+    if (graph.hasPublic(serviceKey)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate service key: ${String(serviceKey)}`, { operation: 'withTokenService', serviceKey });
     return new Builder(graph.withPublicBinding(serviceKey, withTokenBinding(token as never, provider as never, 'withTokenService'), 'withTokenService'), this.context) as never;
   }
 
@@ -589,7 +589,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * Seal this graph as a reusable module and select its public names and typed tokens.
    * Unselected services stay private to each installation; unmet dependencies
    * become requirements of the module. Installed modules nest: their private
-   * bindings and retained constraints are re-scoped inside this module.
+   * bindings and retained constraints are nested inside this module.
    * @param options - `exportedServiceKeys` is a finite tuple of existing names or tokens, and may be empty. `moduleLabel` is optional;
    * each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `graphSnapshot()`, and observer events.
    * @returns An immutable module that can be renamed or installed in another builder.
@@ -736,7 +736,7 @@ export interface DiBagApi {
   createBuilder: () => Builder<never>;
   /**
    * Add an ownership stage to a provider input.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or disposer; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object or disposer; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), disposeService: service => service.close() });
@@ -749,7 +749,7 @@ export interface DiBagApi {
    * their dependencies are scoped.
    * @param options - The provider, full lifetime, and optional deliberate scoped-capture allowance for singleton only.
    * @returns A fresh immutable provider retaining every other provider stage.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object, lifetime, or option; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const createClient = () => ({ close() {} });
@@ -768,7 +768,7 @@ export interface DiBagApi {
   readonly providerWithRegistrationMetadata: typeof providerWithRegistrationMetadata;
   /**
    * Append one synchronous acquisition-metadata frame using the selected callback input.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag; `DI_BAG_INVALID_ACQUISITION_METADATA` for an invalid callback result; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_ACQUISITION_METADATA` for an invalid callback result; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: 'exposed-service', describeAcquisition: value => ({ value }) });
@@ -777,7 +777,7 @@ export interface DiBagApi {
   readonly providerWithAcquisitionMetadata: typeof providerWithAcquisitionMetadata;
   /**
    * Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or return policy; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object or return policy; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => String(value) });

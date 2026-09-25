@@ -82,7 +82,7 @@ test('snippets type-check together against a consumer package, honoring continue
 });
 
 test('budgets, layout identity, and error coverage report drift', () => {
-  const families = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
+  const families = ['missing-service', 'unsatisfied-consumer', 'singleton-captures-scoped', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
   const errorsPage = codes => `# Errors {#errors}\n${codes.map(code => `## ${code} {#${code.toLowerCase().replace(/_/g, '-')}}\n`).join('')}${families.map(id => `## Family {#${id}}\n`).join('')}`;
   const root = fixture({
     'AGENTS.md': `# A\n${layout}`,

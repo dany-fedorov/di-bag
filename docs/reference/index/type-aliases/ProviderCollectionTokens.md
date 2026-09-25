@@ -10,7 +10,7 @@ type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? Co
 
 Defined in: [provider.ts:131](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L131)
 
-Extract token collection requirements from a registration.
+Extract token collection requirements from a provider.
 
 ## Type Parameters
 

@@ -19,7 +19,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#container
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `ServiceRegistrations` | The map from each public service name or token symbol to its registration. |
+| `ServiceRegistrations` | The map from each public service name or token symbol to its provider. |
 | `Constraints` | The requirements, contributions and lifetime obligations that installed modules retain on this graph. |
 
 ## Methods
@@ -34,8 +34,8 @@ Defined in: [di-bag.ts:397](https://github.com/dany-fedorov/di-bag/blob/main/src
 
 Close this container, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
-reverse acquisition order. Without options the promise waits for cleanup however long it
-takes, and repeated calls return the same promise. With `waitTimeoutMs` or `abortSignal`, cleanup
+reverse acquisition order. Without options the promise waits for disposal however long it
+takes, and repeated calls return the same promise. With `waitTimeoutMs` or `abortSignal`, disposal
 starts the same way but the returned promise stops waiting when either fires; child and
 independent containers accept the same options. Close every derived container you create; a parent closes its live children, never independent containers.
 
@@ -43,7 +43,7 @@ independent containers accept the same options. Close every derived container yo
 
 | Parameter | Description |
 | ------ | ------ |
-| `options?` | An optional deadline and abort signal bounding the wait, not the cleanup. |
+| `options?` | An optional deadline and abort signal bounding the wait, not the disposal. |
 
 #### Returns
 
@@ -51,7 +51,7 @@ The shared shutdown promise, or a bounded wait on it when options are given.
 
 #### Throws
 
-[DiBagDisposalError](../classes/DiBagDisposalError.md) (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all cleanup is attempted;
+[DiBagDisposalError](../classes/DiBagDisposalError.md) (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all disposal is attempted;
 `DI_BAG_CLOSE_FAILED` for other shutdown failures;
 [DiBagCloseCancelledError](../classes/DiBagCloseCancelledError.md) (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
 naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_ARGUMENT` for malformed options.
@@ -361,7 +361,7 @@ resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & 
 Defined in: [di-bag.ts:145](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L145)
 
 Resolve a registered service, acquiring it lazily when needed.
-Scoped and root services are cached according to their lifetime; transient services
+Scoped and singleton services are cached according to their lifetime; transient services
 create a new acquisition for each call. Promise-valued services keep their identity.
 An async factory's service is its Promise; nothing is awaited for you.
 
@@ -379,7 +379,7 @@ An async factory's service is its Promise; nothing is awaited for you.
 
 #### Returns
 
-The service exposed by the selected registration.
+The service exposed by the selected provider.
 
 #### Throws
 
@@ -450,7 +450,7 @@ serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | Token
 
 Defined in: [di-bag.ts:196](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L196)
 
-Inspect a service registration through any supported public key without resolving it.
+Inspect a service binding through any supported public key without resolving it.
 
 ##### Type Parameters
 
@@ -534,7 +534,7 @@ serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | Token
 
 Defined in: [di-bag.ts:223](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L223)
 
-Inspect a service registration through any supported public key without resolving it.
+Inspect a service binding through any supported public key without resolving it.
 
 ##### Type Parameters
 

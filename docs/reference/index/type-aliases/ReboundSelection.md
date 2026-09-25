@@ -12,7 +12,7 @@ type ReboundSelection<R extends Registrations, K extends readonly unknown[], O e
 
 Defined in: [types.ts:378](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L378)
 
-Preserve named overrides while rebinding selected symbol-keyed providers.
+Preserve named replacements while rebinding selected symbol-keyed providers.
 
 ## Type Parameters
 

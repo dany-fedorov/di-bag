@@ -132,11 +132,11 @@ test('a failed attempt cannot borrow its pending retry permission to acquire dur
   expect(() => bag.resolve('holder')).toThrow(failure);
   expect(bag.resolve('holder')).toBe(gate.promise);
   const closing = bag.close();
-  expect(lateRead).toThrow('bag is closing');
+  expect(lateRead).toThrow('container is closing');
   gate.resolve(7);
   await closing;
   expect(events).toEqual(['holder:close']);
-  expect(lateRead).toThrow('bag is closed');
+  expect(lateRead).toThrow('container is closed');
 });
 
 test('a completed factory cannot start late acquisitions while another factory drains', async () => {
@@ -150,7 +150,7 @@ test('a completed factory cannot start late acquisitions while another factory d
   const read = bag.resolve('reader');
   expect(bag.resolve('pending')).toBe(gate.promise);
   const closing = bag.close();
-  expect(read).toThrow('bag is closing');
+  expect(read).toThrow('container is closing');
   gate.resolve(7);
   await closing;
   expect(events).toEqual(['pending:close']);
@@ -171,5 +171,5 @@ test('a retained failed proxy follows live dependencies without traversing remov
   expect(bag.resolve('a')).toBe(42);
   expect(readA()).toBe(42);
   await bag.close();
-  expect(readA).toThrow('bag is closed');
+  expect(readA).toThrow('container is closed');
 });

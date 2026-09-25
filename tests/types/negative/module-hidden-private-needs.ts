@@ -1,6 +1,6 @@
 import { DiBag } from '../../../src';
 const module = DiBag.createBuilder().withServices({ hidden: ({ external }: { external: number }) => external }).buildModule({ exportedServiceKeys: [] });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([module]).buildContainer();
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withInstalledModules([module]).withServices({ external: () => 'wrong' });

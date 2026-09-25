@@ -235,7 +235,7 @@ const names: readonly string[] = container.resolveCollection(tools);
 ```
 
 ### `container.serviceSnapshot(serviceKey)` {#container-servicesnapshot}
-Inspect a service registration through any supported public key without resolving it. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Inspect a service binding through any supported public key without resolving it. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
 const snapshot = container.serviceSnapshot('greeting');
@@ -303,7 +303,7 @@ try {
 ```
 
 ### `DiBagDisposalError` {#dibagdisposalerror}
-One or more disposers failed during `close()`; every cleanup was still attempted. Code: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed).
+One or more disposers failed during `close()`; every disposal was still attempted. Code: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed).
 ```ts
 import { DiBag, DiBagDisposalError } from 'di-bag';
 
@@ -340,7 +340,7 @@ try {
 ```
 
 ### `DiBagCloseCancelledError` {#dibagclosecancellederror}
-A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before disposal finished; disposal keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 

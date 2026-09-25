@@ -32,10 +32,10 @@ declare const opaque: OpaqueRegistration;
 // diagnostic: not assignable
 DiBag.providerWithAcquisitionMetadata({ provider: opaque, describeAcquisition: (value: number) => ({ value }), callbackReceives: 'exposed-service' });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: opaque, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' }) }).buildContainer();
 const annotated = DiBag.providerWithAcquisitionMetadata({ provider: ({ dep }: { dep: number }) => dep, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ annotated }).buildContainer();
 // diagnostic: consumer dependency
 DiBag.createBuilder().withServices({ annotated, dep: () => 'wrong' });

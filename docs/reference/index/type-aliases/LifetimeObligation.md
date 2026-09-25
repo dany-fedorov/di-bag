@@ -23,11 +23,11 @@ type LifetimeObligation = {
 
 Defined in: [lifetime-types.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L26)
 
-A compact seal-time lifetime record that replaces a module's private registrations:
-`singleton-reach` names a private strict singleton, `export-reach` an export the host checks as a root or
+A compact seal-time lifetime record that replaces a module's private providers:
+`singleton-reach` names a private strict singleton, `export-reach` an export the host checks as a singleton or
 walks through as a transient or alias, and `contribution-reach` a sealed contribution group
-that is checked as a root or walked by collecting roots. Each record carries one reach.
+that is checked as a singleton or walked by collecting singleton providers. Each record carries one reach.
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped

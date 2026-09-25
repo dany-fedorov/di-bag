@@ -8,9 +8,9 @@ const token = DiBag.createToken(key).forService<{ value: number }>();
 const other = DiBag.createToken(otherKey).forService<{ value: number }>();
 const conflict = DiBag.createToken(key).forService<{ extra: boolean }>();
 const source = DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value.value });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ source }).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withTokenService(other, () => ({ value: 1 })).withServices({ source }).buildContainer();
 // diagnostic: not assignable
 DiBag.createBuilder().withTokenService(token, () => ({ value: 'wrong' }));
@@ -31,7 +31,7 @@ bag.resolve(conflict);
 bag.serviceSnapshot(conflict);
 // diagnostic: not assignable
 builder.withReplacedService(token, () => ({ value: 'wrong' }));
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 builder.withReplacedService(token, ({ missing }: { missing: number }) => ({ value: missing })).buildContainer();
 // diagnostic: consumer dependency
 DiBag.createBuilder().withTokenService(token, ({ name }: { name: string }) => ({ value: name.length })).withServices({ name: () => 1 });
@@ -65,7 +65,7 @@ declare const opaqueBinding: Provider<() => number, {}, readonly [], TokenDepend
 DiBag.createBuilder().withServices({ opaqueBinding });
 // diagnostic: not assignable
 bag.createIndependentContainer([token], { [key]: opaque });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 bag.createIndependentContainer([token], { [key]: DiBag.createProviderFromFunction({ dependencies: [other], factoryFunction: (_dependency0) => ({ value: 2, extra: true }) }) });
 declare const unionToken: typeof token | typeof other;
 // diagnostic: not assignable

@@ -29,7 +29,7 @@ export interface AcquisitionSnapshot<A extends readonly unknown[] = readonly []>
 }
 
 /**
- * A frozen registration description and copied acquisition state returned by container inspection.
+ * A frozen binding description and copied acquisition state returned by container inspection.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> {
@@ -50,7 +50,7 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
-  /** Public names or token symbols that select this binding, in registration order; empty for a private module binding. */
+  /** Public names or token symbols that select this binding, in service key order; empty for a private module binding. */
   readonly serviceKeys: readonly (string | symbol)[];
   readonly lifetime: Lifetime;
   readonly factoryReturnKind: FactoryReturnKind;
@@ -68,7 +68,7 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
  */
 export interface GraphSnapshot {
   readonly containerId: symbol;
-  /** Public bindings in registration order, then contributions in group order, then remaining private bindings. */
+  /** Public bindings in service key order, then contributions in group order, then remaining private bindings. */
   readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
   readonly contributions: readonly { readonly collectionTokenSymbol: symbol; readonly bindingIds: readonly symbol[] }[];
   /** Consumer-to-dependency edges recorded by acquisitions in this container's ownership family. */

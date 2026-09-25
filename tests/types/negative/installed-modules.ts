@@ -46,5 +46,5 @@ declare const widened: Module<object, object>[];
 DiBag.createBuilder().withInstalledModules(widened);
 
 // A missing requirement is still reported by the terminal, as it is for separate installs.
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([feature]).buildContainer();

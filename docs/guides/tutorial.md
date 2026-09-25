@@ -405,9 +405,9 @@ the table omits that suffix:
 
 | Message | Meaning |
 | --- | --- |
-| `required service registrations are missing: clock` | No registration supplies `clock`. |
+| `required services are missing: clock` | No registration supplies `clock`. |
 | `provided service does not satisfy its consumer dependency` | A service's type does not match what a consumer declares. `verifyGraph()` shows the consumer, dependency, expected type, and provided type. |
-| `root lifetime cannot capture scoped dependency: db -> config` | A `root` service would hold a `scoped` one. |
+| `singleton lifetime cannot capture scoped dependency: db -> config` | A singleton service would hold a scoped one. |
 | `fork accepts existing names or typed tokens only: unknown extra` | A selected key is not registered. |
 
 The full detail object (expected and provided types, every relationship) is part
@@ -423,7 +423,7 @@ const builder = DiBag.createBuilder().register({
   db: ({ config }: { config: { url: string } }) => config.url,
 });
 builder.verifyGraph() satisfies void;
-// error: Type 'Unsatisfied<"required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service", { missing: "config"; ... }>' does not satisfy the expected type 'void'.
+// error: Type 'Unsatisfied<"required services are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service", { missing: "config"; ... }>' does not satisfy the expected type 'void'.
 ```
 
 `CompositionReport<typeof builder>` is the same verdict as a type, for

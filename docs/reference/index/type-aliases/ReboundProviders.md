@@ -12,7 +12,7 @@ type ReboundProviders<R extends Registrations, K extends readonly unknown[], O e
 
 Defined in: [types.ts:372](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L372)
 
-Rebind selected symbol-keyed overrides to their original typed-token contracts.
+Rebind selected symbol-keyed replacements to their original typed-token contracts.
 
 ## Type Parameters
 

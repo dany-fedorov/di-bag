@@ -4,13 +4,13 @@ import { readToken } from './tokens';
 import { DiBagDisposalError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
 
 /**
- * Bounds the wait of {@link Container.close}; cleanup itself keeps running after either fires.
+ * Bounds the wait of {@link Container.close}; disposal itself keeps running after either fires.
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
  */
 export interface CloseOptions {
-  /** Aborting it stops the wait promptly. Cleanup keeps running. */
+  /** Aborting it stops the wait promptly. Disposal keeps running. */
   readonly abortSignal?: AbortSignal;
-  /** A finite positive deadline in milliseconds for the wait, not for the cleanup. */
+  /** A finite positive deadline in milliseconds for the wait, not for the disposal. */
   readonly waitTimeoutMs?: number;
 }
 
@@ -57,7 +57,7 @@ function snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'c
 }
 
 /**
- * Close with a bounded wait. Cleanup starts (or continues) exactly as for `close()`; the deadline
+ * Close with a bounded wait. Disposal starts (or continues) exactly as for `close()`; the deadline
  * and signal only stop waiting, and the rejection carries the shared shutdown promise.
  */
 export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefined): Promise<void> {

@@ -10,7 +10,7 @@ type AliasEntries<R extends Registrations, D, T> = Record<SelectionKey<D>, Alias
 
 Defined in: [alias-types.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L43)
 
-The single registration-map entry introduced by an alias operation.
+The single provider-map entry introduced by an alias operation.
 
 ## Type Parameters
 

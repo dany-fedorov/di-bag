@@ -59,11 +59,11 @@ export type CheckedContributions<C, A extends Registrations> = [Groups<C>] exten
     : Unsatisfied<`contribution service is incompatible with its consumer dependency contract${SeeErrors<'unsatisfied-consumer'>}`, { readonly failures: ContributionFailures<WrongProvider<C, A>, A> }>
   : Unsatisfied<'collection token has an incompatible or opaque contract', {}>;
 export type CompleteContributions<C, A extends Registrations> = [MissingProvider<C, A>] extends [never] ? unknown
-  : Unsatisfied<`required service registrations are missing${SeeErrors<'missing-service'>}`, { readonly contributions: MissingProvider<C, A> }>;
+  : Unsatisfied<`required services are missing${SeeErrors<'missing-service'>}`, { readonly contributions: MissingProvider<C, A> }>;
 /**
  * Retain a contribution's projected provider and its checked needs when its builder seals.
  * Lifetime reach is retained separately as compact obligations. A contribution retained
- * from an inner installation is already projected and has no needs left to re-scope.
+ * from an inner installation is already projected and has no needs left to nest.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
 export type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint

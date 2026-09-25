@@ -11,7 +11,7 @@ DiBag.providerWithTransformedService({ provider: source, transformService: funct
 // diagnostic: not assignable
 DiBag.providerWithTransformedService({ provider: source, transformService: function (this: { prefix: string }, value) { return this.prefix + value.value; }, callbackReceives: 'fulfilled-value' });
 const mapped = DiBag.providerWithTransformedService({ provider: source, transformService: value => value.value, callbackReceives: 'exposed-service' });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ mapped }).buildContainer();
 // diagnostic: consumer dependency
 DiBag.createBuilder().withServices({ mapped, clock: () => 'wrong' });
@@ -28,26 +28,26 @@ DiBag.providerWithTransformedService({ provider: opaque, transformService: (valu
 // diagnostic: not assignable
 DiBag.providerWithTransformedService({ provider: opaque, transformService: (value: number) => value, callbackReceives: 'fulfilled-value' });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: opaque, transformService: () => 1, callbackReceives: 'exposed-service' }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: opaque, transformService: () => 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: opaque, transformService: () => 1, callbackReceives: 'exposed-service' }), disposeService: () => {} }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: opaque, disposeService: () => {} }), transformService: () => 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
 declare const wrapped: NoInfer<Registration>;
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: wrapped, transformService: () => 1, callbackReceives: 'exposed-service' }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: wrapped, transformService: () => 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
+// diagnostic-also: TS2684 required services are missing
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithDisposal({ provider: wrapped, disposeService: () => {} }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
 DiBag.createBuilder().withServices({ mapped: DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: wrapped, transformService: () => 1, callbackReceives: 'fulfilled-value' }), disposeService: () => {} }) }).buildModule({ exportedServiceKeys: ['mapped'] });

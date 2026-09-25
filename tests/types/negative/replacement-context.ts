@@ -46,17 +46,17 @@ module.withReplacedService<'clock', unknown>('clock', () => ({ now: () => 1, zon
 
 const needsBuilder = DiBag.createBuilder().withServices({ value: () => 0 });
 const needsModule = DiBag.createBuilder().withServices({ value: () => 0 });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 needsBuilder.withReplacedService('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 needsBuilder.withReplacedService('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 needsBuilder.withReplacedService('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([needsModule.withReplacedService('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).buildModule({ exportedServiceKeys: ['value'] })]).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([needsModule.withReplacedService('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).buildModule({ exportedServiceKeys: ['value'] })]).buildContainer();
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([needsModule.withReplacedService('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).buildModule({ exportedServiceKeys: ['value'] })]).buildContainer();
 
 const wrongOptionalBuilder = DiBag.createBuilder().withServices({ dep: () => 1, service: () => 0 });

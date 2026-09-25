@@ -86,7 +86,7 @@ test('runtime rejects transient sharing and root captures through aliases before
     root: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }),
   });
   const invalid = Reflect.apply(builder.buildContainer, builder, []);
-  expect(() => invalid.resolve('root')).toThrow('root lifetime cannot capture scoped');
+  expect(() => invalid.resolve('root')).toThrow('singleton lifetime cannot capture scoped');
   expect(calls).toBe(0);
   await invalid.close(); await bag.close();
 });
@@ -113,7 +113,7 @@ test('alias cycles retain a useful lexical path', async () => {
 test('runtime rejects invalid alias selections without changing the builder', () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   const alias = (...args: unknown[]) => Reflect.apply(builder.withServiceAlias, builder, args);
-  expect(() => alias({ aliasKey: 'value', targetServiceKey: 'value' })).toThrow('duplicate registration');
+  expect(() => alias({ aliasKey: 'value', targetServiceKey: 'value' })).toThrow('duplicate service key');
   expect(() => alias({ aliasKey: 'copy', targetServiceKey: 'missing' })).toThrow('existing');
   expect(() => alias({ aliasKey: Symbol('fake'), targetServiceKey: 'value' })).toThrow('invalid token');
   expect(() => alias({ aliasKey: 'copy', targetServiceKey: { key: Symbol('fake') } })).toThrow('invalid token');
@@ -171,7 +171,7 @@ test('in-flight sources may read aliases while closing and retained reads close 
   const closing = bag.close(); resume();
   expect(await value).toBe(7); await closing;
   expect(events).toEqual(['consumer', 'value']);
-  expect(() => retained()).toThrow('bag is closed');
+  expect(() => retained()).toThrow('container is closed');
 });
 
 test('module token aliases preserve private identity and external host requirements', async () => {
@@ -225,8 +225,8 @@ test('strict roots use the effective shared alias policy in both lifetime direct
       const independentScoped = initial.createIndependentContainer(['value'], { value: () => ({ id: 2 }) });
       const fresh = Reflect.apply(independentScoped.createChildContainer, independentScoped, [['consumer'], { consumer }]);
       const fork = Reflect.apply(independentScoped.createIndependentContainer, independentScoped, [['consumer'], { consumer }]);
-      expect(() => fresh.resolve('consumer')).toThrow('root lifetime cannot capture scoped');
-      expect(() => fork.resolve('consumer')).toThrow('root lifetime cannot capture scoped');
+      expect(() => fresh.resolve('consumer')).toThrow('singleton lifetime cannot capture scoped');
+      expect(() => fork.resolve('consumer')).toThrow('singleton lifetime cannot capture scoped');
       await fork.close(); await independentScoped.close();
       await initial.close();
     } else {
@@ -236,7 +236,7 @@ test('strict roots use the effective shared alias policy in both lifetime direct
       const shared = Reflect.apply(child.createChildContainer, child, [['consumer'], { consumer }, { sharedParentServiceKeys: ['copy'] }]);
       const fresh = child.createChildContainer(['consumer'], { consumer });
       const fork = child.createIndependentContainer(['consumer'], { consumer });
-      expect(() => shared.resolve('consumer')).toThrow('root lifetime cannot capture scoped');
+      expect(() => shared.resolve('consumer')).toThrow('singleton lifetime cannot capture scoped');
       expect(fresh.resolve('consumer')).toEqual({ id: 2 });
       expect(fork.resolve('consumer')).toEqual({ id: 2 });
       await fork.close();

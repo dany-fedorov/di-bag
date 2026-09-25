@@ -5,14 +5,14 @@
 # Type Alias: CheckedChildContainerLifetimes\<R *extends* `Registrations`, O *extends* `Registrations`, C = `never`\>
 
 ```ts
-type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [OverrideCaptives<R, O, C>] extends [never] ? unknown : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, {
+type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [OverrideCaptives<R, O, C>] extends [never] ? unknown : Unsatisfied<`singleton lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'singleton-captures-scoped'>}`, {
     readonly captives: OverrideCaptives<R, O, C>;
 }>;
 ```
 
 Defined in: [lifetime-types.ts:210](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L210)
 
-Reject root providers introduced by a child-container replacement when they capture scoped dependencies.
+Reject singleton providers introduced by a child-container replacement when they capture scoped dependencies.
 
 ## Type Parameters
 
@@ -24,4 +24,4 @@ Reject root providers introduced by a child-container replacement when they capt
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped

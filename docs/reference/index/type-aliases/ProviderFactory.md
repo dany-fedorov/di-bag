@@ -10,7 +10,7 @@ type ProviderFactory<R extends ProviderOrFactory> = R extends infer T & {} ? Fac
 
 Defined in: [provider.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L72)
 
-Extract the callable factory contract retained by a registration.
+Extract the callable factory contract retained by a provider.
 
 ## Type Parameters
 

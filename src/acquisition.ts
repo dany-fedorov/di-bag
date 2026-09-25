@@ -32,7 +32,7 @@ function freshCollectionView(value: unknown): readonly unknown[] {
  * the diagnostic.
  */
 const closingReason: DOMException = (() => {
-  const reason = new DOMException(diagnosticMessage('DI_BAG_CLOSING', 'bag is closing'), 'AbortError');
+  const reason = new DOMException(diagnosticMessage('DI_BAG_CLOSING', 'container is closing'), 'AbortError');
   void reason.stack; // format the load-time frames now, so nothing is retained lazily
   return Object.freeze(reason);
 })();
@@ -175,7 +175,7 @@ export class ScopeAcquisitions {
   }
 
   assertOpen(): void {
-    if (this.state !== 'open') throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
+    if (this.state !== 'open') throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `container is ${this.state}`, { state: this.state });
   }
 
   close(beforeDispose?: Promise<void>, cause?: unknown): Promise<void> {
@@ -236,7 +236,7 @@ export class ScopeAcquisitions {
     const { lifetime } = description;
     // Validate before routing/cache lookup; retained proxies keep their boundary.
     if (lifetime.kind === 'scoped' && from?.strictRoot !== undefined) {
-      throw libraryError('DI_BAG_LIFETIME_DEPENDENCY', `root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`, { consumer: from.strictRoot, dependency: this.graph.label(bindingId), lifetime: 'singleton:one-per-container-tree' });
+      throw libraryError('DI_BAG_LIFETIME_DEPENDENCY', `singleton lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`, { consumer: from.strictRoot, dependency: this.graph.label(bindingId), lifetime: 'singleton:one-per-container-tree' });
     }
     const owner = this.owner(bindingId);
     if (owner !== this) return owner.resolveBinding(bindingId, from);
@@ -301,7 +301,7 @@ export class ScopeAcquisitions {
     ): unknown => {
       // Only this attempt's in-flight factory can discover dependencies in close.
       if (this.state === 'closed' || (this.state === 'closing' && !attempt.execution.sourceInFlight)) {
-        throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
+        throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `container is ${this.state}`, { state: this.state });
       }
       const target = this.graph.findDependency(bindingId, key);
       if (isCollection) {

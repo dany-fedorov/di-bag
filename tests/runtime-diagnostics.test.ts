@@ -28,7 +28,7 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
 
   const classifier = caught(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: () => 1 }).buildContainer()));
-  expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 1 registration uses auto-detect factory return kind: "value"; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' }) or factoryReturnKind: 'native-promise' for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see ${page}#di-bag-classifier-required`);
+  expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 1 provider uses auto-detect factory return kind: "value"; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' }) or factoryReturnKind: 'native-promise' for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see ${page}#di-bag-classifier-required`);
 
   const typeError = caught(() => DiBag.withConfiguration(null as never));
   expect(typeError.code).toBe('DI_BAG_INVALID_ARGUMENT');
@@ -50,7 +50,7 @@ test('library messages carry the code, the original text, and the errors-page se
 
   const readiness = await DiBag.createBuilder().withServices({ slow: () => new Promise(() => {}) }).buildContainer().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
   expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
-  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this bag is closing; see ${page}#di-bag-service-readiness-cancelled`);
+  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this container is closing; see ${page}#di-bag-service-readiness-cancelled`);
   expect(readiness.cause.message).toBe(`DI_BAG_SERVICE_READINESS_TIMEOUT: The listed services were not ready before the deadline; see ${page}#di-bag-service-readiness-timeout`);
 });
 

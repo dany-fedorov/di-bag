@@ -199,7 +199,7 @@ Without the `gateway` fixture, `check.ts` fails on the `verifyGraphAtCompileTime
 
 ```ts
 // src/features/billing/check.ts
-// expect-error: required service registrations are missing: gateway
+// expect-error: required services are missing: gateway
 import { DiBag } from 'di-bag';
 import { billingModule } from './module.js';
 
@@ -280,7 +280,7 @@ DiBag.createBuilder().withInstalledModules([catalogModule])
   .verifyGraphAtCompileTime() satisfies void;
 ```
 
-A scoped `config` fails with `root lifetime cannot capture scoped dependency: db -> config`.
+A scoped `config` fails with `singleton lifetime cannot capture scoped dependency: db -> config`.
 If a driver returns a query builder, return `Promise.resolve(builder)`; see
 [structural thenable](errors.md#structural-thenable).
 

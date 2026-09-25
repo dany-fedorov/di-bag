@@ -199,8 +199,8 @@ test('pending child work acquires roots during parent close and root cleanup fol
   const child = bag.createChildContainer();
   const pending = child.resolve('child');
   const closing = bag.close();
-  expect(() => child.resolve('root')).toThrow('bag is closing');
-  expect(() => bag.resolve('root')).toThrow('bag is closing');
+  expect(() => child.resolve('root')).toThrow('container is closing');
+  expect(() => bag.resolve('root')).toThrow('container is closing');
   gate.resolve();
   expect(await pending).toEqual({});
   await closing;
@@ -219,7 +219,7 @@ for (const cached of [false, true]) for (const intermediate of [false, true]) {
       }, lifetime: 'singleton:one-per-container-tree' }),
     }));
     if (cached) bag.resolve('scoped');
-    expect(() => bag.createChildContainer().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+    expect(() => bag.createChildContainer().resolve('root')).toThrow('singleton lifetime cannot capture scoped dependency');
     expect(factories).toBe(cached ? 1 : 0);
     expect(returned).toBe(0);
     await bag.close();
@@ -239,12 +239,12 @@ test('strict capture boundaries survive await and ready transient methods', asyn
   const pending: Promise<Bridge> = bag.createChildContainer().resolve('root');
   const direct: Promise<number> = bag.resolve('direct');
   gate.resolve();
-  await expect(direct).rejects.toThrow('root lifetime cannot capture scoped dependency');
+  await expect(direct).rejects.toThrow('singleton lifetime cannot capture scoped dependency');
   const bridge = await pending;
-  expect(bridge.read).toThrow('root lifetime cannot capture scoped dependency');
+  expect(bridge.read).toThrow('singleton lifetime cannot capture scoped dependency');
   const next = bridge.next();
   expect(next).not.toBe(bridge);
-  expect(next.read).toThrow('root lifetime cannot capture scoped dependency');
+  expect(next.read).toThrow('singleton lifetime cannot capture scoped dependency');
   expect(factories).toBe(0);
   await bag.close();
 });
@@ -259,7 +259,7 @@ test('strict roots can consume capturing roots without inheriting their permissi
   const child = bag.createChildContainer();
   expect(child.resolve('strict')).toBe(bag.resolve('scoped'));
   expect(child.resolve('strict')).not.toBe(child.resolve('scoped'));
-  expect(() => child.resolve('other')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => child.resolve('other')).toThrow('singleton lifetime cannot capture scoped dependency');
   await bag.close();
 });
 
@@ -270,7 +270,7 @@ test('token captive reads reject at the observed edge before scoped creation', a
   const bag = uncheckedRuntimeGraph(DiBag.createBuilder().withTokenService(token, () => { factories++; return 42; }).withServices({
     root: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), lifetime: 'singleton:one-per-container-tree' }),
   }));
-  expect(() => bag.createChildContainer().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => bag.createChildContainer().resolve('root')).toThrow('singleton lifetime cannot capture scoped dependency');
   expect(factories).toBe(0);
   await bag.close();
 });
@@ -308,7 +308,7 @@ test('private module scoped capture rejects despite an identically named public 
     scoped: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'singleton:one-per-container-tree' }),
     root: DiBag.providerWithLifetime({ provider: (deps: { exported: number }) => deps.exported, lifetime: 'singleton:one-per-container-tree' }),
   }));
-  expect(() => bag.createChildContainer().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => bag.createChildContainer().resolve('root')).toThrow('singleton lifetime cannot capture scoped dependency');
   expect(calls).toBe(0);
   await bag.close();
 });
@@ -386,12 +386,12 @@ test('completed child and retired proxies cannot borrow another attempt closing 
   expect(() => child.resolve('retry')).toThrow('failed');
   expect(child.resolve('retry')).toBe(gate.promise);
   const closing = bag.close();
-  expect(read).toThrow('bag is closing');
-  expect(stale).toThrow('bag is closing');
+  expect(read).toThrow('container is closing');
+  expect(stale).toThrow('container is closing');
   expect(rootCalls).toBe(0);
   gate.resolve(1);
   await closing;
-  expect(stale).toThrow('bag is closed');
+  expect(stale).toThrow('container is closed');
 });
 
 test('pending source permission survives a ready projection when routing late roots', async () => {

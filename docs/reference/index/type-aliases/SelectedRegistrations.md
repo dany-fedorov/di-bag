@@ -12,7 +12,7 @@ type SelectedRegistrations<K extends readonly unknown[], O> = {
 
 Defined in: [types.ts:350](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L350)
 
-Select registration-valued own fields corresponding to a checked key tuple.
+Select provider-valued own fields corresponding to a checked key tuple.
 
 ## Type Parameters
 

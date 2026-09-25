@@ -5,7 +5,7 @@
 # Type Alias: Overrides\<F *extends* `Registrations`, O *extends* `Registrations`, K *extends* readonly `unknown`[] = readonly \[\], Operation *extends* `string` = `"createIndependentContainer"`\>
 
 ```ts
-type Overrides<F extends Registrations, O extends Registrations, K extends readonly unknown[] = readonly [], Operation extends string = 'createIndependentContainer'> = unknown extends CollectionOverrideAdmission<K, O> ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never] ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never] ? unknown : Unsatisfied<`override value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`, {
+type Overrides<F extends Registrations, O extends Registrations, K extends readonly unknown[] = readonly [], Operation extends string = 'createIndependentContainer'> = unknown extends CollectionOverrideAdmission<K, O> ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never] ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never] ? unknown : Unsatisfied<`replacement value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`, {
     tokens: BadOverrides<SelectionRegistrations<F, K>, O>;
 }> : Unsatisfied<`${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof SelectionRegistrations<F, K>>>}${SeeErrors<'unknown-key'>}`, {
     extra: Exclude<keyof O, keyof SelectionRegistrations<F, K>>;
@@ -14,7 +14,7 @@ type Overrides<F extends Registrations, O extends Registrations, K extends reado
 
 Defined in: [types.ts:230](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L230)
 
-Admit overrides only for existing keys whose service values remain assignable.
+Admit replacements only for existing keys whose service values remain assignable.
 
 ## Type Parameters
 

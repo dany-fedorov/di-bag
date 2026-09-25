@@ -24,7 +24,7 @@ readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
 
 Defined in: [inspection.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L72)
 
-Public bindings in registration order, then contributions in group order, then remaining private bindings.
+Public bindings in service key order, then contributions in group order, then remaining private bindings.
 
 ***
 

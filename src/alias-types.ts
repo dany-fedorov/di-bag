@@ -37,7 +37,7 @@ export type AliasRegistration<R extends Registrations, D, T> = Provider<
   unknown
 >;
 /**
- * The single registration-map entry introduced by an alias operation.
+ * The single provider-map entry introduced by an alias operation.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#give-a-dependency-another-lookup-name
  */
 export type AliasEntries<R extends Registrations, D, T> = Record<SelectionKey<D>, AliasRegistration<R, D, T>>;

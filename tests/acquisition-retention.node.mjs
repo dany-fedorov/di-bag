@@ -155,7 +155,7 @@ test('closing releases compacted frame payloads even when a dependency proxy is 
   assert.notEqual(refs[0].deref(), undefined);
   await bag.close();
   await collected(refs);
-  assert.throws(read, /bag is closed/);
+  assert.throws(read, /container is closed/);
 });
 
 test('a retained acquisition context releases the frame payloads of its own attempt', async () => {

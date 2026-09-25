@@ -148,7 +148,7 @@ test('strict child roots reject shared scoped dependencies before reading a cach
   parent.resolve('service');
   const childGraph = graph.withPublicBinding('root', DiBag.providerWithLifetime({ provider: (deps: { service: number }) => deps.service, lifetime: 'singleton:one-per-container-tree' }));
   const child = parent.scope(childGraph, [graph.publicBinding('service')]);
-  expect(() => child.resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => child.resolve('root')).toThrow('singleton lifetime cannot capture scoped dependency');
   expect(calls).toBe(1);
   await parent.close();
 });
@@ -247,10 +247,10 @@ test('completed and retired child proxies cannot borrow another source closing p
   expect(() => child.resolve('retry')).toThrow('failed');
   child.resolve('retry');
   const closing = parent.close();
-  expect(read).toThrow('bag is closing');
-  expect(stale).toThrow('bag is closing');
+  expect(read).toThrow('container is closing');
+  expect(stale).toThrow('container is closing');
   expect(ownerCalls).toBe(0);
   gate.resolve(1);
   await closing;
-  expect(stale).toThrow('bag is closed');
+  expect(stale).toThrow('container is closed');
 });

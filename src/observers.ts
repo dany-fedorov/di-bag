@@ -64,7 +64,7 @@ export type ObserverErrorCallback = (this: void, failure: ObserverFailure) => un
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
 export interface LifecycleObserver {
-  /** Receives events in transition and observer-registration order on a microtask queue. */
+  /** Receives events in transition and observer attachment order on a microtask queue. */
   readonly onLifecycleEvent: ObserverCallback;
   /** Receives synchronous throws and rejected results from `onLifecycleEvent`. */
   readonly onObserverFailure: ObserverErrorCallback;

@@ -8,7 +8,7 @@ import type { GraphContract } from './token-types';
 import type { Singleton, Unsatisfied } from './types';
 
 /**
- * Cache at the ownership-family root, once per scope, or once per resolution.
+ * Cache once per container tree, once per container, or once per resolution.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-root-scoped-or-transient-caching
  */
 export type Lifetime = 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve';

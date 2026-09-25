@@ -26,7 +26,7 @@ DiBag.createBuilder().withTokenService(token, () => 1).withServices({ read: () =
 DiBag.createBuilder().withTokenService(token, () => 1).withReplacedService(token, () => 'wrong');
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withServices({ value: () => 1 }).withTokenService(token, ({ value }: { value: string }) => value.length);
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({ read: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }) }).buildContainer();
 
 declare const opaque: Provider<() => number, {}, readonly [], OpaqueGraph>;
@@ -41,7 +41,7 @@ const privateModule = DiBag.createBuilder().withServices({ hidden: ({ external }
 DiBag.createBuilder().withInstalledModules([privateModule]).withServices({ external: () => 'wrong' });
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withInstalledModules([privateModule]).withServices({ external: () => 1 }).withReplacedService('external', () => 'wrong');
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([privateModule]).buildContainer();
 
 const privateToken = DiBag.createBuilder().withServices({ hidden: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) }).buildModule({ exportedServiceKeys: [] });
@@ -60,7 +60,7 @@ DiBag.createBuilder().withTokenService(token, () => 1).withServices({ local: () 
 declare const manuallyOpaque: import('../../../src').Builder<{ key: 'opaque'; registration: typeof opaque }>;
 // diagnostic: incompatible or opaque
 manuallyOpaque.withServices({ unrelated: () => 1 });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 manuallyOpaque.buildContainer();
 declare const manuallyMixed: import('../../../src').Builder<
   { key: 'opaque'; registration: typeof opaque } | { key: 'plain'; registration: () => number }

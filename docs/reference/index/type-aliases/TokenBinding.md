@@ -10,7 +10,7 @@ type TokenBinding<T extends TokenBase, R extends ProviderOrFactory> = Provider<P
 
 Defined in: [token-types.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L64)
 
-A registration rebound to an invariant typed-token service contract.
+A provider rebound to an invariant typed-token service contract.
 
 ## Type Parameters
 

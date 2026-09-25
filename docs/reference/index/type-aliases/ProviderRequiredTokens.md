@@ -10,7 +10,7 @@ type ProviderRequiredTokens<R> = RequiredTokens<ProviderGraphContract<R>>;
 
 Defined in: [provider.ts:143](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L143)
 
-Extract required typed-token dependencies from a registration.
+Extract required typed-token dependencies from a provider.
 
 ## Type Parameters
 

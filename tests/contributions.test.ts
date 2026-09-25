@@ -158,8 +158,8 @@ test('observed strict roots reject cached scoped contributions before owner rout
   const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: items, provider: () => 1 }).withServices({ root });
   const bag = (builder.buildContainer as Function).call(builder);
   expect(bag.resolveCollection(items)).toEqual([1]);
-  expect(() => bag.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
-  const child = bag.createChildContainer(); expect(() => child.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
+  expect(() => bag.resolve('root')).toThrow(/singleton lifetime cannot capture scoped/);
+  const child = bag.createChildContainer(); expect(() => child.resolve('root')).toThrow(/singleton lifetime cannot capture scoped/);
   await bag.close();
 });
 

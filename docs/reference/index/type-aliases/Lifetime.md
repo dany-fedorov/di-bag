@@ -10,7 +10,7 @@ type Lifetime = 'singleton:one-per-container-tree' | 'scoped:one-per-container' 
 
 Defined in: [lifetime.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime.ts#L14)
 
-Cache at the ownership-family root, once per scope, or once per resolution.
+Cache once per container tree, once per container, or once per resolution.
 
 ## See
 

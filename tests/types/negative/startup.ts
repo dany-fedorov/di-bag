@@ -27,16 +27,16 @@ ready.ensureServicesReady(['value'], { timeoutMs: 1 });
 // diagnostic: does not exist in type 'EnsureServicesReadyOptions'
 ready.ensureServicesReady(['value'], { startupOrder: 'sequential' });
 const missing = DiBag.createBuilder().withServices({ value: DiBag.createProvider((deps: { absent: number }, _factoryCtx) => deps.absent, { factoryReceivesContext: true }) });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 missing.buildContainer().ensureServicesReady([]);
 const captive = DiBag.createBuilder().withServices({
   scoped: () => 1,
   root: DiBag.providerWithLifetime({ provider: DiBag.createProvider((deps: { scoped: number }, _factoryCtx) => deps.scoped, { factoryReceivesContext: true }), lifetime: 'singleton:one-per-container-tree' }),
 });
-// diagnostic: root lifetime cannot capture scoped dependency
+// diagnostic: singleton lifetime cannot capture scoped dependency
 captive.buildContainer().ensureServicesReady(['root']);
 const exportless = DiBag.createBuilder().withServices({ hidden: (deps: { missing: number }) => deps.missing }).buildModule({ exportedServiceKeys: [] });
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withInstalledModules([exportless]).buildContainer().ensureServicesReady([]);
 const key: unique symbol = Symbol('token');
 const otherKey: unique symbol = Symbol('token');

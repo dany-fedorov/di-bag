@@ -70,7 +70,7 @@ export function describe(registration: unknown, operation = 'withServices'): Pro
     const description = descriptions.get(registration);
     if (description) return description;
   }
-  throw libraryError('DI_BAG_INVALID_PROVIDER', 'invalid factory registration', { operation });
+  throw libraryError('DI_BAG_INVALID_PROVIDER', 'invalid provider or factory', { operation });
 }
 
 export function normalize(registration: unknown, operation = 'register'): {

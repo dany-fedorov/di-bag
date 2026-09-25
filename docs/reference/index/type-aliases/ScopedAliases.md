@@ -10,7 +10,7 @@ type ScopedAliases<R extends Registrations, Parent extends Registrations, S exte
 
 Defined in: [scope-types.ts:98](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L98)
 
-The registration map visible in a child after clearing and applying selected sharing routes.
+The provider map visible in a child after clearing and applying selected sharing routes.
 
 ## Type Parameters
 

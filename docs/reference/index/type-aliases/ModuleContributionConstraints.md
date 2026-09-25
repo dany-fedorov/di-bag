@@ -12,7 +12,7 @@ Defined in: [contribution-types.ts:69](https://github.com/dany-fedorov/di-bag/bl
 
 Retain a contribution's projected provider and its checked needs when its builder seals.
 Lifetime reach is retained separately as compact obligations. A contribution retained
-from an inner installation is already projected and has no needs left to re-scope.
+from an inner installation is already projected and has no needs left to nest.
 
 ## Type Parameters
 

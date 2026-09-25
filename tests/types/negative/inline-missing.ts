@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-// diagnostic: required service registrations are missing
+// diagnostic: required services are missing
 DiBag.createBuilder().withServices({
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp() {

@@ -78,11 +78,11 @@ export function resolveClassifier(context: RuntimeContext): RuntimeContext | und
   return isNativePromise ? Object.freeze({ ...context, isNativePromise }) : undefined;
 }
 const namedBindings = 8;
-/** The graph has automatic stages and no classifier; `bindings` labels every such registration. */
+/** The graph has automatic stages and no classifier; `bindings` labels every affected provider. */
 export function classifierRequired(bindings: readonly string[]): Error {
   const sorted = [...bindings].sort();
   const shown = sorted.slice(0, namedBindings).map(label => JSON.stringify(label)).join(', ');
   const rest = sorted.length - Math.min(sorted.length, namedBindings);
-  const count = sorted.length === 1 ? '1 registration uses' : `${sorted.length} registrations use`;
+  const count = sorted.length === 1 ? '1 provider uses' : `${sorted.length} providers use`;
   return libraryError('DI_BAG_CLASSIFIER_REQUIRED', `this host has no process.getBuiltinModule; ${count} auto-detect factory return kind: ${shown}${rest ? `, and ${rest} more` : ''}; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' }) or factoryReturnKind: 'native-promise' for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } })`, { option: 'runtime.isNativePromise', bindings: Object.freeze(sorted) });
 }
