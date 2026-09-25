@@ -94,10 +94,12 @@ function blockquoteContent(line) {
   return { rest, quoteDepth };
 }
 
-function fenceMarker(rest, quoteDepth) {
-  const content = rest.replace(/^ {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+/, '');
+function fenceMarker(rest, quoteDepth, fence) {
+  const list = fence ? undefined : rest.match(/^ {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+/);
+  const listIndent = fence?.listIndent ?? list?.[0].length;
+  const content = listIndent === undefined ? rest : rest.slice(listIndent);
   const marker = content.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
-  return marker ? { quoteDepth, delimiter: marker[1], tail: marker[2] } : undefined;
+  return marker ? { quoteDepth, delimiter: marker[1], tail: marker[2], listIndent } : undefined;
 }
 
 let findings = 0;
@@ -106,11 +108,12 @@ for (const file of files) {
   let section = '';
   readFileSync(join(root, file), 'utf8').split('\n').forEach((line, index) => {
     const { rest, quoteDepth } = blockquoteContent(line);
-    // A fenced block inside a quote ends when its containing quote ends, even without a closing fence.
-    if (fence?.quoteDepth > quoteDepth) fence = undefined;
+    // A fence ends when its containing quote or list ends, even without a closing fence.
+    if (fence?.quoteDepth > quoteDepth || (fence?.listIndent !== undefined && rest.trim() &&
+      rest.match(/^ */)[0].length < fence.listIndent)) fence = undefined;
     const heading = line.match(/^## (.+)$/);
     if (!fence && heading) section = heading[1];
-    const marker = fenceMarker(rest, quoteDepth);
+    const marker = fenceMarker(rest, quoteDepth, fence);
     let boundary = false;
     if (marker) {
       if (!fence && (marker.delimiter[0] === '~' || !marker.tail.includes('`'))) {

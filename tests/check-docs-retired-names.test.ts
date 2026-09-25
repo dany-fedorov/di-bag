@@ -47,7 +47,7 @@ test('a removed call, type, code, value, import and each retired word are report
 test('without file arguments it reads the guides of the root', () => {
   const result = run();
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('finding(s) in 8 file(s)');
+  expect(result.stderr).toContain('finding(s) in 11 file(s)');
 });
 
 test('fences suppress retired prose words but retain removed API findings', () => {
@@ -122,4 +122,25 @@ test('a list-item fence hides code vocabulary and ends before later prose', () =
     'docs/guides/list-fence.md:4: retired call build',
     'docs/guides/list-fence.md:7: retired word cleanup',
   ]);
+});
+
+test('an ordered-list fence with four-space continuation ends before later prose', () => {
+  const result = run('docs/guides/ordered-list-fence.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim()).toBe('docs/guides/ordered-list-fence.md:7: retired word cleanup');
+});
+
+test('an unclosed list fence ends when its list container ends', () => {
+  const result = run('docs/guides/unclosed-list-fence.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim().split('\n')).toEqual([
+    'docs/guides/unclosed-list-fence.md:4: retired call build',
+    'docs/guides/unclosed-list-fence.md:6: retired word cleanup',
+  ]);
+});
+
+test('a list-fence-like literal inside an ordinary fence cannot close it', () => {
+  const result = run('docs/guides/literal-list-fence.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim()).toBe('docs/guides/literal-list-fence.md:8: retired word startup');
 });
