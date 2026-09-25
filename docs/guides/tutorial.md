@@ -358,7 +358,6 @@ Application exceptions keep their identity and are never relabeled as library er
 | `DiBagServiceReadinessError` | Readiness acquisition failed and rollback finished. Read `cause`, `disposalFailures`, and optional `disposalError`. |
 | `DiBagServiceReadinessCancelledError` | Readiness was aborted or timed out. Read `reason`, `cause`, and await `disposalPromise` if shutdown completion matters. |
 | `DiBagCloseCancelledError` | `close({ waitTimeoutMs, abortSignal })` stopped waiting. Read `code`, `details.disposersStillRunning`, and await `disposalPromise` if shutdown completion matters. |
-
 | `DiBagPluginValidationError` | A plugin descriptor or output failed validation. `phase` is `'descriptor'` or `'output'`, and `reason` explains the rejection. |
 
 Every library-created message has the form
