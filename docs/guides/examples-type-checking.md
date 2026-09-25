@@ -6,7 +6,7 @@ For agentic development, compile-time composition checks are an early evaluation
 step. A coding agent can propose a wiring change, run the type checker, and use
 its diagnostics to revise the composition without starting the application or
 external services. These checks avoid that setup, but their cost depends on
-compiler startup and inference; they do not replace an integration-test run.
+compiler launch and inference; they do not replace an integration-test run.
 
 For an LLM harness, that means checking the dependencies of agent graph nodes
 before spending a model call, then substituting typed model and tool fixtures for
@@ -116,9 +116,10 @@ try {
 ```
 
 The incomplete builder is allowed while composition is in progress. Calling
-`build()` on it fails the type check because `mailer` is absent. Registering that
+`buildContainer()` on it fails the type check because `mailer` is absent. Registering that
 provider completes the graph, even though the consumer was registered first.
 The assertions also show that building does not eagerly create the mailer.
+The compiler reports `required services are missing: mailer; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
 
 The parameter type is the dependency declaration: DI Bag can check only what you
 express there. It cannot prove delivery, prevent duplicate reminders on a second
@@ -213,10 +214,11 @@ try {
 }
 ```
 
-The incompatible provider is rejected at `register()`, where its string result
+The incompatible provider is rejected at `withServices()`, where its string result
 meets the already-declared numeric requirement. The corrected adapter returns the
 required `Promise<number>`; TypeScript checks the asynchronous contract as well as
 the method name.
+The graph check reports `provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`.
 
 Types do not validate the contents of legacy records. The parser and rejection
 assertion cover that separate boundary. This program plans picks only; reserving
@@ -226,7 +228,7 @@ contract and its backing store.
 ## 3. A payment test replaces a gateway without breaking checkout
 
 A checkout service writes a receipt only after an approved payment. Test its
-decline path with a fork that replaces the gateway, keeping the same checkout
+decline path with an independent container that replaces the gateway, keeping the same checkout
 factory. The gateway contract is explicit so tests depend on the service API,
 rather than incidental details of a particular adapter.
 
@@ -313,11 +315,12 @@ try {
 }
 ```
 
-`fork()` checks the replacement against the existing gateway's exposed contract.
-The wrong return shape fails at the fork call. The valid replacement drives the
+`createIndependentContainer()` checks the replacement against the existing gateway's exposed contract.
+The wrong return shape fails at the container creation call. The valid replacement drives the
 same checkout code through a decline while the parent still approves payments.
-The assertions confirm that the fork creates fresh checkout and receipt-store
-instances; each bag is closed separately.
+The assertions confirm that the independent container creates fresh checkout and receipt-store
+instances; each container is closed separately.
+An incompatible replacement reports `replacement value is not assignable to the original token: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override` or a plain TypeScript assignability error.
 
 Fresh factories do not clone objects captured outside those factories. The receipt
 map is allocated inside its factory to keep test state independent. A real payment
