@@ -104,7 +104,7 @@ when choosing a recovery path.
 | [`DiBagDisposalError`](../reference/index/classes/DiBagDisposalError.md) | `close()` attempted every disposer and one or more failed. | `failures` records each binding label and original error. |
 | [`DiBagServiceReadinessError`](../reference/index/classes/DiBagServiceReadinessError.md) | `ensureServicesReady()` could not make a selected service ready. | `cause`, `disposalFailures`, and `disposalError` retain the failure and disposal outcome. |
 | [`DiBagServiceReadinessCancelledError`](../reference/index/classes/DiBagServiceReadinessCancelledError.md) | An abort signal or timeout stopped a readiness wait. | `reason`, `details.acquisitionsStillPending`, and `disposalPromise` describe the cancellation and eventual disposal. |
-| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | An abort signal or timeout stopped a `close()` wait. | `details` lists pending work; `cleanupPromise` settles when disposal finishes. |
+| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | An abort signal or timeout stopped a `close()` wait. | `details` lists pending work; `disposalPromise` settles when disposal finishes. |
 | [`DiBagPluginValidationError`](../reference/index/classes/DiBagPluginValidationError.md) | A plugin descriptor or acquired output failed validation. | `phase` identifies the boundary and `reason` describes the rejection. |
 
 For a container whose disposer fails:
@@ -180,7 +180,7 @@ retain private-consumer, token, lifetime, and ownership contracts.
 | [`ConfigurationOptions`](../reference/index/interfaces/ConfigurationOptions.md) | Runtime classification and observer options for `withConfiguration`. |
 | [`Builder`](../reference/index/interfaces/Builder.md), [`Container`](../reference/index/interfaces/Container.md) | A checked immutable builder and a resolving, owning container. |
 | [`Module`](../reference/index/interfaces/Module.md) | A sealed export view of a builder graph, installable in other builders. |
-| [`ModuleOptions`](../reference/index/interfaces/ModuleOptions.md) | Public export selection and optional label for `buildModule`. |
+| [`ModuleOptions`](../reference/index/interfaces/ModuleOptions.md) | Optional `moduleLabel` for naming private bindings of a sealed module. |
 | [`ProviderOrFactory`](../reference/index/type-aliases/ProviderOrFactory.md) | Accepted provider or factory shapes. |
 | [`Provider`](../reference/index/interfaces/Provider.md) | A provider description retaining its factory, metadata, frames, graph contracts, and acquired-value type. |
 | [`FactoryReturnKind`](../reference/index/type-aliases/FactoryReturnKind.md), [`RuntimeOptions`](../reference/index/interfaces/RuntimeOptions.md) | Factory return-kind literals and the `isNativePromise` configuration callback. |
