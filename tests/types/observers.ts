@@ -42,7 +42,7 @@ export function narrow(event: LifecycleEvent) {
     if (frame?.isPresent) { const value: unknown = frame.value; void value; }
     return [id, metadata] as const;
   }
-  if (event.kind === 'cleanup-failed') return event.disposalSequence;
-  if (event.kind === 'cleanup-completed') { const outcome: 'success' | 'failure' = event.outcome; return outcome; }
-  return event.scopeId;
+  if (event.kind === 'disposal-failed') return event.disposalSequence;
+  if (event.kind === 'disposal-completed') { const outcome: 'success' | 'failure' = event.outcome; return outcome; }
+  return event.containerId;
 }

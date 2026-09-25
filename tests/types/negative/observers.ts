@@ -14,7 +14,7 @@ DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onO
 // diagnostic: not assignable
 DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'scope-opened' }) {}, onObserverFailure(failure) {} }] });
 declare const event: LifecycleEvent;
-if (event.kind === 'scope-opened') {
+if (event.kind === 'container-opened') {
   // diagnostic: does not exist
   event.acquisitionId;
 }
@@ -29,7 +29,7 @@ if (event.kind === 'acquisition-ready') {
     frame.value.owner;
   }
 }
-if (event.kind === 'cleanup-completed') {
+if (event.kind === 'disposal-completed') {
   // diagnostic: not assignable
   const outcome: 'completed' = event.outcome;
   // diagnostic: read-only

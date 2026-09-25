@@ -12,7 +12,7 @@ async function main() {
       {
         onLifecycleEvent(event) {
           events.push(event);
-          if (event.kind === 'scope-closed') deliveredClose();
+          if (event.kind === 'container-closed') deliveredClose();
         },
         onObserverFailure(failure) {
           observerFailures.push(failure);

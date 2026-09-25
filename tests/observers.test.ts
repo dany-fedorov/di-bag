@@ -57,7 +57,7 @@ test('observer failure monitoring handles throws, rejection and throwing then wi
   const failures: ObserverFailure[] = [];
   const observed = errors.reduce((facade, error, index) => facade.withConfiguration({ lifecycleObservers: [{
     onLifecycleEvent(event) {
-      if (event.kind !== 'scope-opened') return;
+      if (event.kind !== 'container-opened') return;
       if (index === 0) throw error;
       if (index === 1) return Promise.reject(error);
       return { get then() { throw error; } };
@@ -70,7 +70,7 @@ test('observer failure monitoring handles throws, rejection and throwing then wi
   expect(failures).toHaveLength(3);
   for (const error of errors) expect(failures.some(failure => failure.error === error)).toBe(true);
   expect(failures.every(Object.isFrozen)).toBe(true);
-  expect(failures.every(failure => failure.event.kind === 'scope-opened')).toBe(true);
+  expect(failures.every(failure => failure.event.kind === 'container-opened')).toBe(true);
 });
 
 test('configuration snapshots callbacks, appends in order and retains classification', async () => {
@@ -104,7 +104,7 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
   const observed = NodeDiBag.withConfiguration({ lifecycleObservers: [{
     onLifecycleEvent(event) {
       if (event.kind === 'acquisition-started' && calls === 0) { calls++; expect(bag.resolve('value')).toBe(1); }
-      if (event.kind === 'scope-closing') expect(() => bag.resolve('value')).toThrow('closing');
+      if (event.kind === 'container-closing') expect(() => bag.resolve('value')).toThrow('closing');
     }, onObserverFailure(failure) { failures.push(failure); },
   }] });
   function makeBag() { return observed.createBuilder().withServices({ value: () => 1 }).buildContainer(); }
@@ -129,22 +129,22 @@ test('canonical owners distinguish shared roots, independent forks, contribution
   const rootInspection = bag.serviceSnapshot('root'); const sharedInspection = bag.serviceSnapshot('shared');
   const contributionIds = child.serviceSnapshot(token).map(item => item.acquisitions[0]!.acquisitionId);
   await flush();
-  const opened = events.filter(event => event.kind === 'scope-opened');
+  const opened = events.filter(event => event.kind === 'container-opened');
   const started = events.filter(event => event.kind === 'acquisition-started');
   expect(opened).toHaveLength(3);
-  expect(opened[1]!.parentScopeId).toBe(opened[0]!.scopeId);
+  expect(opened[1]!.parentContainerId).toBe(opened[0]!.containerId);
   expect('parentScopeId' in opened[0]!).toBe(false);
   expect('parentScopeId' in opened[2]!).toBe(false);
   for (const inspection of [rootInspection, sharedInspection]) {
     const event = started.find(event => event.acquisitionId === inspection.acquisitions[0]!.acquisitionId)!;
-    expect(event.scopeId).toBe(opened[0]!.scopeId);
+    expect(event.containerId).toBe(opened[0]!.containerId);
     expect(event.bindingId).toBe(inspection.bindingId);
   }
-  expect(started.filter(event => event.label === 'fresh')).toHaveLength(2);
+  expect(started.filter(event => event.bindingLabel === 'fresh')).toHaveLength(2);
   expect(new Set(started.map(event => event.acquisitionId)).size).toBe(7);
-  for (const id of contributionIds) expect(started.find(event => event.acquisitionId === id)!.scopeId).toBe(opened[1]!.scopeId);
+  for (const id of contributionIds) expect(started.find(event => event.acquisitionId === id)!.containerId).toBe(opened[1]!.containerId);
   await Promise.all([bag.close(), fork.close()]);
-  expect(events.some(event => event.kind === 'cleanup-started')).toBe(false);
+  expect(events.some(event => event.kind === 'disposal-started')).toBe(false);
 });
 
 test('failed final projections retire accepted ownership once and preserve cleanup errors', async () => {
@@ -160,11 +160,11 @@ test('failed final projections retire accepted ownership once and preserve clean
   await flush();
   expect(disposed).toEqual(['second', 'first']);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([acquisitionError]);
-  expect(events.filter(event => event.kind === 'cleanup-started')).toHaveLength(1);
-  expect(events.filter(event => event.kind === 'cleanup-completed').map(event => event.outcome)).toEqual(['failure']);
-  const failure = events.find(event => event.kind === 'cleanup-failed')!;
+  expect(events.filter(event => event.kind === 'disposal-started')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'disposal-completed').map(event => event.outcome)).toEqual(['failure']);
+  const failure = events.find(event => event.kind === 'disposal-failed')!;
   expect(failure.error).toBe(cleanupError); expect(failure.disposalSequence).toBe(1);
-  expect(events.find(event => event.kind === 'scope-close-failed')!.error).toBe(closeError);
+  expect(events.find(event => event.kind === 'container-close-failed')!.error).toBe(closeError);
 });
 
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
@@ -212,8 +212,8 @@ test('startup rollback observes accepted cleanup while preserving the startup ca
   await flush();
   expect((error as Error).cause).toBe(failure);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
-  expect(events.filter(event => event.kind === 'cleanup-completed').map(event => event.outcome)).toEqual(['success']);
-  expect(events.filter(event => event.kind === 'scope-closed')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'disposal-completed').map(event => event.outcome)).toEqual(['success']);
+  expect(events.filter(event => event.kind === 'container-closed')).toHaveLength(1);
 });
 
 test('cancellation observes late accepted resources and final failure without awaiting telemetry', async () => {
@@ -238,9 +238,9 @@ test('cancellation observes late accepted resources and final failure without aw
   await flush();
   expect(disposed).toBe(1);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
-  expect(events.filter(event => event.kind === 'cleanup-started')).toHaveLength(1);
-  expect(events.filter(event => event.kind === 'scope-closing')).toHaveLength(1);
-  expect(events.filter(event => event.kind === 'scope-closed')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'disposal-started')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'container-closing')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'container-closed')).toHaveLength(1);
 });
 
 test('throwing-then error sink results are consumed and appending duplicates keeps every callback', async () => {

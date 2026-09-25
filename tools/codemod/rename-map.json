@@ -52,7 +52,14 @@
     { "owner": "BindingSnapshot", "property": "lifetime", "from": "transient", "to": "transient:one-per-resolve" },
     { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "root", "to": "singleton:one-per-container-tree" },
     { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "scoped", "to": "scoped:one-per-container" },
-    { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "transient", "to": "transient:one-per-resolve" }
+    { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "transient", "to": "transient:one-per-resolve" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-opened", "to": "container-opened" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-closing", "to": "container-closing" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-closed", "to": "container-closed" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-close-failed", "to": "container-close-failed" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "cleanup-started", "to": "disposal-started" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "cleanup-failed", "to": "disposal-failed" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "cleanup-completed", "to": "disposal-completed" }
   ],
   "properties": [
     { "owner": "Token", "from": "key", "to": "symbol" },
@@ -85,6 +92,11 @@
     { "owner": "ObserverOptions", "from": "onEvent", "to": "onLifecycleEvent" },
     { "owner": "ObserverOptions", "from": "onError", "to": "onObserverFailure" },
     { "owner": "ScopeOptions", "from": "share", "to": "sharedParentServiceKeys" },
+    { "owner": "ScopeEventFields", "from": "scopeId", "to": "containerId" },
+    { "owner": "ScopeEventFields", "from": "parentScopeId", "to": "parentContainerId" },
+    { "owner": "AcquisitionEventFields", "from": "scopeId", "to": "containerId" },
+    { "owner": "AcquisitionEventFields", "from": "label", "to": "bindingLabel" },
+    { "owner": "GraphSnapshot", "from": "scopeId", "to": "containerId" },
     { "owner": "Captive", "from": "root", "to": "singleton" },
     { "owner": "LifetimeObligation", "from": "root", "to": "singleton" }
   ],
@@ -109,7 +121,8 @@
     { "from": "DisjointScopeSelection", "to": "DisjointChildContainerSelection" },
     { "from": "ObserverOptions", "to": "LifecycleObserver" },
     { "from": "Registration", "to": "ProviderOrFactory" },
-    { "from": "FactoryWithDisposal", "to": "Provider" }
+    { "from": "FactoryWithDisposal", "to": "Provider" },
+    { "from": "ScopeEventFields", "to": "ContainerEventFields" }
   ],
   "codes": [
     { "from": "DI_BAG_MISSING_REGISTRATION", "to": "DI_BAG_UNKNOWN_SERVICE_KEY" },

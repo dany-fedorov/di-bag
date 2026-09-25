@@ -66,7 +66,7 @@ describe('0.5 container names', () => {
     const kinds: string[] = [];
     const failures: unknown[] = [];
     const observed = DiBag.withConfiguration({ lifecycleObservers: [{
-      onLifecycleEvent(event) { kinds.push(event.kind); if (event.kind === 'scope-opened') throw new Error('observer'); },
+      onLifecycleEvent(event) { kinds.push(event.kind); if (event.kind === 'container-opened') throw new Error('observer'); },
       onObserverFailure(failure) { failures.push(failure.error); },
     }] });
     const container = observed.createBuilder().buildContainer();

@@ -75,7 +75,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
 test('a child scope reports its own scope id and the family edges', async () => {
   const root = DiBag.createBuilder().withServices({ shared: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), local: ({ shared }: { shared: number }) => shared + 1 }).buildContainer();
   const child = root.createChildContainer();
-  expect(child.graphSnapshot().scopeId).not.toBe(root.graphSnapshot().scopeId);
+  expect(child.graphSnapshot().containerId).not.toBe(root.graphSnapshot().containerId);
   expect(child.resolve('local')).toBe(2);
   expect(child.graphSnapshot().observedEdges).toHaveLength(1);
   expect(root.graphSnapshot().observedEdges).toHaveLength(1);
