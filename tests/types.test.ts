@@ -329,8 +329,8 @@ test('provider facade rejections remain property-located diagnostics', () => {
   const source = readFileSync(path, 'utf8');
   const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
   const errors = negativeDiagnostics.get(path)!;
-  expect(markers).toHaveLength(15);
-  expect(errors).toHaveLength(15);
+  expect(markers).toHaveLength(17);
+  expect(errors).toHaveLength(17);
   const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
   expect(matched.missing).toEqual([]);
   expect(matched.unexpected).toEqual([]);
@@ -339,7 +339,7 @@ test('provider facade rejections remain property-located diagnostics', () => {
     return span.startsWith('{') ? '{' : span;
   });
   expect(anchors).toEqual([
-    'lifetime',
+    'lifetime', 'lifetime', 'lifetime',
     'allowsScopedDependencies', 'allowsScopedDependencies',
     'allowsScopedDependencies', 'allowsScopedDependencies', 'extra',
     'callbackReceives', 'describeAcquisition',

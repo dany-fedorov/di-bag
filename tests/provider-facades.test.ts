@@ -53,7 +53,11 @@ test('fallback bags snapshot own fields and reject malformed combinations', () =
   const cases: readonly [() => unknown, string, object][] = [
     [() => (DiBag as any).providerWithTransformedService({ provider: {}, callbackReceives: 'exposed-service', transformService: (value: unknown) => value }), 'DI_BAG_INVALID_PROVIDER', { operation: 'providerWithTransformedService' }],
     [() => (DiBag as any).providerWithDisposal({ provider, disposeService: 1 }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithDisposal', argument: 'disposeService', expected: 'a function' }],
-    [() => (DiBag as any).providerWithLifetime({ provider, lifetime: 'scoped' }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithLifetime', argument: 'lifetime', expected: "one of: 'singleton:one-per-container-tree', 'scoped:one-per-container', 'transient:one-per-resolve'" }],
+    ...(['root', 'scoped', 'transient'] as const).map(lifetime => [
+      () => (DiBag as any).providerWithLifetime({ provider, lifetime }),
+      'DI_BAG_INVALID_ARGUMENT',
+      { operation: 'providerWithLifetime', argument: 'lifetime', expected: "one of: 'singleton:one-per-container-tree', 'scoped:one-per-container', 'transient:one-per-resolve'" },
+    ] as const),
     [() => (DiBag as any).providerWithAcquisitionMetadata({ provider, callbackReceives: 'other', describeAcquisition() { return {}; } }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithAcquisitionMetadata', argument: 'callbackReceives', expected: "one of: 'exposed-service', 'fulfilled-value'" }],
     [() => (DiBag as any).providerWithTransformedService({ provider, callbackReceives: 'fulfilled-value', transformService: (x: unknown) => x, transformReturnKind: 'sync-value' }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithTransformedService', argument: 'transformReturnKind', expected: "absent when callbackReceives is 'fulfilled-value'" }],
     [() => (DiBag as any).providerWithTransformedService(Object.assign(inherited, { provider })), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithTransformedService', argument: 'options', expected: 'only the own properties: provider, transformService, callbackReceives, transformReturnKind' }],

@@ -55,7 +55,7 @@ test('native provider facade diagnostics retain two exact reviewed quality gaps'
     const compiler = await resolveNative(process.cwd());
     const fixtureRoot = resolve(process.cwd(), 'tests/types');
     const cases = [
-      { file: 'negative/provider-facades.ts', primaryExpected: 15, primaryMatched: 13, knownNativeRejections: 2 },
+      { file: 'negative/provider-facades.ts', primaryExpected: 17, primaryMatched: 15, knownNativeRejections: 2 },
       { file: 'negative/provider-facade-lifetime-controls.ts', primaryExpected: 6, primaryMatched: 6, knownNativeRejections: 0 },
       { file: 'negative/provider-facade-modes.ts', primaryExpected: 2, primaryMatched: 2, knownNativeRejections: 0 },
       { file: 'provider-facades.ts', primaryExpected: 0, primaryMatched: 0, knownNativeRejections: 0 },
@@ -77,7 +77,7 @@ test('native provider facade diagnostics retain two exact reviewed quality gaps'
       if (item.file !== 'negative/provider-facades.ts') {
         expect(markers.gaps, item.file).toEqual([]);
       } else {
-        expect(result.diagnostics).toHaveLength(15);
+        expect(result.diagnostics).toHaveLength(17);
         expect(markers.status).toBe('accepted-with-diagnostic-gaps');
         expect(markers.gaps.map(gap => ({
           id: gap.id,
@@ -85,8 +85,8 @@ test('native provider facade diagnostics retain two exact reviewed quality gaps'
           column: gap.diagnostic.column,
           code: gap.diagnostic.code,
         }))).toEqual([
-          { id: 'last-provider-acquisition-mode', line: 22, column: 51, code: 2769 },
-          { id: 'last-provider-transform-fulfilled-mode', line: 27, column: 50, code: 2769 },
+          { id: 'last-provider-acquisition-mode', line: 26, column: 51, code: 2769 },
+          { id: 'last-provider-transform-fulfilled-mode', line: 31, column: 50, code: 2769 },
         ]);
         expect(markers.gaps.map(gap => gap.diagnostic.message)).toEqual(markers.gaps.map(gap => nativeDiagnosticGapMessages[gap.id]!));
         const source = readFileSync(file, 'utf8');

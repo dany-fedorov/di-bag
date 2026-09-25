@@ -1,7 +1,11 @@
 import { DiBag } from '../../../src';
 const provider = DiBag.createProvider(async () => 1);
 // diagnostic: lifetime requires an individually known policy literal
+DiBag.providerWithLifetime({ provider, lifetime: 'root' });
+// diagnostic: lifetime requires an individually known policy literal
 DiBag.providerWithLifetime({ provider, lifetime: 'scoped' });
+// diagnostic: lifetime requires an individually known policy literal
+DiBag.providerWithLifetime({ provider, lifetime: 'transient' });
 DiBag.providerWithLifetime({ provider, lifetime: 'scoped:one-per-container',
   // diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
   allowsScopedDependencies: false });
