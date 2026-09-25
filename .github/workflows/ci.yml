@@ -45,6 +45,7 @@ jobs:
       - run: npm run graph:check
       - run: npm ci --prefix tools/codemod --no-audit --no-fund
       - run: npm run codemod:check
+      - run: npm run codemod:acceptance
       - name: Smoke-test the packed graph tool
         run: |
           consumer="$(mktemp -d)"

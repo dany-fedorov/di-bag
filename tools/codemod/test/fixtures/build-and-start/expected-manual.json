@@ -1,9 +1,5 @@
 [
   {
-    "line": 16,
-    "reason": "these options are not an object literal; where they are built, rename signal to abortSignal, timeoutMs to totalTimeoutMs, and replace startupOrder with maxConcurrentServiceKeys"
-  },
-  {
     "line": 17,
     "reason": "startupOrder is not a literal; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number"
   },

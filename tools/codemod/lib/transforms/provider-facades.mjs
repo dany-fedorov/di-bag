@@ -24,15 +24,21 @@ export default function providerFacades(call, api) {
   const receiver = text(registration, api);
   if (oldName === 'withDisposal') return bagCall(facade, 'method', [field('provider', receiver, api), field('disposeService', textWithTrivia(call.arguments[1], api).trimStart(), api)], api);
   if (oldName === 'withLifetime') {
-    const lifetime = renamedLiteral(call.arguments[1], lifetimeValues, call, 'withLifetime uses a nonliteral lifetime; rewrite it to a full lifetime value by hand', api);
+    const oldLifetime = call.arguments[1];
+    const adjustment = api.childLifetimeAdjustment(call);
+    const lifetime = adjustment
+      ? api.quote(oldLifetime, adjustment.lifetime)
+      : renamedLiteral(oldLifetime, lifetimeValues, call, 'withLifetime uses a nonliteral lifetime; rewrite it to a full lifetime value by hand', api);
     if (lifetime === undefined) return undefined;
     const fields = [field('provider', receiver, api), field('lifetime', lifetime, api)];
+    let hasAllows = false;
     if (call.arguments[2] !== undefined) {
       const options = literalBag(call.arguments[2], new Set(['allowScopedDependencies']), call, 'the withLifetime options are not a supported object literal; rewrite the provider bag by hand', api);
       if (options === undefined) return undefined;
       const allows = valueOf(options, 'allowScopedDependencies', api);
-      if (allows !== undefined) fields.push(field('allowsScopedDependencies', allows, api));
+      if (allows !== undefined) { fields.push(field('allowsScopedDependencies', allows, api)); hasAllows = true; }
     }
+    if (adjustment?.addAllows && !hasAllows) fields.push(field('allowsScopedDependencies', 'true', api));
     return bagCall(facade, 'method', fields, api);
   }
   const allowed = oldName === 'transformService' ? new Set(['mode', 'transform', 'acquisitionMode']) : new Set(['static', 'dynamic']);

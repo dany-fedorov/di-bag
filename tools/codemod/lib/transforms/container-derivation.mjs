@@ -40,6 +40,8 @@ export default function containerDerivation(call, api) {
   const args = [...call.arguments];
   const names = fieldNames(oldName, api);
   const replacements = [methodReplacement(call, api)];
+  const lifetimeManual = api.childLifetimeManualReason(call);
+  if (lifetimeManual !== undefined) api.manual(call, lifetimeManual);
   if (oldName === 'fork') {
     if (args.length === 0 || args.length === 2) return api.assemble(call, replacements);
     api.manual(call, 'fork is called with an unexpected number of arguments; rewrite it to createIndependentContainer by hand');

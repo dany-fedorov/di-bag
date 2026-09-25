@@ -27,7 +27,7 @@ export default function buildAndStart(call, api) {
   }];
   if (options === undefined) return api.assemble(call, replacements);
   if (!ts.isObjectLiteralExpression(options)) {
-    api.manual(options, `these options are not an object literal; where they are built, rename signal to ${signal}, timeoutMs to ${timeout}, and replace startupOrder with ${concurrency}`);
+    if (!api.provenOptionOrigin(options, 'StartupOptions')) api.manual(options, `these options are not an object literal; where they are built, rename signal to ${signal}, timeoutMs to ${timeout}, and replace startupOrder with ${concurrency}`);
     return api.assemble(call, replacements);
   }
   const spread = options.properties.find(ts.isSpreadAssignment);

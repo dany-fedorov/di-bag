@@ -11,7 +11,7 @@ const RESHAPE_BLOCKED = Symbol('reshape blocked');
  * assembled bottom-up, so a rewritten call may contain other rewritten calls.
  * @returns {{ text: string, rewrites: number }}
  */
-export function rewriteSourceFile({ ts, checker, program, sourceFile, library, index, transforms, manualItems, fileLabel }) {
+export function rewriteSourceFile({ ts, checker, program, sourceFile, library, index, transforms, writableSourceFiles, manualItems, fileLabel }) {
   const source = sourceFile.text;
   const start = node => node.getStart(sourceFile);
   const slice = (from, to) => source.slice(from, to);
@@ -87,6 +87,230 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
   const keyText = (nameNode, key) => ts.isStringLiteral(nameNode) ? quote(nameNode, key) : safeKeyText(key);
   const isStringValue = node => ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
   const literalKey = property => property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : undefined;
+
+  const isLibraryMemberCall = (node, owner, name) => {
+    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== name) return false;
+    const coverage = library.memberCoverage(library.symbolAt(node.expression.name));
+    return coverage.complete && coverage.members.length > 0 && coverage.members.every(member => member.owner === owner && member.name === name);
+  };
+
+  const childLifetimeAdjustments = new Map();
+  const childLifetimeManual = new Map();
+  const childManualReason = 'this child replacement may change a root-lifetime service; pin lifetimes and scoped captures by hand';
+
+  const localConst = expression => {
+    let node = expression;
+    while (ts.isParenthesizedExpression(node)) node = node.expression;
+    if (!ts.isIdentifier(node)) return undefined;
+    const symbol = ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
+      ? checker.getShorthandAssignmentValueSymbol(node.parent)
+      : library.symbolAt(node);
+    const declarations = symbol?.declarations ?? [];
+    if (declarations.length !== 1 || !ts.isVariableDeclaration(declarations[0])) return undefined;
+    const declaration = declarations[0];
+    return declaration.getSourceFile() === sourceFile && declaration.parent.flags & ts.NodeFlags.Const && declaration.initializer !== undefined ? declaration : undefined;
+  };
+
+  const immutableOrigin = (expression, seen = new Set()) => {
+    let node = expression;
+    while (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) node = node.expression;
+    const declaration = localConst(node);
+    if (declaration === undefined || seen.has(declaration)) return node;
+    seen.add(declaration);
+    return immutableOrigin(declaration.initializer, seen);
+  };
+
+  const containerIdentity = (expression, seen = new Set()) => {
+    const declaration = localConst(expression);
+    if (declaration === undefined || seen.has(declaration)) return undefined;
+    seen.add(declaration);
+    let initializer = declaration.initializer;
+    while (ts.isParenthesizedExpression(initializer)) initializer = initializer.expression;
+    const alias = localConst(initializer);
+    if (alias !== undefined) return containerIdentity(initializer, seen);
+    return declaration;
+  };
+
+  const literalKeys = node => {
+    if (!node) return undefined;
+    node = immutableOrigin(node);
+    if (!ts.isArrayLiteralExpression(node)) return undefined;
+    const keys = [];
+    for (const element of node.elements) {
+      if (!isStringValue(element)) return undefined;
+      keys.push(element.text);
+    }
+    return keys;
+  };
+
+  const literalSlots = node => {
+    if (!node) return undefined;
+    node = immutableOrigin(node);
+    if (!ts.isObjectLiteralExpression(node)) return undefined;
+    const slots = new Map();
+    for (const property of node.properties) {
+      if (!ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name)) return undefined;
+      const key = literalKey(property);
+      if (key === undefined || slots.has(key)) return undefined;
+      slots.set(key, property.initializer);
+    }
+    return slots;
+  };
+
+  const shareKeys = call => {
+    if (call.arguments.length < 3) return [];
+    const options = immutableOrigin(call.arguments[2]);
+    if (!ts.isObjectLiteralExpression(options) || options.properties.length !== 1) return undefined;
+    const property = options.properties[0];
+    if (!ts.isPropertyAssignment(property) || literalKey(property) !== 'share') return undefined;
+    return literalKeys(property.initializer);
+  };
+
+  const factoryDependencies = node => {
+    if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) return undefined;
+    if (node.parameters.length === 0) return [];
+    if (node.parameters.length !== 1) return undefined;
+    const type = checker.getTypeAtLocation(node.parameters[0]);
+    if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.TypeParameter)) return undefined;
+    return checker.getPropertiesOfType(type).map(property => property.name);
+  };
+
+  function providerInfo(node) {
+    const direct = factoryDependencies(node);
+    if (direct !== undefined) return { dependencies: direct, lifetime: 'scoped' };
+    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return undefined;
+    const name = node.expression.name.text;
+    if (isLibraryMemberCall(node, 'DiBagApi', 'withLifetime')) {
+      const inner = providerInfo(node.arguments[0]);
+      const lifetime = node.arguments[1];
+      if (inner === undefined || !isStringValue(lifetime) || !['root', 'scoped', 'transient'].includes(lifetime.text)) return undefined;
+      let allows;
+      if (node.arguments[2] !== undefined) {
+        const options = node.arguments[2];
+        if (!ts.isObjectLiteralExpression(options) || options.properties.length !== 1) return undefined;
+        const property = options.properties[0];
+        if (!ts.isPropertyAssignment(property) || literalKey(property) !== 'allowScopedDependencies'
+            || (property.initializer.kind !== ts.SyntaxKind.TrueKeyword && property.initializer.kind !== ts.SyntaxKind.FalseKeyword)) return undefined;
+        allows = property.initializer.kind === ts.SyntaxKind.TrueKeyword;
+      }
+      return { ...inner, lifetime: lifetime.text, lifetimeCall: node, allows };
+    }
+    if (['withDisposal', 'withMetadata', 'transformService'].includes(name) && isLibraryMemberCall(node, 'DiBagApi', name)) return providerInfo(node.arguments[0]);
+    if (['fromFactory', 'fromSyncFactory', 'fromAsyncFactory'].includes(name) && isLibraryMemberCall(node, 'DiBagApi', name)) return providerInfo(node.arguments[0]);
+    return undefined;
+  }
+
+  const builderSlots = declaration => {
+    let initializer = declaration.initializer;
+    while (ts.isParenthesizedExpression(initializer) || ts.isAwaitExpression(initializer)) initializer = initializer.expression;
+    if (!ts.isCallExpression(initializer) || !ts.isPropertyAccessExpression(initializer.expression)
+        || !['build', 'buildAndStart'].some(name => isLibraryMemberCall(initializer, 'Builder', name))) return undefined;
+    let expression = initializer.expression.expression;
+    let slots;
+    while (ts.isCallExpression(expression) && ts.isPropertyAccessExpression(expression.expression)) {
+      const name = expression.expression.name.text;
+      if (isLibraryMemberCall(expression, 'Builder', 'register')) {
+        if (slots !== undefined || expression.arguments.length !== 1) return undefined;
+        slots = literalSlots(expression.arguments[0]);
+        if (slots === undefined) return undefined;
+      } else if (!isLibraryMemberCall(expression, 'DiBagApi', 'createBuilder')) return undefined;
+      expression = expression.expression.expression;
+    }
+    return slots;
+  };
+
+  const containerSlots = declaration => {
+    const built = builderSlots(declaration);
+    if (built !== undefined) return built;
+    let initializer = declaration.initializer;
+    while (ts.isParenthesizedExpression(initializer) || ts.isAwaitExpression(initializer)) initializer = initializer.expression;
+    return isLibraryMemberCall(initializer, 'Bag', 'createScope') && (initializer.arguments.length === 2 || initializer.arguments.length === 3)
+      ? literalSlots(initializer.arguments[1])
+      : undefined;
+  };
+
+  const hasContainerEscape = identity => {
+    let escaped = false;
+    const visit = node => {
+      if (escaped) return;
+      if (ts.isIdentifier(node)) {
+        const declaration = localConst(node);
+        if (declaration !== undefined && containerIdentity(node) === identity) {
+          const statement = declaration.parent?.parent;
+          const exported = statement && ts.isVariableStatement(statement)
+            && statement.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword);
+          if (exported) escaped = true;
+          else if (node === declaration.name) { /* private declaration */ }
+          else if (ts.isVariableDeclaration(node.parent) && node.parent.initializer === node
+              && node.parent.parent.flags & ts.NodeFlags.Const && ts.isIdentifier(node.parent.name)) { /* private immutable alias */ }
+          else if (ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node
+              && ts.isCallExpression(node.parent.parent) && node.parent.parent.expression === node.parent) {
+            const coverage = library.memberCoverage(library.symbolAt(node.parent.name));
+            if (!coverage.complete || coverage.members.length === 0 || coverage.members.some(member => member.owner !== 'Bag')) escaped = true;
+          } else escaped = true;
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+    return escaped;
+  };
+
+  const childCalls = [];
+  const collectChildCalls = node => {
+    if (isLibraryMemberCall(node, 'Bag', 'createScope')) childCalls.push(node);
+    ts.forEachChild(node, collectChildCalls);
+  };
+  collectChildCalls(sourceFile);
+
+  for (const call of childCalls) {
+    if (call.arguments.length !== 2 && call.arguments.length !== 3) continue;
+    const selected = literalKeys(call.arguments[0]);
+    const replacements = literalSlots(call.arguments[1]);
+    const identity = containerIdentity(call.expression.expression);
+    if (selected === undefined || replacements === undefined || selected.some(key => !replacements.has(key)) || identity === undefined) {
+      childLifetimeManual.set(call, childManualReason);
+      continue;
+    }
+    const slots = containerSlots(identity);
+    if (slots === undefined) { childLifetimeManual.set(call, childManualReason); continue; }
+    if (selected.some(key => !slots.has(key))) { childLifetimeManual.set(call, childManualReason); continue; }
+    const infos = new Map();
+    let failed = false;
+    for (const [key, provider] of slots) {
+      const info = providerInfo(provider);
+      if (info === undefined) { failed = true; break; }
+      infos.set(key, info);
+    }
+    const downgraded = selected.filter(key => infos.get(key)?.lifetime === 'root');
+    if (failed || downgraded.some(key => infos.get(key)?.lifetimeCall === undefined)) { childLifetimeManual.set(call, childManualReason); continue; }
+    if (downgraded.length === 0) continue;
+    if (hasContainerEscape(identity)) { childLifetimeManual.set(call, childManualReason); continue; }
+    const siblings = childCalls.filter(candidate => candidate !== call && containerIdentity(candidate.expression.expression) === identity);
+    for (const sibling of siblings) {
+      const siblingSelected = literalKeys(sibling.arguments[0]);
+      const siblingShared = shareKeys(sibling);
+      if (siblingSelected === undefined || siblingShared === undefined
+          || downgraded.some(key => !siblingSelected.includes(key) && !siblingShared.includes(key))) failed = true;
+    }
+    const reaches = (from, targets, visiting = new Set()) => {
+      if (targets.has(from)) return true;
+      if (visiting.has(from)) return false;
+      visiting.add(from);
+      const info = infos.get(from);
+      return info !== undefined && info.dependencies.some(dependency => reaches(dependency, targets, visiting));
+    };
+    const consumers = [];
+    for (const [key, info] of infos) {
+      if (info.lifetime === 'root' && !downgraded.includes(key) && reaches(key, new Set(downgraded))) {
+        if (info.lifetimeCall === undefined || info.allows === false) failed = true;
+        else consumers.push(info.lifetimeCall);
+      }
+    }
+    if (failed) { childLifetimeManual.set(call, childManualReason); continue; }
+    for (const key of downgraded) childLifetimeAdjustments.set(infos.get(key).lifetimeCall, { lifetime: 'scoped:one-per-container' });
+    for (const lifetimeCall of consumers) childLifetimeAdjustments.set(lifetimeCall, { lifetime: 'singleton:one-per-container-tree', addAllows: true });
+  }
 
   /**
    * Rewrite the properties of an object literal.
@@ -164,6 +388,134 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
 
   const lineIndent = position => /^[ \t]*/.exec(slice(source.lastIndexOf('\n', position - 1) + 1, position))[0];
 
+  /** The one exported DI Bag type of an expression, ignoring only null and undefined union members. */
+  function libraryTypeName(node) {
+    const names = new Set();
+    let unknown = false;
+    const visit = type => {
+      if (type.flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined)) return;
+      if (type.isUnion()) { for (const member of type.types) visit(member); return; }
+      const symbol = type.aliasSymbol ?? type.symbol;
+      const name = symbol === undefined ? undefined : library.exportNameOf(symbol);
+      if (name === undefined) unknown = true;
+      else names.add(name);
+    };
+    visit(checker.getTypeAtLocation(node));
+    return !unknown && names.size === 1 ? [...names][0] : undefined;
+  }
+
+  const resolvedSymbol = node => {
+    let symbol = checker.getSymbolAtLocation(node);
+    if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
+    return symbol;
+  };
+  const isWritableDeclaration = declaration => !declaration.getSourceFile().isDeclarationFile
+    && writableSourceFiles.has(declaration.getSourceFile().fileName);
+  const unwrapExpression = node => {
+    let current = node;
+    while (ts.isParenthesizedExpression(current)) current = current.expression;
+    return current;
+  };
+
+  function supportedOptionLiteral(node, owner) {
+    if (!ts.isObjectLiteralExpression(node) || node.properties.some(property => ts.isSpreadAssignment(property))) return false;
+    const contextual = checker.getContextualType(node);
+    if (contextual === undefined || libraryTypeNameFromType(checker.getNonNullableType(contextual)) !== owner) return false;
+    return node.properties.every(property => {
+      const key = literalKey(property);
+      const entry = key === undefined ? undefined : index.properties.get(`${owner}.${key}`);
+      return entry?.to !== undefined;
+    });
+  }
+
+  function libraryTypeNameFromType(type) {
+    const names = new Set();
+    let unknown = false;
+    const visit = candidate => {
+      if (candidate.flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined)) return;
+      if (candidate.isUnion()) { for (const member of candidate.types) visit(member); return; }
+      const symbol = candidate.aliasSymbol ?? candidate.symbol;
+      const name = symbol === undefined ? undefined : library.exportNameOf(symbol);
+      if (name === undefined) unknown = true;
+      else names.add(name);
+    };
+    visit(type);
+    return !unknown && names.size === 1 ? [...names][0] : undefined;
+  }
+
+  const enclosingFunction = node => {
+    for (let current = node.parent; current; current = current.parent) if (ts.isFunctionLike(current)) return current;
+    return undefined;
+  };
+  const exportedBoundary = fn => {
+    if (ts.isFunctionDeclaration(fn) && fn.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)) return true;
+    for (let current = fn.parent; current; current = current.parent) {
+      if (ts.isFunctionDeclaration(current)) return Boolean(current.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword));
+    }
+    return false;
+  };
+  const functionSymbol = fn => {
+    if (fn.name && ts.isIdentifier(fn.name)) return resolvedSymbol(fn.name);
+    if (ts.isVariableDeclaration(fn.parent) && ts.isIdentifier(fn.parent.name)) return resolvedSymbol(fn.parent.name);
+    return undefined;
+  };
+  const parameterProof = new Map();
+  function provenParameter(parameter, owner, seen) {
+    const cacheKey = `${parameter.getSourceFile().fileName}:${parameter.pos}:${owner}`;
+    if (parameterProof.has(cacheKey)) return parameterProof.get(cacheKey);
+    const fn = enclosingFunction(parameter);
+    if (fn === undefined || !isWritableDeclaration(parameter)) return false;
+    const position = fn.parameters.indexOf(parameter);
+    const symbol = functionSymbol(fn);
+    let calls = 0;
+    let valid = true;
+    if (symbol !== undefined) {
+      for (const candidateFile of program.getSourceFiles()) {
+        if (candidateFile.isDeclarationFile) continue;
+        const visit = node => {
+          if (!valid) return;
+          if (ts.isCallExpression(node) && resolvedSymbol(ts.isPropertyAccessExpression(node.expression) ? node.expression.name : node.expression) === symbol) {
+            calls++;
+            if (!writableSourceFiles.has(candidateFile.fileName)) { valid = false; return; }
+            const argument = node.arguments[position];
+            if (argument !== undefined && !provenOptionOrigin(argument, owner, seen)) valid = false;
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(candidateFile);
+      }
+    }
+    const result = valid && (calls > 0 || exportedBoundary(fn));
+    parameterProof.set(cacheKey, result);
+    return result;
+  }
+
+  function provenOptionOrigin(node, owner, seen = new Set()) {
+    const expression = unwrapExpression(node);
+    if (seen.has(expression)) return false;
+    seen.add(expression);
+    if (supportedOptionLiteral(expression, owner)) return true;
+    if (libraryTypeName(expression) !== owner) return false;
+    if (!ts.isIdentifier(expression)) return false;
+    const symbol = resolvedSymbol(expression);
+    const declarations = symbol?.declarations ?? [];
+    if (declarations.length !== 1) return false;
+    const declaration = declarations[0];
+    if (ts.isParameter(declaration)) return provenParameter(declaration, owner, seen);
+    if (!ts.isVariableDeclaration(declaration) || !isWritableDeclaration(declaration)
+        || !(declaration.parent.flags & ts.NodeFlags.Const) || declaration.initializer === undefined) return false;
+    return provenOptionOrigin(declaration.initializer, owner, seen);
+  }
+
+  /** A typed nonliteral is safe when its library type carries the same property migration as this call argument. */
+  function typedArgumentCarriesMappedShape(node, member, position) {
+    const owner = libraryTypeName(node);
+    if (owner === undefined) return false;
+    const entries = index.optionsFor(member.owner, member.name, position, []);
+    return entries.length > 0 && entries.every(entry => index.properties.get(`${owner}.${entry.from}`)?.to === entry.to)
+      && provenOptionOrigin(node, owner);
+  }
+
   /** Positional arguments as one options bag, or undefined after reporting why it cannot be done. */
   function bagArguments(call, entry, member) {
     const { names, trailing } = entry.arguments;
@@ -240,6 +592,9 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     return {
       ts, checker, program, library, sourceFile, member,
       text, slice, start, assemble, objectLiteral, quote, manual,
+      provenOptionOrigin,
+      childLifetimeAdjustment: node => childLifetimeAdjustments.get(node),
+      childLifetimeManualReason: node => childLifetimeManual.get(node),
       nameOf: index.nameOf,
       nameForRole(role) {
         const value = entry?.transformNames?.[role];
@@ -332,7 +687,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
       for (const position of touched) {
         const argumentNode = call.arguments[position];
         if (isStringValue(argumentNode) || ts.isObjectLiteralExpression(argumentNode)) replacements.push({ start: start(argumentNode), end: argumentNode.end, text: argumentText(argumentNode, member, position) });
-        else manual(argumentNode, `argument ${position + 1} of ${name} is not a literal; where it is built, apply: ${index.describeArgumentEntries(member.owner, name, position)}`);
+        else if (!typedArgumentCarriesMappedShape(argumentNode, member, position)) manual(argumentNode, `argument ${position + 1} of ${name} is not a literal; where it is built, apply: ${index.describeArgumentEntries(member.owner, name, position)}`);
       }
     }
     return replacements.length ? assemble(call, replacements) : undefined;
@@ -432,7 +787,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     if (!literal.properties.some(property => index.propertyNames.has(literalKey(property) ?? ''))) return undefined;
     const contextual = checker.getContextualType(literal);
     if (!contextual) return undefined;
-    const coverageFor = key => library.memberCoverage(checker.getPropertyOfType(contextual, key));
+    const coverageFor = key => library.memberCoverage(checker.getPropertyOfType(checker.getNonNullableType(contextual), key));
     const result = objectLiteral(literal, {
       rename: (key, property) => {
         if (!index.memberNames.has(key)) return undefined;

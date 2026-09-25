@@ -39,6 +39,7 @@
     "docs:retired-names": "node scripts/check-docs-retired-names.mjs",
     "graph:check": "node --test tools/graph/test/*.test.mjs",
     "codemod:check": "node --test tools/codemod/test/*.test.mjs",
+    "codemod:acceptance": "node scripts/codemod-acceptance.mjs",
     "agent-eval:test": "node --test scripts/agent-eval/test/*.test.mjs",
     "docs:build": "node tools/docs/site.mjs build",
     "docs:dev": "node tools/docs/site.mjs dev",

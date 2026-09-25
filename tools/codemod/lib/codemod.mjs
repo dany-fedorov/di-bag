@@ -45,6 +45,9 @@ export function runCodemod({ typescript: ts, root, project, files = [], extraFil
   const checker = built.getTypeChecker();
   const library = createLibrary({ ts, checker, root, libraryRoots });
   const selected = only === undefined ? undefined : new Set(only.map(file => resolve(root, file)));
+  const writableSourceFiles = new Set(built.getSourceFiles()
+    .map(sourceFile => resolve(sourceFile.fileName))
+    .filter(fileName => !fileName.includes('/node_modules/') && !library.isLibraryFile(fileName) && (selected === undefined || selected.has(fileName))));
   const changed = [];
   const manual = [];
   let rewrites = 0;
@@ -56,7 +59,7 @@ export function runCodemod({ typescript: ts, root, project, files = [], extraFil
     let result;
     try {
       result = rewriteSourceFile({
-        ts, checker, program: built, sourceFile, library, index, transforms,
+        ts, checker, program: built, sourceFile, library, index, transforms, writableSourceFiles,
         manualItems: manual,
         fileLabel,
       });
