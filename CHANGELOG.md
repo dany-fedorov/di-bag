@@ -1,5 +1,106 @@
 # Changelog
 
+## 0.5.0
+
+The API is pre-1.0. This release renames almost every public name, so that a
+call reads as a sentence and an option says what it holds, and it changes three
+behaviors. Run the codemod BEFORE upgrading, then read the
+[migration guide](docs/guides/migrating-to-0.5.md), which lists every rename.
+
+### Migration
+
+- `npx di-bag-codemod --project tsconfig.json --write` rewrites a project while
+  the 0.4.0 types are still installed. It is type-aware, reshapes arguments,
+  adjusts child-replacement lifetimes only when the graph proves the adjustment
+  is needed, and reports ambiguous cases instead of guessing. New package:
+  `di-bag-codemod` 0.1.0.
+- Every removed callable name still exists at run time for the 0.5 line as a
+  function that throws `DI_BAG_REMOVED_API` and names its replacement in
+  `details.replacement`. This guarantee covers callable names only: removed
+  types, fields, and import specifiers have no runtime stub. The types omit all
+  removed APIs, so TypeScript rejects their use at compile time.
+
+### Breaking changes: behavior
+
+- A child container replaces only scoped and transient services. Replacing a
+  singleton in a child does not compile; `createIndependentContainer` may
+  replace anything.
+- A token is either for one service, `createToken(symbol).forService<S>()`, or
+  for a collection, `createToken(symbol).forCollectionOf<Item>()`. A collection
+  is read with `container.resolveCollection(collectionToken)` or as a collection
+  dependency, and inspected with `container.serviceSnapshot(collectionToken)`.
+  `DiBag.all`, `resolveAll` and `inspectAll` are removed. Using a token of the
+  wrong kind is a compile error and `DI_BAG_WRONG_TOKEN_KIND` at run time.
+- `di-bag/node` is removed. Import from `di-bag`; the package finds the host's
+  Promise classifier by itself.
+
+The default remains `'scoped:one-per-container'`. Lifetime values now state
+their caching boundary: `'singleton:one-per-container-tree'`,
+`'scoped:one-per-container'` and `'transient:one-per-resolve'`. This is a naming
+change, not a change to the default lifetime.
+
+### Breaking changes: names
+
+- The builder: `withServices`, `withTokenService`, `withServiceAlias`,
+  `withCollectionContribution`, `withReplacedService(serviceKey, provider)`,
+  `withInstalledModules` (a list), `verifyGraphAtCompileTime`,
+  `buildModule({ exportedServiceKeys, moduleLabel })`, and `buildContainer`.
+  `buildAndStart` is
+  `builder.buildContainer().ensureServicesReady(serviceKeys, options)`.
+- The container, which was `Bag`: `serviceSnapshot`, `graphSnapshot`,
+  `createChildContainer(replacedServiceKeys, replacementProviders, options?)`,
+  `createIndependentContainer(replacedServiceKeys, replacementProviders)`, and
+  `close({ abortSignal, waitTimeoutMs })`. Readiness options are
+  `{ abortSignal, totalTimeoutMs, maxConcurrentServiceKeys }`. No-argument and
+  empty-bag forms remain available for both derivation methods, the child also
+  accepts a share-only bag, and explicit `undefined` is accepted exactly where
+  the selected overload permits it.
+- Providers: `DiBag.createProvider(factory, options?)`,
+  `DiBag.createProviderFromFunction(options)`,
+  `DiBag.createProviderFromClass(options)`, and
+  `DiBag.createProviderFromPlugin(options)`, with option-bag names including
+  `factoryReturnKind` and `factoryReceivesContext`. Decorators are the five
+  facade calls `DiBag.providerWithDisposal`, `DiBag.providerWithLifetime`,
+  `DiBag.providerWithRegistrationMetadata`,
+  `DiBag.providerWithAcquisitionMetadata`, and
+  `DiBag.providerWithTransformedService`; each takes an option bag containing
+  its `provider`.
+- Modules: `module.withRenamedExport({ currentExportKey, newExportKey })` and
+  `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })`.
+  String requirements can be renamed; typed tokens retain their global identity.
+- Configuration: `withConfiguration({ runtime, lifecycleObservers })`, an
+  observer being `{ onLifecycleEvent, onObserverFailure }`.
+- Snapshots and events: `isPresent`, `bindingLabel`, `serviceKeys`,
+  `isOwnedByContainer`, `factoryReturnKind`, `tokenSymbol`, `dependencyKind`,
+  `collectionTokenSymbol`, `consumerBindingId`, `dependencyBindingId`,
+  `containerId`, `parentContainerId`; event kinds `container-*` and
+  `disposal-*`.
+- Errors: a code names a kind of failure and never a method, which is in
+  `details.operation`. 32 codes replace the 42 of 0.4.0. Every malformed
+  argument is `DI_BAG_INVALID_ARGUMENT` with `details: { operation, argument,
+  expected }`. `DiBagCleanupError` is `DiBagDisposalError`, the startup errors
+  are `DiBagServiceReadinessError` and
+  `DiBagServiceReadinessCancelledError`, and `cleanup...` fields are
+  `disposal...`. The guide has the full table, including the six codes that were
+  split.
+
+### Added
+
+- `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })`
+  renames a string-keyed requirement without a wrapper module. Typed-token
+  requirements retain their global identity and cannot be renamed.
+- `ensureServicesReady` works on any container, reports what is still pending
+  when it is cancelled, and takes `maxConcurrentServiceKeys`.
+- `FactoryContext.abortSignal`, and a factory context for positional factories.
+- `docs/guides/api-naming.md`, the naming rules this release follows, with a
+  test that holds the public surface to them.
+
+### Tools
+
+- `di-bag-graph` 0.2.0 reads 0.5.0 builder chains. Its node field `owned` is now
+  `isOwnedByContainer`.
+- `di-bag-codemod` 0.1.0, see Migration.
+
 ## 0.4.0
 
 The API is pre-1.0; this release adds ownership for resources a factory acquires

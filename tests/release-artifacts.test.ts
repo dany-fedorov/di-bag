@@ -28,7 +28,13 @@ const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), '
 };
 
 const packageNames = ['di-bag'] as const;
+const releasePackages = (libraryVersion: string) => [
+  { name: 'di-bag-graph', version: '0.2.0', archive: '/tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz' },
+  { name: 'di-bag-codemod', version: '0.1.0', archive: '/tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz' },
+  { name: 'di-bag', version: libraryVersion, archive: `/tmp/di-bag-release-candidate/di-bag-${libraryVersion}.tgz` },
+] as const;
 const authorizationHeading = '## DO NOT RUN without fresh explicit authorization';
+const scratchUserconfig = '--userconfig "$release_scratch/publish.npmrc"';
 const adversarialReleaseFiles = [
   'tests/final-adversarial-integration.test.ts',
   'tests/package.test.ts',
@@ -49,13 +55,20 @@ function validateAdversarialReleaseCommands(document: string): readonly string[]
   return failures;
 }
 
-function onlineCommands(version: string): readonly string[] {
+function authorizedReleaseCommands(version: string): readonly string[] {
+  const packages = releasePackages(version);
   return [
-    ...packageNames.map(name =>
-      `npm view ${name}@${version} version --registry=https://registry.npmjs.org`),
-    'npm login --registry=https://registry.npmjs.org',
-    `npm publish /tmp/di-bag-release-candidate/di-bag-${version}.tgz --access public --provenance`,
-    `npm dist-tag add di-bag@${version} latest --registry=https://registry.npmjs.org`,
+    'release_scratch="$(mktemp -d)"',
+    'chmod 700 "$release_scratch"',
+    'trap \'rm -f "$release_scratch/publish.npmrc"; rmdir "$release_scratch"\' EXIT',
+    `npm login --registry=https://registry.npmjs.org ${scratchUserconfig}`,
+    `npm whoami --registry=https://registry.npmjs.org ${scratchUserconfig}`,
+    ...packages.map(({ name, version: packageVersion }) =>
+      `npm view ${name}@${packageVersion} version --registry=https://registry.npmjs.org ${scratchUserconfig}`),
+    ...packages.map(({ archive }) =>
+      `npm publish ${archive} --access public ${scratchUserconfig}`),
+    ...packages.map(({ name, version: packageVersion }) =>
+      `npm dist-tag add ${name}@${packageVersion} latest --registry=https://registry.npmjs.org ${scratchUserconfig}`),
   ];
 }
 
@@ -72,7 +85,11 @@ function validatePublishingDocument(document: string, version: string): string[]
     'npm token', 'npm config', 'npm audit', 'git tag', 'git push',
     '--provenance', '.npmrc', '_authToken',
   ]) if (beforeAppendix.includes(token)) failures.push(`online token precedes authorization heading: ${token}`);
-  for (const command of onlineCommands(version)) {
+  if (appendix.includes('--provenance')) failures.push('provenance publication is forbidden');
+  if (/[<>]/.test(appendix)) failures.push('authorization appendix contains an angle-bracket placeholder');
+  if (appendix.includes('_authToken') || appendix.includes('npm config') || appendix.includes('printf '))
+    failures.push('authorization appendix must not put token material in commands');
+  for (const command of authorizedReleaseCommands(version)) {
     const count = document.split(command).length - 1;
     if (count !== 1) failures.push(`expected command exactly once: ${command}`);
     if (beforeAppendix.includes(command)) failures.push(`online command precedes authorization heading: ${command}`);
@@ -83,6 +100,8 @@ function validatePublishingDocument(document: string, version: string): string[]
     'npm install --offline --ignore-scripts --no-audit --no-fund --no-package-lock',
     'Registry version/owner/access/tag/provenance status is unavailable',
     'npm versions are immutable',
+    'scratch `--userconfig`',
+    'omit provenance attestation',
   ]) if (!beforeAppendix.includes(required)) failures.push(`missing local workflow fact: ${required}`);
   return failures;
 }
@@ -111,16 +130,55 @@ describe('release documentation contract', () => {
   test('release documents match the frozen package and gate every online command', () => {
     const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.4.0' });
+    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.5.0' });
     expect(changelog.match(new RegExp(`^## ${packageManifest.version}$`, 'gm'))).toHaveLength(1);
     expect(changelog).not.toContain('## Unreleased');
+    expect(releasePackages(packageManifest.version)).toEqual([
+      { name: 'di-bag-graph', version: '0.2.0', archive: '/tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz' },
+      { name: 'di-bag-codemod', version: '0.1.0', archive: '/tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz' },
+      { name: 'di-bag', version: '0.5.0', archive: '/tmp/di-bag-release-candidate/di-bag-0.5.0.tgz' },
+    ]);
     expect(validatePublishingDocument(publishing, packageManifest.version)).toEqual([]);
-    expect(appendixCommands(publishing)).toEqual(onlineCommands(packageManifest.version));
+    expect(appendixCommands(publishing)).toEqual(authorizedReleaseCommands(packageManifest.version));
+    for (const command of appendixCommands(publishing).filter(command => command.startsWith('npm ')))
+      expect(command).toContain(scratchUserconfig);
+  });
+
+  test('the 0.5 release notes state the accepted migration contract', () => {
+    const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
+    const readme = readFileSync(resolve(root, 'README.md'), 'utf8');
+    const release = changelog.slice(changelog.indexOf('## 0.5.0'), changelog.indexOf('## 0.4.0'));
+
+    expect(release).toMatch(/it changes three\s+behaviors/);
+    expect(release).toContain("The default remains `'scoped:one-per-container'`");
+    expect(release).toContain('container.resolveCollection(collectionToken)');
+    expect(release).toContain('container.serviceSnapshot(collectionToken)');
+    for (const providerCall of [
+      'DiBag.providerWithDisposal',
+      'DiBag.providerWithLifetime',
+      'DiBag.providerWithRegistrationMetadata',
+      'DiBag.providerWithAcquisitionMetadata',
+      'DiBag.providerWithTransformedService',
+    ]) expect(release).toContain(providerCall);
+    expect(release).toContain('builder.buildContainer().ensureServicesReady(serviceKeys, options)');
+    expect(release).toContain('close({ abortSignal, waitTimeoutMs })');
+    expect(release).toContain('Readiness options are\n  `{ abortSignal, totalTimeoutMs, maxConcurrentServiceKeys }`');
+    expect(release).toContain('withReplacedService(serviceKey, provider)');
+    expect(release).toContain('`withInstalledModules` (a list)');
+    expect(release).toContain('module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })');
+    expect(release).toContain('String requirements can be renamed; typed tokens retain their global identity');
+    expect(release).toContain('32 codes replace the 42 of 0.4.0');
+    expect(release).toContain('callable names only');
+    expect(release).not.toContain('### Measured');
+    expect(release).not.toMatch(/\[\+?N%?\]|\[N\]/);
+    expect(release).not.toContain('Decorators are methods of the provider');
+    expect(readme).toMatch(/Run the 0\.4-to-0\.5 codemod\s+before upgrading/);
   });
 
   test('the publication boundary rejects stale, missing, duplicated, and misplaced commands', () => {
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    const command = onlineCommands(packageManifest.version)[0]!;
+    const command = authorizedReleaseCommands(packageManifest.version)
+      .find(command => command.startsWith(`npm view di-bag@${packageManifest.version} `))!;
     expect(validatePublishingDocument(publishing.replaceAll(packageManifest.version, '9.9.9'), packageManifest.version)).toContain(`expected command exactly once: ${command}`);
     expect(validatePublishingDocument(publishing.replace(command, ''), packageManifest.version)).toContain(`expected command exactly once: ${command}`);
     expect(validatePublishingDocument(`${command}\n${publishing}`, packageManifest.version)).toContain(`online command precedes authorization heading: ${command}`);
@@ -128,6 +186,10 @@ describe('release documentation contract', () => {
     expect(validatePublishingDocument(publishing.replace(authorizationHeading, ''), packageManifest.version)).toContain('missing authorization heading');
     expect(validatePublishingDocument(publishing.replace(authorizationHeading, `${authorizationHeading}\n${authorizationHeading}`), packageManifest.version)).toContain('authorization heading must occur exactly once');
     expect(validatePublishingDocument(publishing.replaceAll('/tmp/di-bag-release-candidate', '/tmp/other'), packageManifest.version)).toContain('missing local workflow fact: /tmp/di-bag-release-candidate');
+    expect(validatePublishingDocument(publishing.replace(scratchUserconfig, '--provenance'), packageManifest.version)).toContain('provenance publication is forbidden');
+    expect(validatePublishingDocument(publishing.replace(scratchUserconfig, '--userconfig <scratchpad>/publish.npmrc'), packageManifest.version)).toContain('authorization appendix contains an angle-bracket placeholder');
+    expect(validatePublishingDocument(publishing.replace(`npm login --registry=https://registry.npmjs.org ${scratchUserconfig}`, 'npm login --registry=https://registry.npmjs.org'), packageManifest.version)).toContain(`expected command exactly once: npm login --registry=https://registry.npmjs.org ${scratchUserconfig}`);
+    expect(validatePublishingDocument(publishing.replace(authorizationHeading, `${authorizationHeading}\nnpm config set //registry.npmjs.org/:_authToken secret`), packageManifest.version)).toContain('authorization appendix must not put token material in commands');
     for (const [prohibited, token] of [
       ['npm whoami --registry=https://registry.npmjs.org', 'npm whoami'],
       ['npm token list', 'npm token'],

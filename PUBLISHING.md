@@ -15,7 +15,7 @@ tool versions, native diagnostic inventory, build output, dry-run and actual pac
 JSON, archive bytes and hashes, and every supervised command record.
 
 Verify the public API and inferred consumer declarations in the packed
-archive. The documented local version is `0.4.0`; select and verify each
+archive. The documented local version is `0.5.0`; select and verify each
 subsequent version before publication.
 
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
@@ -117,9 +117,9 @@ independently. Record a tool release in the `CHANGELOG.md` section of the
    `tsc` and `npx di-bag-graph --check` there.
 4. `npm pack ./tools/graph --pack-destination /tmp/di-bag-release-candidate` and
    inspect the archive.
-5. Publication of that archive falls under the authorization rule below: the
-   same registry check, public access, and provenance as `di-bag`, only in a
-   separately authorized session.
+5. Publication of that verified local archive falls under the authorization
+   rule below. Use `--access public` and a scratch `--userconfig`; omit
+   provenance attestation. Run it only in a separately authorized session.
 
 ## Releasing di-bag-codemod
 
@@ -142,14 +142,33 @@ tool version.
    and inspect the archive.
 5. Publication of that archive falls under the authorization rule below. The
    controller publishes the verified local archive with `--access public` and
-   a scratch `--userconfig`; do not use `--provenance`, which requires a CI
+   a scratch `--userconfig`; omit provenance attestation, which requires a CI
    identity.
 
 ## DO NOT RUN without fresh explicit authorization
 
+The login is interactive and writes credentials only to a newly created,
+mode-700 user-config directory; the exit trap removes that file and directory.
+Never put a registry token in an argument, this document, or a retained log.
+Confirm `npm whoami` names the intended publisher.
+Each version check must report that the exact version is absent; an existing
+version, unexpected owner, or failed login stops the release. Publish the two
+tools before the library from the exact verified candidate archives. Provenance
+is omitted because this is a local-token publication rather than a CI identity.
+
 ```bash
-npm view di-bag@0.4.0 version --registry=https://registry.npmjs.org
-npm login --registry=https://registry.npmjs.org
-npm publish /tmp/di-bag-release-candidate/di-bag-0.4.0.tgz --access public --provenance
-npm dist-tag add di-bag@0.4.0 latest --registry=https://registry.npmjs.org
+release_scratch="$(mktemp -d)"
+chmod 700 "$release_scratch"
+trap 'rm -f "$release_scratch/publish.npmrc"; rmdir "$release_scratch"' EXIT
+npm login --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm whoami --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag-graph@0.2.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag-codemod@0.1.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag@0.5.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-0.5.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag-graph@0.2.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag-codemod@0.1.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag@0.5.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
 ```
