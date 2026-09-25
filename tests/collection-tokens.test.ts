@@ -199,9 +199,13 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
   const named = testApp.resolve('controllers');
   expect(direct).toEqual(fake); expect(direct).not.toBe(fake);
   expect(Object.isFrozen(direct)).toBe(true);
-  expect(lazy).toEqual(fake); expect(lazy).not.toBe(direct);
-  expect(named).toEqual(fake); expect(named).not.toBe(lazy);
+  expect(lazy).toEqual(fake); expect(lazy).not.toBe(fake);
+  expect(Object.isFrozen(lazy)).toBe(true);
+  expect(named).toEqual(fake); expect(named).not.toBe(fake);
   expect(Object.isFrozen(named)).toBe(true);
+  expect(direct).not.toBe(lazy);
+  expect(direct).not.toBe(named);
+  expect(lazy).not.toBe(named);
   expect(testApp.resolve('router')).toBe('fake');
   expect(testApp.resolve('count')).toBe(1);
   expect(testApp.serviceSnapshot(controllers).map(snapshot => snapshot.acquisitions.length)).toEqual([1]);
