@@ -9,21 +9,23 @@ import type { MailConfig } from './features/notifications/contract.js';
 import { notificationsModule } from './features/notifications/module.js';
 
 export const composition = DiBag.createBuilder()
-  .installModule(catalogModule)
-  .installModule(inventoryModule)
-  .installModule(checkoutModule)
-  .installModule(notificationsModule)
-  .register({
-    catalogData: DiBag.withLifetime((): CatalogData => ({
+  .withInstalledModules([
+    catalogModule,
+    inventoryModule,
+    checkoutModule,
+    notificationsModule,
+  ])
+  .withServices({
+    catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({
       products: [
         { sku: 'tea', name: 'Green tea', priceCents: 450 },
         { sku: 'mug', name: 'Mug', priceCents: 1200 },
       ],
-    }), 'root'),
-    stockLevels: DiBag.withLifetime((): StockLevels => ({ tea: 40, mug: 10 }), 'root'),
-    payments: (): PaymentGateway => ({ charge: async amountCents => `charge-${amountCents}` }),
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+    }), lifetime: 'singleton:one-per-container-tree' }),
+    stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({ tea: 40, mug: 10 }), lifetime: 'singleton:one-per-container-tree' }),
+    payments: DiBag.providerWithLifetime({ provider: (): PaymentGateway => ({ charge: async amountCents => `charge-${amountCents}` }), lifetime: 'scoped:one-per-container' }),
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async mail => { console.log(mail.subject); }, close: async () => {} }),
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   });

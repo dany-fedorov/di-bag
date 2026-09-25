@@ -1,0 +1,6 @@
+[
+  {
+    "line": 3,
+    "reason": "this child replacement may change a root-lifetime service; pin lifetimes and scoped captures by hand"
+  }
+]

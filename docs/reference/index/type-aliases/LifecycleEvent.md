@@ -5,30 +5,30 @@
 # Type Alias: LifecycleEvent
 
 ```ts
-type LifecycleEvent = (ScopeEventFields & {
-    readonly kind: 'scope-opened';
-}) | (ScopeEventFields & {
-    readonly kind: 'scope-closing';
-}) | (ScopeEventFields & {
-    readonly kind: 'scope-closed';
-}) | (ScopeEventFields & {
-    readonly kind: 'scope-close-failed';
+type LifecycleEvent = (ContainerEventFields & {
+    readonly kind: 'container-opened';
+}) | (ContainerEventFields & {
+    readonly kind: 'container-closing';
+}) | (ContainerEventFields & {
+    readonly kind: 'container-closed';
+}) | (ContainerEventFields & {
+    readonly kind: 'container-close-failed';
     readonly error: unknown;
 }) | (AcquisitionEventFields & {
     readonly kind: 'acquisition-started';
 }) | (AcquisitionEventFields & {
     readonly kind: 'acquisition-ready';
 }) | (AcquisitionEventFields & {
-    readonly kind: 'cleanup-started';
+    readonly kind: 'disposal-started';
 }) | (AcquisitionEventFields & {
     readonly kind: 'acquisition-failed';
     readonly error: unknown;
 }) | (AcquisitionEventFields & {
-    readonly kind: 'cleanup-failed';
+    readonly kind: 'disposal-failed';
     readonly error: unknown;
     readonly disposalSequence: number;
 }) | (AcquisitionEventFields & {
-    readonly kind: 'cleanup-completed';
+    readonly kind: 'disposal-completed';
     readonly outcome: 'success' | 'failure';
 });
 ```
@@ -36,7 +36,7 @@ type LifecycleEvent = (ScopeEventFields & {
 Defined in: [observers.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L33)
 
 A frozen discriminated lifecycle transition emitted after the corresponding state change.
-Narrow on `kind` to access failure, cleanup outcome, or disposal-index fields.
+Narrow on `kind` to access failure, disposal outcome, or disposal-index fields.
 
 ## See
 

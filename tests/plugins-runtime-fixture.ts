@@ -6,18 +6,18 @@ export const pluginRuntimeAssertions = `
 
     const value = { run: () => 42 };
     let released = 0;
-    const provider = DiBag.fromPlugin([], {
+    const provider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
       apiVersion: 1,
       create: () => value,
       dispose(acquired) {
         if (acquired !== value) throw new Error('plugin ownership changed');
         released++;
       },
-    }, {
-      acquisitionMode: 'raw',
-      validate: item => item === value,
+    },
+      factoryReturnKind: 'uninspected',
+      isValidPluginOutput: item => item === value,
     });
-    const bag = DiBag.createBuilder().register({ plugin: provider }).build();
+    const bag = DiBag.createBuilder().withServices({ plugin: provider }).buildContainer();
     assertPlugin(bag.resolve('plugin') === value, 'plugin identity changed');
     await bag.close();
     assertPlugin(released === 1, 'plugin cleanup was not once-only');
@@ -25,8 +25,8 @@ export const pluginRuntimeAssertions = `
     let creates = 0;
     let descriptorError;
     try {
-      DiBag.fromPlugin([], { apiVersion: 2, create: () => { creates++; return value; } }, {
-        acquisitionMode: 'raw', validate: item => item === value,
+      DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 2, create: () => { creates++; return value; } },
+        factoryReturnKind: 'uninspected', isValidPluginOutput: item => item === value,
       });
     } catch (error) { descriptorError = error; }
     assertPlugin(descriptorError instanceof DiBagPluginValidationError && descriptorError.phase === 'descriptor' && creates === 0,
@@ -36,7 +36,7 @@ export const pluginRuntimeAssertions = `
     let invalidReleased = 0;
     let releaseInvalidDisposal;
     const invalidDisposal = new Promise(resolve => { releaseInvalidDisposal = resolve; });
-    const invalidProvider = DiBag.fromPlugin([], {
+    const invalidProvider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
       apiVersion: 1,
       create: () => invalid,
       dispose(acquired) {
@@ -44,8 +44,8 @@ export const pluginRuntimeAssertions = `
         invalidReleased++;
         return invalidDisposal;
       },
-    }, { acquisitionMode: 'raw', validate: () => false });
-    const invalidBag = DiBag.createBuilder().register({ invalidPlugin: invalidProvider }).build();
+    }, factoryReturnKind: 'uninspected', isValidPluginOutput: () => false });
+    const invalidBag = DiBag.createBuilder().withServices({ invalidPlugin: invalidProvider }).buildContainer();
     let outputError;
     try { invalidBag.resolve('invalidPlugin'); } catch (error) { outputError = error; }
     let invalidClosed = false;
@@ -64,7 +64,7 @@ export const pluginRuntimeAssertions = `
     let nativeReleased = 0;
     let releaseNativeDisposal;
     const nativeDisposal = new Promise(resolve => { releaseNativeDisposal = resolve; });
-    const nativeProvider = DiBag.fromPlugin([], {
+    const nativeProvider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
       apiVersion: 1,
       create: () => nativeGate,
       dispose(acquired) {
@@ -72,8 +72,8 @@ export const pluginRuntimeAssertions = `
         nativeReleased++;
         return nativeDisposal;
       },
-    }, { acquisitionMode: 'nativePromise', validate: item => item === nativeValue });
-    const nativeBag = DiBag.createBuilder().register({ nativePlugin: nativeProvider }).build();
+    }, factoryReturnKind: 'native-promise', isValidPluginOutput: item => item === nativeValue });
+    const nativeBag = DiBag.createBuilder().withServices({ nativePlugin: nativeProvider }).buildContainer();
     const nativeResult = nativeBag.resolve('nativePlugin');
     assertPlugin(nativeBag.resolve('nativePlugin') === nativeResult, 'native plugin validation promise was not cached');
     let nativeClosed = false;
@@ -93,31 +93,31 @@ export const pluginRuntimeAssertions = `
     const optionalKey = Symbol('plugin optional');
     const lazyKey = Symbol('plugin lazy');
     const allKey = Symbol('plugin all');
-    const required = DiBag.token(requiredKey).of();
-    const optional = DiBag.token(optionalKey).of();
-    const lazy = DiBag.token(lazyKey).of();
-    const all = DiBag.token(allKey).of();
-    const dependencyProvider = DiBag.fromPlugin([required, DiBag.optional(optional), DiBag.lazy(lazy), DiBag.all(all)], {
+    const required = DiBag.createToken(requiredKey).forService();
+    const optional = DiBag.createToken(optionalKey).forService();
+    const lazy = DiBag.createToken(lazyKey).forService();
+    const all = DiBag.createToken(allKey).forCollectionOf();
+    const dependencyProvider = DiBag.createProviderFromPlugin({ dependencies: [required, DiBag.optional(optional), DiBag.lazy(lazy), all], pluginDescriptor: {
       apiVersion: 1,
       create: (requiredValue, optionalValue, getLazy, allValues) => ({
         summary: [requiredValue, optionalValue, getLazy(), allValues.join(',')].join('|'),
       }),
-    }, { acquisitionMode: 'raw', validate: item => typeof item === 'object' && item !== null && typeof item.summary === 'string' });
-    const dependencyBag = DiBag.createBuilder().register(required, DiBag.fromFactory(() => 3, { acquisitionMode: 'raw' })).register(lazy, DiBag.fromFactory(() => 4, { acquisitionMode: 'raw' })).contribute(all, DiBag.fromFactory(() => 5, { acquisitionMode: 'raw' })).contribute(all, DiBag.fromFactory(() => 6, { acquisitionMode: 'raw' })).register({ dependencyPlugin: dependencyProvider }).build();
+    }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => typeof item === 'object' && item !== null && typeof item.summary === 'string' });
+    const dependencyBag = DiBag.createBuilder().withTokenService(required, DiBag.createProvider(() => 3, { factoryReturnKind: 'uninspected' })).withTokenService(lazy, DiBag.createProvider(() => 4, { factoryReturnKind: 'uninspected' })).withCollectionContribution({ collectionToken: all, provider: DiBag.createProvider(() => 5, { factoryReturnKind: 'uninspected' }) }).withCollectionContribution({ collectionToken: all, provider: DiBag.createProvider(() => 6, { factoryReturnKind: 'uninspected' }) }).withServices({ dependencyPlugin: dependencyProvider }).buildContainer();
     assertPlugin(dependencyBag.resolve('dependencyPlugin').summary === '3||4|5,6',
       'plugin dependencies lost required, optional, lazy or all routing');
     await dependencyBag.close();
 
     const privateKey = Symbol('plugin private');
-    const privateToken = DiBag.token(privateKey).of();
-    const privateProvider = DiBag.fromPlugin([privateToken], {
+    const privateToken = DiBag.createToken(privateKey).forService();
+    const privateProvider = DiBag.createProviderFromPlugin({ dependencies: [privateToken], pluginDescriptor: {
       apiVersion: 1,
       create: secret => ({ secret }),
-    }, { acquisitionMode: 'raw', validate: item => typeof item === 'object' && item !== null && item.secret === 17 });
-    const privateFeature = DiBag.createBuilder().register(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).register({ privatePlugin: privateProvider }).alias('pluginAlias', 'privatePlugin').buildModule(['pluginAlias']).renameExport('pluginAlias', 'publicPlugin');
-    const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
+    }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => typeof item === 'object' && item !== null && item.secret === 17 });
+    const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.createProvider(() => 17, { factoryReturnKind: 'uninspected' })).withServices({ privatePlugin: privateProvider }).withServiceAlias({ aliasKey: 'pluginAlias', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['pluginAlias'] }).withRenamedExport({ currentExportKey: 'pluginAlias', newExportKey: 'publicPlugin' });
+    const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
     const sharedPlugin = privateBag.resolve('publicPlugin');
-    const sharedChild = privateBag.createScope({ share: ['publicPlugin'] });
+    const sharedChild = privateBag.createChildContainer({ sharedParentServiceKeys: ['publicPlugin'] });
     assertPlugin(sharedChild.resolve('publicPlugin') === sharedPlugin && sharedPlugin.secret === 17,
       'plugin module alias or selected sharing changed identity');
     await sharedChild.close();
@@ -128,29 +128,29 @@ export const pluginRuntimeAssertions = `
     let observerWorkFinished = false;
     const observerWork = new Promise(resolve => { releaseObserverWork = resolve; }).then(() => { observerWorkFinished = true; });
     let observerWorkStarted = false;
-    const observed = DiBag.withConfiguration({ observers: [{
-      onEvent: event => {
+    const observed = DiBag.withConfiguration({ lifecycleObservers: [{
+      onLifecycleEvent: event => {
         observedEvents.push(event);
         if (event.kind === 'acquisition-started') {
           observerWorkStarted = true;
           return observerWork;
         }
       },
-      onError: failure => { throw failure.error; },
+      onObserverFailure: failure => { throw failure.error; },
     }] });
     const observedValue = { id: 'observed' };
     let observedReleased = 0;
-    const observedBag = observed.createBuilder().register({ observedPlugin: observed.fromPlugin([], {
+    const observedBag = observed.createBuilder().withServices({ observedPlugin: observed.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
       apiVersion: 1,
       create: () => observedValue,
       dispose(acquired) {
         if (acquired !== observedValue) throw new Error('observer plugin ownership changed');
         observedReleased++;
       },
-    }, { acquisitionMode: 'raw', validate: item => item === observedValue }) }).build();
+    }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => item === observedValue }) }).buildContainer();
     assertPlugin(observedBag.resolve('observedPlugin') === observedValue, 'observer changed plugin value');
-    const observedAttempt = observedBag.inspect('observedPlugin').acquisitions[0].acquisitionId;
-    const observedBinding = observedBag.inspect('observedPlugin').bindingId;
+    const observedAttempt = observedBag.serviceSnapshot('observedPlugin').acquisitions[0].acquisitionId;
+    const observedBinding = observedBag.serviceSnapshot('observedPlugin').bindingId;
     await turn();
     let observedClosed = false;
     await observedBag.close().then(() => { observedClosed = true; });
@@ -161,16 +161,16 @@ export const pluginRuntimeAssertions = `
     await turn();
     assertPlugin(observedReleased === 1
       && observedEvents.filter(event => event.kind === 'acquisition-started' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1
-      && observedEvents.filter(event => event.kind === 'cleanup-completed' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1,
+      && observedEvents.filter(event => event.kind === 'disposal-completed' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1,
       'observer did not retain canonical plugin attempt identity');
 
     const { DiBag: PortablePluginBag } = await import('di-bag');
     const portableValue = { id: 'portable' };
-    const portableProvider = PortablePluginBag.fromPlugin([], {
+    const portableProvider = PortablePluginBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
       apiVersion: 1,
       create: () => portableValue,
-    }, { acquisitionMode: 'raw', validate: item => item === portableValue });
-    const portableBag = PortablePluginBag.createBuilder().register({ portablePlugin: portableProvider }).build();
+    }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => item === portableValue });
+    const portableBag = PortablePluginBag.createBuilder().withServices({ portablePlugin: portableProvider }).buildContainer();
     assertPlugin(portableBag.resolve('portablePlugin') === portableValue,
       'portable core required a classifier for explicit raw plugin mode');
     await portableBag.close();

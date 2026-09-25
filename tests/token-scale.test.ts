@@ -34,7 +34,7 @@ for (const form of ['bindings', 'modules'] satisfies TokenScaleForm[]) {
       expect(result.diagnostics.length).toBeGreaterThan(0);
       expect(result.diagnostics.every(error => error.file === generated && error.line !== undefined && error.column !== undefined)).toBe(true);
       expect(result.diagnostics.some(error => error.code === 2589)).toBe(false);
-      const intended = scenario === 'missing-final-token' ? 'required service registrations are missing'
+      const intended = scenario === 'missing-final-token' ? 'required services are missing'
         : form === 'bindings' ? 'token dependency has an incompatible or opaque contract'
           : 'provided service does not satisfy its consumer dependency';
       expect(result.diagnostics.some(error =>

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "skipLibCheck": true,
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src", "app"],
+  "exclude": ["app/excluded"]
+}

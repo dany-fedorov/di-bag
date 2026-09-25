@@ -2,15 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ProviderFactory
 
-# Type Alias: ProviderFactory\<R *extends* [`Registration`](Registration.md)\>
+# Type Alias: ProviderFactory\<R *extends* [`ProviderOrFactory`](ProviderOrFactory.md)\>
 
 ```ts
-type ProviderFactory<R extends Registration> = R extends infer T & {} ? FactoryOf<T> : never;
+type ProviderFactory<R extends ProviderOrFactory> = R extends infer T & {} ? FactoryOf<T> : never;
 ```
 
-Defined in: [provider.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L57)
+Defined in: [provider.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L72)
 
-Extract the callable factory contract retained by a registration.
+Extract the callable factory contract retained by a provider.
 
 ## Type Parameters
 

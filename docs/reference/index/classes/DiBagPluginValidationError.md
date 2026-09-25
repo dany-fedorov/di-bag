@@ -14,7 +14,7 @@ A plugin descriptor or its acquired output failed validation at the checked plug
 import { DiBag, DiBagPluginValidationError } from 'di-bag';
 
 try {
-  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+  DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 2 }, factoryReturnKind: 'uninspected', isValidPluginOutput: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
 } catch (error) {
   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
 }
@@ -29,7 +29,7 @@ try {
 ### Constructor
 
 ```ts
-new (phase: "descriptor" | "output", reason: string): DiBagPluginValidationError;
+new (phase: "descriptor" | "output", reason: string, operation?: "createProviderFromPlugin"): DiBagPluginValidationError;
 ```
 
 Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
@@ -40,6 +40,7 @@ Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/
 | ------ | ------ |
 | `phase` | Whether descriptor authentication or output validation failed. |
 | `reason` | A stable description of the rejected boundary condition. |
+| `operation` | - |
 
 #### Overrides
 
@@ -75,7 +76,7 @@ Defined in: [errors.ts:61](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly phase: 'descriptor' | 'output';
 ```
 
-Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
+Defined in: [errors.ts:67](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L67)
 
 Whether descriptor authentication or output validation failed.
 
@@ -87,6 +88,6 @@ Whether descriptor authentication or output validation failed.
 readonly reason: string;
 ```
 
-Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
+Defined in: [errors.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L68)
 
 A stable description of the rejected boundary condition.

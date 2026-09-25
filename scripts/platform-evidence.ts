@@ -301,13 +301,8 @@ export function assertBrowserMetafile(value: unknown, consumer: string): string 
     const isDependency = lexicalParts.includes('node_modules') || resolvedParts.includes('node_modules');
     if (isDependency) {
       if (!pathInside(resolvedInput, packageRoot)) throw new Error('browser package input is outside the installed di-bag archive');
-      if (pathInside(lexicalInput, packageRoot)
-        && relative(packageRoot, lexicalInput).split(sep).join('/') === 'dist/node.js') {
-        throw new Error('browser bundle contains the node facade');
-      }
       const packageRelative = relative(packageRoot, resolvedInput).split(sep).join('/');
       if (!/^dist\/[^/]+\.js$/.test(packageRelative)) throw new Error('browser package input is not under dist as a JavaScript file');
-      if (packageRelative === 'dist/node.js') throw new Error('browser bundle contains the node facade');
       if (resolvedInput === expectedRoot) rootEntries++;
     }
   }
@@ -867,7 +862,7 @@ function writePlatformMatrix(root: string, rows: readonly PlatformRow[]): { json
     '',
     'Historical Node/Bun archive results are not reclassified as current runtime evidence.',
     'Earlier full-suite counts are historical records. This file reports only the executions represented by the rows above.',
-    '`di-bag/node` is outside the portable Deno/browser root-package boundary.',
+    'Current Node, Bun, Deno, and browser consumers use the `di-bag` root entry.',
     '',
   ];
   const markdownPath = join(directory, 'README.md');

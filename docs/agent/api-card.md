@@ -11,281 +11,281 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Task | Call |
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
-| Register a service | [`builder.register(more)`](#builder-register) |
-| Register a synchronous factory for a browser or worker | [`DiBag.fromSyncFactory(callback, options)`](#dibag-fromsyncfactory) |
-| Register an async factory for a browser or worker | [`DiBag.fromAsyncFactory(callback, options)`](#dibag-fromasyncfactory) |
-| Attach cleanup | [`DiBag.withDisposal(create, dispose)`](#dibag-withdisposal) |
-| Choose a lifetime | [`DiBag.withLifetime(registration, lifetime)`](#dibag-withlifetime) |
-| Seal a module | [`builder.buildModule(keys, options?)`](#builder-buildmodule) |
-| Install a module | [`builder.installModule(module)`](#builder-installmodule) |
-| Check the graph on its own line | [`builder.verifyGraph()`](#builder-verifygraph) |
-| Build a bag | [`builder.build()`](#builder-build) |
-| Replace for a test | [`bag.fork(keys, overrides)`](#bag-fork) |
-| Open a scope | [`bag.createScope()`](#bag-createscope) |
-| Resolve | [`bag.resolve(token)`](#bag-resolve) |
-| Close | [`bag.close(options?)`](#bag-close) |
+| Register services by name | [`builder.withServices(providersByName)`](#builder-withservices) |
+| Create a collection token | [`DiBag.createToken(symbol)`](#dibag-createtoken) |
+| Contribute a collection member | [`builder.withCollectionContribution(options)`](#builder-withcollectioncontribution) |
+| Register a portable factory | [`DiBag.createProvider(factory, options)`](#dibag-createprovider) |
+| Attach disposal | [`DiBag.providerWithDisposal(options)`](#dibag-providerwithdisposal) |
+| Choose a lifetime | [`DiBag.providerWithLifetime(options)`](#dibag-providerwithlifetime) |
+| Attach registration metadata | [`DiBag.providerWithRegistrationMetadata(options)`](#dibag-providerwithregistrationmetadata) |
+| Attach acquisition metadata | [`DiBag.providerWithAcquisitionMetadata(options)`](#dibag-providerwithacquisitionmetadata) |
+| Transform a service | [`DiBag.providerWithTransformedService(options)`](#dibag-providerwithtransformedservice) |
+| Seal a module | [`builder.buildModule(options)`](#builder-buildmodule) |
+| Install modules | [`builder.withInstalledModules(modules)`](#builder-withinstalledmodules) |
+| Rename a module requirement | [`module.withRenamedRequirement(options)`](#module-withrenamedrequirement) |
+| Check the graph on its own line | [`builder.verifyGraphAtCompileTime()`](#builder-verifygraphatcompiletime) |
+| Build a container | [`builder.buildContainer()`](#builder-buildcontainer) |
+| Wait for services before accepting work | [`container.ensureServicesReady(serviceKeys, options?)`](#container-ensureservicesready) |
+| Replace services for a test | [`container.createIndependentContainer(replacedServiceKeys, replacementProviders)`](#container-createindependentcontainer) |
+| Open a child container | [`container.createChildContainer(options?)`](#container-createchildcontainer) |
+| Resolve | [`container.resolve(token)`](#container-resolve) |
+| Resolve a collection | [`container.resolveCollection(token)`](#container-resolvecollection) |
+| Close | [`container.close(options?)`](#container-close) |
 
 ## DiBag facade {#dibag-facade}
 
+### `DiBag.createProvider(factory, options)` {#dibag-createprovider}
+Create a provider from a named-dependency factory.
+```ts
+const config = DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
+```
+
+### `DiBag.createProviderFromFunction(options)` {#dibag-createproviderfromfunction}
+Create a provider whose factory receives positional dependency values.
+```ts
+const portSymbol = Symbol('port');
+const port = DiBag.createToken(portSymbol).forService<number>();
+const client = DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => ({ port: value }) });
+```
+
+### `DiBag.createProviderFromClass(options)` {#dibag-createproviderfromclass}
+Create a provider that constructs a class from positional dependencies.
+```ts
+const portSymbol = Symbol('port');
+const port = DiBag.createToken(portSymbol).forService<number>();
+class Client { constructor(readonly port: number) {} }
+const client = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client });
+```
+
+### `DiBag.createProviderFromPlugin(options)` {#dibag-createproviderfromplugin}
+Create a provider from a versioned plugin descriptor.
+```ts
+const pluginDescriptor = { apiVersion: 1 as const, create: () => ({ run() {} }) };
+const plugin = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { run(): void } => typeof value === 'object' && value !== null });
+```
+
+### `DiBag.createToken(symbol)` {#dibag-createtoken}
+Create a nominal token from a symbol.
+```ts
+const clockSymbol = Symbol('clock');
+const clock = DiBag.createToken(clockSymbol).forService<{ now(): number }>();
+```
+
 ### `DiBag.withConfiguration(options)` {#dibag-withconfiguration}
-Return a facade with inherited runtime settings and appended observers. Throws: [`DI_BAG_INVALID_CONFIGURATION`](errors.md#di-bag-invalid-configuration).
+Return a facade with inherited runtime settings and appended observers. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument).
 ```ts
 const Observed = DiBag.withConfiguration({
-  observers: [{ onEvent: event => console.log(event.kind), onError: failure => console.error(failure.error) }],
+  lifecycleObservers: [{ onLifecycleEvent: event => console.log(event.kind), onObserverFailure: failure => console.error(failure.error) }],
 });
 ```
 
-### `DiBag.fromFactory(callback, options)` {#dibag-fromfactory}
-Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode).
-```ts
-type Query = { then(done: (rows: string[]) => void): void };
-const query = DiBag.fromFactory((): Query => ({ then: done => done([]) }), { acquisitionMode: 'raw' });
-```
-
-### `DiBag.fromSyncFactory(callback, options)` {#dibag-fromsyncfactory}
-Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory).
-```ts
-const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
-```
-
-### `DiBag.fromAsyncFactory(callback, options)` {#dibag-fromasyncfactory}
-Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory).
-```ts
-const db = DiBag.withDisposal(
-  DiBag.fromAsyncFactory(async ({ config }: { config: { url: string } }) => ({ url: config.url, end: async () => {} })),
-  db => db.end(),
-);
-```
-
-### `DiBag.token(key)` {#dibag-token}
-Create a typed token from a unique symbol; `.of<Service>()` fixes its service type. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
-```ts
-const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-```
-
 ### `DiBag.optional(token)` {#dibag-optional}
-Create a positional dependency that yields `undefined` only when the token is unregistered. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+Create a positional dependency that yields `undefined` only when the token is unregistered. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-const stamp = DiBag.fromFunction([DiBag.optional(clock)], source => source?.now() ?? 0);
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(clock)], factoryFunction: source => source?.now() ?? 0 });
 ```
 
 ### `DiBag.lazy(token)` {#dibag-lazy}
 Create a positional dependency supplied as a function that resolves the token when called. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock().now());
-```
-
-### `DiBag.all(token)` {#dibag-all}
-Create a positional dependency containing every contribution to a collection token, in order. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
-```
-
-### `DiBag.fromPlugin(dependencies, plugin, options)` {#dibag-fromplugin}
-Validate an unknown plugin descriptor now and its acquired output at acquisition. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_PLUGIN_OPTIONS`](errors.md#di-bag-invalid-plugin-options), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
-```ts
-declare const descriptor: unknown;
-const greeter = DiBag.fromPlugin([], descriptor, {
-  acquisitionMode: 'raw',
-  validate: (value): value is () => string => typeof value === 'function',
-});
-```
-
-### `DiBag.fromFunction(tokens, callback, ...modeOptions)` {#dibag-fromfunction}
-Adapt a positional function whose parameters receive the listed tokens' services. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_FUNCTION`](errors.md#di-bag-invalid-function), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode).
-```ts
-const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISOString());
-```
-
-### `DiBag.fromClass(tokens, constructor, ...modeOptions)` {#dibag-fromclass}
-Adapt a class whose constructor parameters receive the listed tokens' services. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_CONSTRUCTOR`](errors.md#di-bag-invalid-constructor), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode).
-```ts
-class Greeter { constructor(readonly greeting: string) {} }
-const greetingKey = Symbol('greeting');
-const greeter = DiBag.fromClass([DiBag.token(greetingKey).of<string>()], Greeter);
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(clock)], factoryFunction: getClock => () => getClock().now() });
 ```
 
 ### `DiBag.createBuilder()` {#dibag-createbuilder}
-Begin an empty immutable graph; `build` creates its owning bag, `buildModule` seals a reusable module.
+Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
 ```ts
-const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
+const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
 ```
 
-### `DiBag.withDisposal(create, dispose)` {#dibag-withdisposal}
-Make the bag own a factory's value and run `dispose` on it when the bag closes. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+### `DiBag.providerWithDisposal(options)` {#dibag-providerwithdisposal}
+Add an ownership stage to a provider input. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
 ```ts
-const bag = DiBag.createBuilder()
-  .register({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) })
-  .build();
-await bag.close();
+const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), disposeService: service => service.close() });
 ```
 
-### `DiBag.withLifetime(registration, lifetime)` {#dibag-withlifetime}
-Select `root`, `scoped` (the default), or `transient` caching for a registration. Throws: [`DI_BAG_INVALID_LIFETIME`](errors.md#di-bag-invalid-lifetime), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+### `DiBag.providerWithLifetime(options)` {#dibag-providerwithlifetime}
+Return a provider with singleton, scoped, or transient caching. Providers are scoped per container by default; mark shared clients singleton when none of their dependencies are scoped. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
 ```ts
-const bag = DiBag.createBuilder()
-  .register({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') })
-  .build();
+const createClient = () => ({ close() {} });
+const client = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => createClient()), lifetime: 'singleton:one-per-container-tree' });
 ```
 
-### `DiBag.withMetadata(registration, options)` {#dibag-withmetadata}
-Attach static registration metadata, or per-acquisition metadata in direct or awaited mode. Throws: [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_DUPLICATE_METADATA`](errors.md#di-bag-duplicate-metadata), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+### `DiBag.providerWithRegistrationMetadata(options)` {#dibag-providerwithregistrationmetadata}
+Add noncolliding registration metadata without acquiring the service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_DUPLICATE_METADATA_KEY`](errors.md#di-bag-duplicate-metadata-key), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
 ```ts
-const greeting = DiBag.withMetadata(() => 'hello', { static: { owner: 'greeting' } });
+const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });
 ```
 
-### `DiBag.transformService(registration, options)` {#dibag-transformservice}
-Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership. Throws: [`DI_BAG_INVALID_TRANSFORM`](errors.md#di-bag-invalid-transform), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+### `DiBag.providerWithAcquisitionMetadata(options)` {#dibag-providerwithacquisitionmetadata}
+Append one synchronous acquisition-metadata frame using the selected callback input. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_ACQUISITION_METADATA`](errors.md#di-bag-invalid-acquisition-metadata), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
 ```ts
-const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
+const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: 'exposed-service', describeAcquisition: value => ({ value }) });
+```
+
+### `DiBag.providerWithTransformedService(options)` {#dibag-providerwithtransformedservice}
+Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
+```ts
+const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => String(value) });
 ```
 
 ## Builder {#builder}
 
-### `builder.register(more)` {#builder-register}
-Add new string-named registrations. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+### `builder.withServices(providersByName)` {#builder-withservices}
+Add new string-named services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 type Clock = { now(): number };
-const builder = DiBag.createBuilder()
-  .register({ clock: (): Clock => ({ now: () => Date.now() }) })
-  .register({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
+const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
 ```
 
-### `builder.alias(destination, target)` {#builder-alias}
-Add another lookup name or token for an existing service. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
+### `builder.withTokenService(token, provider)` {#builder-withtokenservice}
+Add the single service of a typed token. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
 ```ts
-const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).alias('now', 'clock');
+const clockKey = Symbol('clock');
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => Date.now() }));
 ```
 
-### `builder.contribute(token, registration)` {#builder-contribute}
-Append a provider to a typed-token collection. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+### `builder.withServiceAlias(options)` {#builder-withservicealias}
+Add another lookup name for an existing service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key).
+```ts
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
+```
+
+### `builder.withCollectionContribution(options)` {#builder-withcollectioncontribution}
+Append a provider to the list of a collection token. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider).
 ```ts
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const builder = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch');
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
+const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
 ```
 
-### `builder.replace(key, registration)` {#builder-replace}
-Replace an existing string-named registration with a dependency-free factory. Throws: [`DI_BAG_INVALID_REPLACEMENT`](errors.md#di-bag-invalid-replacement), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+### `builder.withReplacedService(serviceKey, provider)` {#builder-withreplacedservice}
+Replace an existing binding with a compatible provider, selecting it by name, service token, collection token. Throws: [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).replace('clock', () => 0);
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withReplacedService('clock', () => 0);
 ```
 
-### `builder.installModule(module)` {#builder-installmodule}
-Install a sealed module, allocating fresh private bindings for this installation. Throws: [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration).
+### `builder.withInstalledModules(modules)` {#builder-withinstalledmodules}
+Install sealed modules in list order, allocating fresh private bindings for each installation. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const greeting = DiBag.createBuilder()
-  .register({ greet: ({ name }: { name: string }) => `hello, ${name}` })
-  .buildModule(['greet']);
-const bag = DiBag.createBuilder().installModule(greeting).register({ name: () => 'Ada' }).build();
+const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
+const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();
 ```
 
-### `builder.verifyGraph()` {#builder-verifygraph}
+### `builder.verifyGraphAtCompileTime()` {#builder-verifygraphatcompiletime}
 Report at the type level why this graph would not build; the runtime call does nothing.
 ```ts
-const builder = DiBag.createBuilder().register({ greeting: () => 'hello' });
-builder.verifyGraph() satisfies void;
+const builder = DiBag.createBuilder().withServices({ greeting: () => 'hello' });
+builder.verifyGraphAtCompileTime() satisfies void;
 ```
 
-### `builder.buildModule(keys, options?)` {#builder-buildmodule}
-Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_EXPORT`](errors.md#di-bag-invalid-export), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+### `builder.buildModule(options)` {#builder-buildmodule}
+Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const orders = DiBag.createBuilder()
-  .register({ repository: () => new Map<string, number>() })
-  .register({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
-  .buildModule(['placeOrder'], { label: 'orders' });
-// Errors and inspectGraph() name the private binding 'orders/repository'.
-const app = DiBag.createBuilder().installModule(orders).build();
+  .withServices({ repository: () => new Map<string, number>() })
+  .withServices({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
+  .buildModule({ exportedServiceKeys: ['placeOrder'], moduleLabel: 'orders' });
+// Errors and graphSnapshot() name the private binding 'orders/repository'.
+const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
 ```
 
-### `builder.build()` {#builder-build}
-Finish a complete graph as a lazy bag. Throws: [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
+### `builder.buildContainer()` {#builder-buildcontainer}
+Finish a complete graph as a lazy container. Throws: [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
 ```ts
-const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
-await bag.close();
+const app = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+await app.close();
 ```
 
-### `builder.buildAndStart(keys, options?)` {#builder-buildandstart}
-Create a fresh bag and acquire selected services before returning it. Throws: [`DI_BAG_STARTUP_FAILED`](errors.md#di-bag-startup-failed), [`DI_BAG_STARTUP_CANCELLED`](errors.md#di-bag-startup-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
+## Module {#module}
+
+### `module.withRenamedRequirement(options)` {#module-withrenamedrequirement}
+Return a module view that asks its host for a requirement under a new name. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key).
 ```ts
-const bag = await DiBag.createBuilder()
-  .register({ db: async () => ({ ping: () => true }) })
-  .buildAndStart(['db'], { timeoutMs: 5_000 });
+const feature = DiBag.createBuilder()
+  .withServices({ answer: ({ config }: { config: number }) => config })
+  .buildModule({ exportedServiceKeys: ['answer'] });
+const app = DiBag.createBuilder()
+  .withInstalledModules([feature.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'featureConfig' })])
+  .withServices({ featureConfig: () => 42 }).buildContainer();
+console.log(app.resolve('answer'));
+await app.close();
 ```
 
-## Bag {#bag}
+## Container {#container}
 
-### `bag.resolve(token)` {#bag-resolve}
-Resolve a named or typed-token service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
+### `container.resolve(token)` {#container-resolve}
+Resolve a registered service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_DEPENDENCY_CYCLE`](errors.md#di-bag-dependency-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_ACQUISITION_METADATA`](errors.md#di-bag-invalid-acquisition-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
 ```ts
-const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
-const greeting: string = bag.resolve('greeting');
+const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+const greeting: string = container.resolve('greeting');
 ```
 
-### `bag.resolveAll(token)` {#bag-resolveall}
-Resolve every contribution for a typed token in declaration and installation order. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const bag = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch').build();
-const names: readonly string[] = bag.resolveAll(tools);
-```
-
-### `bag.inspectAll(token)` {#bag-inspectall}
-Inspect every contribution for a token without running its factories. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+### `container.resolveCollection(token)` {#container-resolvecollection}
+Resolve every contribution for a collection token as a fresh frozen list. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
 ```ts
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const bag = DiBag.createBuilder().contribute(tools, () => 'search').build();
-const labels = bag.inspectAll(tools).map(snapshot => snapshot.label);
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
+const container = DiBag.createBuilder().buildContainer();
+const names: readonly string[] = container.resolveCollection(tools);
 ```
 
-### `bag.inspect(token)` {#bag-inspect}
-Inspect static metadata and copied acquisition state without resolving a service. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle).
+### `container.serviceSnapshot(serviceKey)` {#container-servicesnapshot}
+Inspect a service binding through any supported public key without resolving it. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
-const acquired = bag.inspect('greeting').acquisitions.length;
+const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+const snapshot = container.serviceSnapshot('greeting');
+await container.close();
 ```
 
-### `bag.inspectGraph()` {#bag-inspectgraph}
-Describe every binding this bag can resolve and the dependency edges observed so far.
+### `container.graphSnapshot()` {#container-graphsnapshot}
+Describe every resolvable binding and the dependency edges observed so far.
 ```ts
-const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
-const labels = bag.inspectGraph().bindings.map(binding => binding.label);
+const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+const labels = container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
+await container.close();
 ```
 
-### `bag.createScope()` {#bag-createscope}
-Create a tracked child with the same graph and fresh scoped acquisitions. Throws: [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
+### `container.createChildContainer(options?)` {#container-createchildcontainer}
+Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_CONFLICTING_SERVICE_SELECTION`](errors.md#di-bag-conflicting-service-selection), [`DI_BAG_MISSING_REPLACEMENT_PROVIDER`](errors.md#di-bag-missing-replacement-provider), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_SINGLETON_REPLACEMENT`](errors.md#di-bag-singleton-replacement), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const app = DiBag.createBuilder().register({ requestId: () => Math.random() }).build();
-const request = app.createScope();
-const id: number = request.resolve('requestId');
-await request.close();
+const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+  provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+}) }).buildContainer();
+const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+const request = child.resolve('request');
+await child.close();
+await parent.close();
 ```
 
-### `bag.fork(keys, overrides)` {#bag-fork}
-Create an independent bag with selected replacements, the way tests substitute dependencies. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
+### `container.createIndependentContainer(replacedServiceKeys, replacementProviders)` {#container-createindependentcontainer}
+Create an independent container with fresh instances and checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_MISSING_REPLACEMENT_PROVIDER`](errors.md#di-bag-missing-replacement-provider), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-type Clock = { now(): number };
-const app = DiBag.createBuilder().register({ clock: (): Clock => ({ now: () => Date.now() }) }).build();
-const test = app.fork(['clock'], { clock: (): Clock => ({ now: () => 0 }) });
-await test.close();
+const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
+const independent = parent.createIndependentContainer(['clock'], { clock: () => 0 });
+const now = independent.resolve('clock');
+await independent.close();
+await parent.close();
 ```
 
-### `bag.close(options?)` {#bag-close}
-Close this bag, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_CLOSE`](errors.md#di-bag-invalid-close).
+### `container.ensureServicesReady(serviceKeys, options?)` {#container-ensureservicesready}
+Make the listed services ready before continuing, then resolve to this same container. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
 ```ts
-const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
-await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
+const container = await DiBag.createBuilder()
+  .withServices({ db: async () => ({ ping: () => true }) })
+  .buildContainer()
+  .ensureServicesReady(['db'], { totalTimeoutMs: 5_000 });
+```
+
+### `container.close(options?)` {#container-close}
+Close this container, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument).
+```ts
+const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
 ```
 
 ## Errors {#errors}
@@ -296,59 +296,59 @@ A plugin descriptor or its acquired output failed validation at the checked plug
 import { DiBag, DiBagPluginValidationError } from 'di-bag';
 
 try {
-  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+  DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 2 }, factoryReturnKind: 'uninspected', isValidPluginOutput: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
 } catch (error) {
   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
 }
 ```
 
-### `DiBagCleanupError` {#dibagcleanuperror}
-One or more disposers failed during `close()`; every cleanup was still attempted. Code: [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed).
+### `DiBagDisposalError` {#dibagdisposalerror}
+One or more disposers failed during `close()`; every disposal was still attempted. Code: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed).
 ```ts
-import { DiBag, DiBagCleanupError } from 'di-bag';
+import { DiBag, DiBagDisposalError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
-await bag.close().catch((error: unknown) => {
-  if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
+const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+await container.close().catch((error: unknown) => {
+  if (error instanceof DiBagDisposalError) for (const failure of error.failures) console.error(failure.bindingLabel, failure.error);
 });
 ```
 
-### `DiBagStartupError` {#dibagstartuperror}
-`buildAndStart` failed to acquire a selected service; the new bag has already released its resources. Code: [`DI_BAG_STARTUP_FAILED`](errors.md#di-bag-startup-failed).
+### `DiBagServiceReadinessError` {#dibagservicereadinesserror}
+`ensureServicesReady` could not make a listed service ready, and this container is now closed. Code: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed).
 ```ts
-import { DiBag, DiBagStartupError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } });
+const container = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
 try {
-  await builder.buildAndStart(['db']);
+  await container.ensureServicesReady(['db']);
 } catch (error) {
-  if (error instanceof DiBagStartupError) console.error(error.cause, error.cleanupFailures);
+  if (error instanceof DiBagServiceReadinessError) console.error(error.cause, error.disposalFailures);
 }
 ```
 
-### `DiBagStartupCancelledError` {#dibagstartupcancellederror}
-`buildAndStart` stopped waiting on abort or timeout; `cleanupPromise` settles when the partial bag is released. Code: [`DI_BAG_STARTUP_CANCELLED`](errors.md#di-bag-startup-cancelled).
+### `DiBagServiceReadinessCancelledError` {#dibagservicereadinesscancellederror}
+`ensureServicesReady` stopped waiting on abort or timeout; this container is closing and `disposalPromise` settles when it has closed. Code: [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled).
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) });
+const container = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
 try {
-  await builder.buildAndStart(['db'], { timeoutMs: 1_000 });
+  await container.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
 } catch (error) {
-  if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+  if (error instanceof DiBagServiceReadinessCancelledError) console.error(error.details.acquisitionsStillPending);
 }
 ```
 
 ### `DiBagCloseCancelledError` {#dibagclosecancellederror}
-A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before disposal finished; disposal keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 try {
-  await bag.close({ timeoutMs: 5_000 });
+  await container.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
-  if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending);
+  if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
   throw error;
 }
 ```

@@ -6,7 +6,7 @@
 
 Defined in: [inspection.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L69)
 
-A frozen description of every binding a bag can resolve, plus the edges observed so far.
+A frozen description of every binding a container can resolve, plus the edges observed so far.
 Named dependencies read from a factory's object parameter are not knowable until the factory
 runs; `observedEdges` records them after acquisition. Use the static graph tool for declared edges.
 
@@ -24,7 +24,17 @@ readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
 
 Defined in: [inspection.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L72)
 
-Public bindings in registration order, then contributions in group order, then remaining private bindings.
+Public bindings in service key order, then contributions in group order, then remaining private bindings.
+
+***
+
+### containerId
+
+```ts
+readonly containerId: symbol;
+```
+
+Defined in: [inspection.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L70)
 
 ***
 
@@ -32,7 +42,7 @@ Public bindings in registration order, then contributions in group order, then r
 
 ```ts
 readonly contributions: readonly {
-    readonly token: symbol;
+    readonly collectionTokenSymbol: symbol;
     readonly bindingIds: readonly symbol[];
 }[];
 ```
@@ -45,21 +55,11 @@ Defined in: [inspection.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/
 
 ```ts
 readonly observedEdges: readonly {
-    readonly from: symbol;
-    readonly to: symbol;
+    readonly consumerBindingId: symbol;
+    readonly dependencyBindingId: symbol;
 }[];
 ```
 
 Defined in: [inspection.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L75)
 
-Consumer-to-dependency edges recorded by acquisitions in this bag's ownership family.
-
-***
-
-### scopeId
-
-```ts
-readonly scopeId: symbol;
-```
-
-Defined in: [inspection.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L70)
+Consumer-to-dependency edges recorded by acquisitions in this container's ownership family.

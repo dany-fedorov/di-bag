@@ -10,7 +10,7 @@ export type Mail = { to: string; subject: string; body: string };
 /** A connection to the mail service. */
 export type MailTransport = { send(mail: Mail): Promise<void>; close(): Promise<void> };
 
-/** Registered by the host with root lifetime. `connect` opens a new transport. */
+/** Registered by the host as singleton per container tree. `connect` opens a new transport. */
 export type MailConfig = { opsAddress: string; connect(): Promise<MailTransport> };
 
 export type NotificationsExports = { notifier: Notifier };

@@ -28,6 +28,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             tools/graph/package-lock.json
+            tools/codemod/package-lock.json
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: '1.4.0'
@@ -42,6 +43,9 @@ jobs:
       - run: npm run check:native
       - run: npm ci --prefix tools/graph --no-audit --no-fund
       - run: npm run graph:check
+      - run: npm ci --prefix tools/codemod --no-audit --no-fund
+      - run: npm run codemod:check
+      - run: npm run codemod:acceptance
       - name: Smoke-test the packed graph tool
         run: |
           consumer="$(mktemp -d)"
@@ -54,6 +58,20 @@ jobs:
           npm install --no-audit --no-fund packs/di-bag/*.tgz packs/di-bag-graph/*.tgz
           npx tsc -p tsconfig.json
           npx di-bag-graph --check
+      - name: Smoke-test the packed codemod
+        run: |
+          consumer="$(mktemp -d)"
+          mkdir -p "$consumer/packs"
+          printf '%s\n' '{ "name": "codemod-consumer", "private": true, "type": "module" }' > "$consumer/package.json"
+          printf '%s\n' '{ "compilerOptions": { "strict": true, "noEmit": true, "module": "NodeNext", "moduleResolution": "NodeNext", "target": "es2022", "skipLibCheck": true }, "include": ["app.ts"] }' > "$consumer/tsconfig.json"
+          printf '%s\n' "import { DiBag } from 'di-bag';" "export const app = DiBag.createBuilder().register({ value: () => 1 }).build();" > "$consumer/app.ts"
+          npm pack ./tools/codemod --pack-destination "$consumer/packs"
+          cd "$consumer"
+          npm install --no-audit --no-fund ./packs/*.tgz
+          cp -R "$GITHUB_WORKSPACE/tools/codemod/test/fixtures/node_modules/di-bag" node_modules/di-bag
+          npx di-bag-codemod --project tsconfig.json --write
+          grep -q "withServices" app.ts
+          grep -q "buildContainer" app.ts
       - run: npm run agent-eval:test
       - name: Run examples
         run: |

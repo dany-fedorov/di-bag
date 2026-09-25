@@ -1,0 +1,18 @@
+import { DiBag, type FactoryWithDisposal } from 'di-bag';
+const p = DiBag.fromFactory(() => 1);
+const describe = (value: number) => ({ value });
+export const staticOnly = DiBag.withMetadata(p, { static: { owner: 'team' } });
+export const dynamicOnly = DiBag.withMetadata(p, { dynamic: { mode: 'direct', describe } });
+declare const condition: boolean;
+export const conditional = DiBag.withDisposal((condition ? p : p), /* keep */ () => {});
+declare const wrapped: FactoryWithDisposal<() => number>;
+export const wrappedOwned = DiBag.withLifetime(wrapped, 'transient');
+declare const opaqueAny: any;
+export const manualAny = DiBag.withDisposal(opaqueAny, () => {});
+declare const opaqueUnknown: unknown;
+export const manualUnknown = DiBag.withDisposal(opaqueUnknown, () => {});
+export const unsafeSpread = DiBag.withMetadata(p, { static: {}, ...({} as object) });
+export const duplicate = DiBag.transformService(p, { mode: 'direct', mode: 'awaited', transform: value => value });
+export const commentedBag = DiBag.transformService(p, { mode: 'direct', /* preserve */ transform: value => value });
+const allowScopedDependencies = true;
+export const shorthandLifetime = DiBag.withLifetime(p, 'root', { allowScopedDependencies });

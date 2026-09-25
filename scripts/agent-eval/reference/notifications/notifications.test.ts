@@ -5,25 +5,25 @@ import type { Mail, MailConfig } from './contract.js';
 import { notificationsModule } from './module.js';
 
 const fixture = DiBag.createBuilder()
-  .installModule(notificationsModule)
-  .register({
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+  .withInstalledModules([notificationsModule])
+  .withServices({
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => { throw new Error('supply a mail config'); },
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   })
-  .build();
+  .buildContainer();
 after(() => fixture.close());
 
 test('mails operations and closes the transport with the application', async () => {
   const events: Array<Mail | 'close'> = [];
-  const bag = fixture.fork(['mailConfig'], {
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+  const bag = fixture.createIndependentContainer(['mailConfig'], {
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async mail => { events.push(mail); }, close: async () => { events.push('close'); } }),
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   });
-  await bag.createScope().resolve('notifier').orderPlaced({ orderId: 'o-1', totalCents: 450 });
+  await bag.createChildContainer().resolve('notifier').orderPlaced({ orderId: 'o-1', totalCents: 450 });
   await bag.close();
   assert.deepEqual(events, [{ to: 'ops@example.com', subject: 'Order o-1 placed', body: 'Total: 450 cents' }, 'close']);
 });

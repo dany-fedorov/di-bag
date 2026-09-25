@@ -17,7 +17,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
 ### isNativePromise
 
 ```ts
-readonly isNativePromise: (this: void, value: unknown) => boolean;
+readonly isNativePromise: (this: void, candidate: unknown) => boolean;
 ```
 
 Defined in: [acquisition-mode.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L17)
@@ -29,4 +29,4 @@ Return true only for native Promises the host can observe without thenable assim
 | Parameter | Description |
 | ------ | ------ |
 | `this` | - |
-| `value` | - |
+| `candidate` | - |

@@ -9,12 +9,11 @@ Bun 1.4.0; use those versions to reproduce its checks.
 
 ## Package entry points and release-candidate checks
 
-The package has two entry points: `di-bag`, which classifies native Promises
-through `process.getBuiltinModule` where the host has it and has no `node:`
-imports, and the explicit Node/Bun facade `di-bag/node`. It has no runtime,
+The package has one entry point, `di-bag`. It classifies native Promises on
+Node, Bun, and Deno and has no `node:` imports. It has no runtime,
 peer, optional, or bundled dependencies.
-The [tutorial](tutorial.md) explains acquisition modes, provider metadata,
-selected scopes, non-blocking observers, and plugin ownership of the
+The [tutorial](tutorial.md) explains factory return kinds, provider metadata,
+selected child containers, non-blocking observers, and plugin ownership of the
 original acquired value.
 
 `npm ci` installs the locked development toolchain. `npm run check` is the
@@ -37,6 +36,11 @@ that fixture and the other test files it imports; `npm run typecheck` covers `sr
 (`npm ci --prefix tools/graph` first). The tool depends on the TypeScript
 compiler, so it is published as its own package; see [PUBLISHING.md](../../PUBLISHING.md#releasing-di-bag-graph).
 
+`npm run codemod:check` tests the standalone `di-bag-codemod` tool in
+`tools/codemod` (`npm ci --prefix tools/codemod` first). Its fixtures type-check
+against the published 0.4.0 declarations, vendored under
+`tools/codemod/test/fixtures/node_modules/di-bag`; do not edit them.
+
 ```sh
 npm ci
 npm run platform:pin   # capture the installed foundation tool identities
@@ -52,10 +56,12 @@ For Markdown or API-comment changes, also run the documentation checks:
 ```sh
 npm ci --prefix tools/docs
 npm run docs:check
+npm run docs:retired-names
 npm run docs:build
 ```
 
 After changing public API comments, run `npm run docs:generate` before checking.
+`npm run docs:check` compiles the standalone examples in the guides and README.
 See [documentation maintenance](documentation.md) for the preview workflow.
 
 ## Portable runtime checks
@@ -99,9 +105,9 @@ declarations are emitted to `dist/`.
 Classic TypeScript 6.0.3 remains the primary compiler. Native 7.0.2 checks the
 source and installed declaration contracts. The strict native audit currently
 matches every expected diagnostic, including all replacement diagnostics, with no
-unexpected diagnostics and one reviewed gap: native 7.0.2 rejects a contextual
-`fromFactory` that returns a structural thenable, but reports the last overload's
-arity error instead of the thenable message. Gaps are declared in
+unexpected diagnostics and nine reviewed gaps. One is that native 7.0.2 rejects a
+contextual `createProvider` that returns a structural thenable, but reports the
+last overload's arity error instead of the thenable message. Gaps are declared in
 `tests/native-diagnostic-markers.ts` with the exact native message. The scale matrices allow no
 diagnostic exceptions. The native development tests and
 supervised reports require Linux. Native reports supervise the actual
@@ -111,7 +117,7 @@ scale or editor-latency guarantees. See the
 [compiler benchmark guide](../benchmarks/typescript.md).
 
 Builders accumulate a flat union of registration entries internally; the public
-`Bag<R>` type still takes a registration map. Compile-time acceptance tests cover
+`Container<R>` type still takes a registration map. Compile-time acceptance tests cover
 100 chained additions, 100 replacements, and 1,000 providers assembled from
 reusable registration groups and named modules, including missing and
 wrong-shaped dependencies. One fluent expression is bounded by the compiler's
@@ -149,7 +155,7 @@ They establish neither universal latency guarantees nor a ranking against other
 libraries. `npm run benchmark:runtime` measures the current source, and CI runs
 the runtime-scale, acquisition-retention, and graph-retention tests with
 `--expose-gc` to bound memory. Known limits: deep resolution chains stay within
-fixed bounds, and per-acquisition metadata is retained until its scope closes.
+fixed bounds, and per-acquisition metadata is retained until its owning container closes.
 
 Optional third-party measurements require a reviewed adapter that passes the
 **restricted common-subset throughput** contract for synchronous named graphs,

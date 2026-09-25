@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from 'react';
-import { DiBagStartupError } from '../../src';
+import { DiBagServiceReadinessError } from '../../src';
 import type { ProjectRuntime } from './project-runtime';
 import { createServicesContext, RuntimeProvider } from './react-runtime';
 import type { RuntimeOwner } from './runtime-owner';
@@ -9,7 +9,7 @@ export const projectServices = createServicesContext<ProjectServices>('project s
 
 /** The startup error wraps the factory's failure; show the cause. */
 export function failureMessage(error: unknown): string {
-  const cause = error instanceof DiBagStartupError ? error.cause : error;
+  const cause = error instanceof DiBagServiceReadinessError ? error.cause : error;
   return cause instanceof Error ? cause.message : String(cause);
 }
 

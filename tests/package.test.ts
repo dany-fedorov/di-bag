@@ -44,9 +44,9 @@ beforeAll(async () => {
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], classicPackageConsumer);
 });
 
-test('standalone archive contains root and node entries without removed adapters', () => {
-  for (const entry of ['dist/index.d.ts', 'dist/index.js', 'dist/node.d.ts', 'dist/node.js']) expect(packageArchiveFiles).toContain(entry);
-  expect(packageArchiveFiles.some(path => /(?:^|\/)(?:sas-box|val-box)\.(?:d\.ts|js)$/.test(path))).toBe(false);
+test('standalone archive contains only the root entry without removed package entries', () => {
+  for (const entry of ['dist/index.d.ts', 'dist/index.js']) expect(packageArchiveFiles).toContain(entry);
+  expect(packageArchiveFiles.some(path => /(?:^|\/)(?:node|sas-box|val-box)\.(?:d\.ts|js)$/.test(path))).toBe(false);
 });
 
 afterAll(() => {
@@ -95,7 +95,7 @@ test('feature library inferred token exports survive declaration emission', () =
 });
 
 for (const mode of ['commonjs', 'module'] as const) {
-  test(`classic installed ${mode} archive rejects removed box package entry points`, async () => {
+  test(`classic installed ${mode} archive rejects removed package entry points`, async () => {
     expect(existsSync(join(classicPackageConsumer, 'node_modules/sas-box'))).toBe(false);
     expect(existsSync(join(classicPackageConsumer, 'node_modules/val-box'))).toBe(false);
     const load = mode === 'commonjs'
@@ -103,10 +103,10 @@ for (const mode of ['commonjs', 'module'] as const) {
       : "async specifier => { try { await import(specifier); } catch (error) { return error.code; } }";
     const stdout = await run(['node', `--input-type=${mode}`, '--eval', `
       const load = ${load};
-      Promise.all(['di-bag/sas-box', 'di-bag/val-box'].map(load))
+      Promise.all(['di-bag/node', 'di-bag/sas-box', 'di-bag/val-box'].map(load))
         .then(codes => console.log(JSON.stringify(codes)));
     `], classicPackageConsumer);
-    expect(JSON.parse(stdout)).toEqual(['ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
+    expect(JSON.parse(stdout)).toEqual(['ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
   });
 
   test(`classic installed ${mode} archive returns the full adversarial oracle`, async () => {
@@ -123,20 +123,20 @@ for (const mode of ['commonjs', 'module'] as const) {
     const load = mode === 'commonjs' ? "const { DiBag } = require('di-bag');" : "import { DiBag } from 'di-bag';";
     const stdout = await run(['node', `--input-type=${mode}`, '--eval', `${load}
       (async () => {
-        const bag = DiBag.createBuilder().register({ answer: async () => 42, same: () => Promise.resolve(1) }).build();
-        const answer = await bag.resolve('answer');
-        await bag.close();
-        console.log(JSON.stringify({ answer }));
+        const container = DiBag.createBuilder().withServices({ promised: () => Promise.resolve(42) }).buildContainer();
+        const promised = await container.resolve('promised');
+        await container.close();
+        console.log(JSON.stringify({ promised }));
       })();
     `], classicPackageConsumer);
-    expect(JSON.parse(stdout)).toEqual({ answer: 42 });
+    expect(JSON.parse(stdout)).toEqual({ promised: 42 });
   });
 
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
-        ? "const packageExports = require('di-bag/node'); const { DiBag, DiBagCleanupError, DiBagPluginValidationError } = packageExports;"
-        : "import * as packageExports from 'di-bag/node'; const { DiBag, DiBagCleanupError, DiBagPluginValidationError } = packageExports;";
+        ? "const packageExports = require('di-bag'); const { DiBag, DiBagDisposalError, DiBagPluginValidationError } = packageExports;"
+        : "import * as packageExports from 'di-bag'; const { DiBag, DiBagDisposalError, DiBagPluginValidationError } = packageExports;";
     const stdout = await run([
       'node',
       `--input-type=${mode}`,
@@ -153,47 +153,47 @@ for (const mode of ['commonjs', 'module'] as const) {
         ${pluginRuntimeAssertions}
         let disposed;
         const mappedDisposal = [];
-        const feature = DiBag.createBuilder().register({
-          answer: DiBag.withMetadata(DiBag.withDisposal(() => 42, value => { disposed = value; }), { static: { owner: 'package' } }),
+        const feature = DiBag.createBuilder().withServices({
+          answer: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => 42, disposeService: value => { disposed = value; } }), registrationMetadata: { owner: 'package' } }),
           privateValue: () => 7,
-        }).buildModule(['answer']);
-        const bag = DiBag.createBuilder().installModule(feature.renameExport('answer', 'result')).build();
-        const before = bag.inspect('result');
+        }).buildModule({ exportedServiceKeys: ['answer'] });
+        const bag = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'answer', newExportKey: 'result' })]).buildContainer();
+        const before = bag.serviceSnapshot('result');
         const answer = bag.resolve('result');
         await bag.close();
         const cause = new Error('cleanup');
-        const failing = DiBag.createBuilder().register({
-          resource: DiBag.withDisposal(() => 1, () => { throw cause; }),
-        }).build();
+        const failing = DiBag.createBuilder().withServices({
+          resource: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw cause; } }),
+        }).buildContainer();
         failing.resolve('resource');
         const error = await failing.close().catch(error => error);
         const raw = Promise.resolve(7);
-        const mapped = DiBag.withDisposal(DiBag.transformService(DiBag.withDisposal(() => raw, value => { mappedDisposal.push(value); }), { mode: 'direct', transform: value => { if (value !== raw) throw new Error('lost source identity'); return { promise: value }; } }), value => { mappedDisposal.push(value.promise === raw ? 'outer' : 'wrong'); });
-        const mappedBag = DiBag.createBuilder().register({ mapped, asyncMapped: DiBag.transformService(() => Promise.resolve(4), { mode: 'awaited', transform: value => value + 1 }) }).build();
+        const mapped = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => { mappedDisposal.push(value); } }), transformService: value => { if (value !== raw) throw new Error('lost source identity'); return { promise: value }; }, callbackReceives: 'exposed-service' }), disposeService: value => { mappedDisposal.push(value.promise === raw ? 'outer' : 'wrong'); } });
+        const mappedBag = DiBag.createBuilder().withServices({ mapped, asyncMapped: DiBag.providerWithTransformedService({ provider: () => Promise.resolve(4), transformService: value => value + 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
         const mappedIdentity = mappedBag.resolve('mapped').promise === raw;
         const asyncMapped = await mappedBag.resolve('asyncMapped');
         await mappedBag.close();
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
         const esm = await import('di-bag');
         const tokenKey = Symbol('package');
-        const selected = cjs.DiBag.token(tokenKey).of();
-        const tokenFeature = esm.DiBag.createBuilder().register(selected, () => raw).register({ value: esm.DiBag.transformService(esm.DiBag.fromFunction([selected], value => value), { mode: 'direct', transform: value => value }) }).buildModule([selected, 'value']);
-        const tokenRuntime = DiBag.createBuilder().installModule(tokenFeature).build();
+        const selected = cjs.DiBag.createToken(tokenKey).forService();
+        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, () => raw).withServices({ value: esm.DiBag.providerWithTransformedService({ provider: esm.DiBag.createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value }), transformService: value => value, callbackReceives: 'exposed-service' }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
+        const tokenRuntime = DiBag.createBuilder().withInstalledModules([tokenFeature]).buildContainer();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
         const scopeLog = [];
-        let scopeId = 0;
+        let containerId = 0;
         let rootDisposed = 0;
         let scopedDisposed = 0;
         let transientsDisposed = 0;
-        const parent = DiBag.createBuilder().register({
-          service: DiBag.withDisposal(() => ++scopeId, value => { scopeLog.push(value); }),
-          root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
-          scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
-          transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
-        }).build();
-        const scope = parent.createScope();
-        const independent = scope.fork();
+        const parent = DiBag.createBuilder().withServices({
+          service: DiBag.providerWithDisposal({ provider: () => ++containerId, disposeService: value => { scopeLog.push(value); } }),
+          root: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'root' }), disposeService: () => { rootDisposed++; } }), lifetime: 'singleton:one-per-container-tree' }),
+          scoped: DiBag.providerWithDisposal({ provider: () => ({ owner: 'scope' }), disposeService: () => { scopedDisposed++; } }),
+          transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'call' }), disposeService: () => { transientsDisposed++; } }), lifetime: 'transient:one-per-resolve' }),
+        }).buildContainer();
+        const scope = parent.createChildContainer();
+        const independent = scope.createIndependentContainer();
         const childRoot = scope.resolve('root');
         scope.resolve('scoped');
         const firstTransient = scope.resolve('transient');
@@ -214,14 +214,14 @@ for (const mode of ['commonjs', 'module'] as const) {
         await independent.close();
         if (JSON.stringify(scopeLog) !== '[2,1,3]') throw new Error('fork ownership');
         console.log(JSON.stringify({ answer, disposed,
-          publiclyConstructible: ['Bag', 'Module', 'Provider', 'ProviderBase'].some(key => Object.hasOwn(packageExports, key)),
+          publiclyConstructible: ['Container', 'Module', 'Provider', 'ProviderBase'].some(key => Object.hasOwn(packageExports, key)),
           metadata: before.registrationMetadata.owner,
-          inspectionIsStatic: before.acquisitions.length === 0 && bag.inspect('result').acquisitions.length === 0,
+          inspectionIsStatic: before.acquisitions.length === 0 && bag.serviceSnapshot('result').acquisitions.length === 0,
           frozenInspection: Object.isFrozen(before) && Object.isFrozen(before.registrationMetadata),
-          cleanup: error instanceof DiBagCleanupError && error instanceof cjs.DiBagCleanupError && error instanceof esm.DiBagCleanupError,
-          sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
+          cleanup: error instanceof DiBagDisposalError && error instanceof cjs.DiBagDisposalError && error instanceof esm.DiBagDisposalError,
+          sameClass: cjs.DiBagDisposalError === esm.DiBagDisposalError,
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
-          label: error.failures[0].label,
+          label: error.failures[0].bindingLabel,
           mappedIdentity, asyncMapped, mappedDisposal, tokenIdentity, scopeLog,
           rootDisposed, scopedDisposed, transientsDisposed,
         }));
@@ -237,8 +237,8 @@ for (const mode of ['commonjs', 'module'] as const) {
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
     const load = mode === 'commonjs'
-      ? "const { DiBag } = require('di-bag/node');"
-      : "import { DiBag } from 'di-bag/node';";
+      ? "const { DiBag } = require('di-bag');"
+      : "import { DiBag } from 'di-bag';";
     const stdout = await run([
       'node', `--input-type=${mode}`, '--eval',
       `${load}
@@ -259,9 +259,9 @@ for (const mode of ['commonjs', 'module'] as const) {
             throw new Error('custom then');
           };
           const disposed = [];
-          const bag = DiBag.createBuilder().register({
-            resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
-          }).build();
+          const bag = DiBag.createBuilder().withServices({
+            resource: DiBag.providerWithDisposal({ provider: () => original, disposeService: value => { disposed.push(value); } }),
+          }).buildContainer();
           const exposed = bag.resolve('resource');
           await bag.close();
           cases.push({ foreign, localInstance: original instanceof Promise,
@@ -282,14 +282,14 @@ for (const mode of ['commonjs', 'module'] as const) {
       __dirname,
       mode === 'commonjs' ? 'consumer.cts' : 'consumer.mts',
     );
-    const source = `import { DiBag, DiBagCleanupError, type CleanupFailure, type Bag, type Module, type ModuleExportedServices, type ModuleRequiredServices } from 'di-bag';
+    const source = `import { DiBag, DiBagDisposalError, type DisposalFailure, type Container, type Module, type ModuleExportedServices, type ModuleRequiredServices } from 'di-bag';
       function inspectCleanup(error: unknown): void {
-        if (!(error instanceof DiBagCleanupError)) return;
+        if (!(error instanceof DiBagDisposalError)) return;
         const aggregate: AggregateError = error;
-        const failures: readonly CleanupFailure[] = error.failures;
+        const failures: readonly DisposalFailure[] = error.failures;
         const acquisitionId: symbol = failures[0].acquisitionId;
         const bindingId: symbol = failures[0].bindingId;
-        const label: string = failures[0].label;
+        const label: string = failures[0].bindingLabel;
         const cause: unknown = failures[0].error;
         // @ts-expect-error The failure collection is readonly.
         failures.push(failures[0]);
@@ -301,15 +301,15 @@ for (const mode of ['commonjs', 'module'] as const) {
         const message: string = failures[0].error.message;
         void [aggregate, acquisitionId, bindingId, label, cause];
       }
-      const bag = DiBag.createBuilder().register({
-        value: DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }),
+      const bag = DiBag.createBuilder().withServices({
+        value: DiBag.providerWithDisposal({ provider: async () => 42, disposeService: value => { const n: number = value; void n; } }),
         clock: () => ({ now() { return 42; } }),
         service: ({ clock }: { clock: { now(): number } }) => ({
           stamp() { return clock.now(); },
         }),
-      }).build();
+      }).buildContainer();
       const value: Promise<number> = bag.resolve('value');
-      const scoped = bag.fork(['clock'], {
+      const scoped = bag.createIndependentContainer(['clock'], {
         clock: () => ({ now() { return 7; } }),
       });
       const stamp = scoped.resolve('service').stamp();
@@ -319,33 +319,33 @@ for (const mode of ['commonjs', 'module'] as const) {
       const legacy: PromiseLike<number> = {
         then(fulfilled) { fulfilled?.(42); throw new Error('after fulfillment'); },
       };
-      const converted = DiBag.createBuilder().register({
-        resource: DiBag.withDisposal(() => Promise.resolve(legacy), value => {
+      const converted = DiBag.createBuilder().withServices({
+        resource: DiBag.providerWithDisposal({ provider: () => Promise.resolve(legacy), disposeService: value => {
           const number: number = value;
           void number;
-        }),
-      }).build().resolve('resource');
+        } }),
+      }).buildContainer().resolve('resource');
       type Converted = Assert<Equal<typeof converted, Promise<number>>>;
       type Stamp = Assert<Equal<typeof stamp, number>>;
-      const replaced = DiBag.createBuilder().register({ clock: () => 1 }).replace('clock', () => ({ now() { return 7; } })).build();
+      const replaced = DiBag.createBuilder().withServices({ clock: () => 1 }).withReplacedService('clock', () => ({ now() { return 7; } })).buildContainer();
       const clock = replaced.resolve('clock');
       type Clock = Assert<Equal<typeof clock, { now(): number }>>;
-      const fresh: typeof bag = bag.fork();
-      const typed: Bag<{ clock: () => { now(): number } }> = replaced;
-      const feature = DiBag.createBuilder().register({
+      const fresh: typeof bag = bag.createIndependentContainer();
+      const typed: Container<{ clock: () => { now(): number } }> = replaced;
+      const feature = DiBag.createBuilder().withServices({
         clock: () => ({ now() { return Number(42); }, extra() { return true; } }),
         privateReader: ({ clock, logger }: { clock: { extra(): boolean }; logger: { log(message: string): void } }) => clock.extra(),
         read: ({ privateReader }: { privateReader: boolean }) => ({ read() { return privateReader; } }),
         promised: async () => 7,
-      }).buildModule(['clock', 'read', 'promised']);
+      }).buildModule({ exportedServiceKeys: ['clock', 'read', 'promised'] });
       type Public = ModuleExportedServices<typeof feature>;
       type Required = ModuleRequiredServices<typeof feature>;
       type RequiredKeys = Assert<Equal<keyof Required, 'logger'>>;
       type PublicPromise = Assert<Equal<Public['promised'], Promise<number>>>;
       const annotated: typeof feature = feature;
-      const installed = DiBag.createBuilder().installModule(annotated).register({ logger: () => ({ log(_message: string) {} }) });
-      const composed = installed.build();
-      const child = composed.fork(['clock'], { clock: () => ({ now() { return 7; }, extra() { return false; } }) });
+      const installed = DiBag.createBuilder().withInstalledModules([annotated]).withServices({ logger: () => ({ log(_message: string) {} }) });
+      const composed = installed.buildContainer();
+      const child = composed.createIndependentContainer(['clock'], { clock: () => ({ now() { return 7; }, extra() { return false; } }) });
       const result = child.resolve('read').read();
       type Result = Assert<Equal<typeof result, boolean>>;
       const modulePromise: Promise<number> = child.resolve('promised');
@@ -353,20 +353,20 @@ for (const mode of ['commonjs', 'module'] as const) {
         clock: () => ({ now() { return Number(7); }, extra() { return true; }, richer() { return 9; } }),
         promised: async ({ clock }: { clock: { richer(): number } }) => clock.richer(),
       };
-      const asyncFork = composed.fork(['clock', 'promised'], asyncOverrides);
+      const asyncFork = composed.createIndependentContainer(['clock', 'promised'], asyncOverrides);
       const asyncPromise = asyncFork.resolve('promised');
       type AsyncPromise = Assert<Equal<typeof asyncPromise, Promise<number>>>;
       // @ts-expect-error Private providers are not public slots.
       child.resolve('privateReader');
       // @ts-expect-error All local provider requirements survive sealing.
-      DiBag.createBuilder().installModule(feature).build();
+      DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
       // @ts-expect-error Private consumers survive host replacement.
-      installed.replace('clock', () => ({ now() { return 7; } }));
+      installed.withReplacedService('clock', () => ({ now() { return 7; } }));
       // @ts-expect-error A visible contract annotation cannot erase latent constraints.
       const erasedModule: Module<Public, Required> = feature;
-      // @ts-expect-error Plain Bag annotations cannot erase installed constraints.
-      const erasedBag: Bag<{ clock: () => Public['clock']; read: () => Public['read']; promised: () => Public['promised']; logger: () => Required['logger'] }> = composed;
-      const plainBuilder = DiBag.createBuilder().register({
+      // @ts-expect-error Plain Container annotations cannot erase installed constraints.
+      const erasedBag: Container<{ clock: () => Public['clock']; read: () => Public['read']; promised: () => Public['promised']; logger: () => Required['logger'] }> = composed;
+      const plainBuilder = DiBag.createBuilder().withServices({
         clock: (): Public['clock'] => ({ now() { return 1; }, extra() { return true; } }),
         read: (): Public['read'] => ({ read() { return true; } }),
         promised: async () => 7,
@@ -374,18 +374,18 @@ for (const mode of ['commonjs', 'module'] as const) {
       });
       // @ts-expect-error Builder annotation cannot erase installed constraints.
       const erasedBuilder: typeof plainBuilder = installed;
-      const selfContained = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+      const selfContained = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildModule({ exportedServiceKeys: ['a', 'b'] });
       // @ts-expect-error The provided contract is invariant even without retained requirements.
       const fewerProvides: Module<{ a: number }, {}> = selfContained;
       // @ts-expect-error Structural copies lose module identity.
-      DiBag.createBuilder().installModule({ ...feature });
+      DiBag.createBuilder().withInstalledModules([{ ...feature }]);
       // @ts-expect-error Export selections require a finite tuple.
-      DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'] as string[]);
+      DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'] as string[] });
       // @ts-expect-error Renames cannot hide another exported slot.
-      feature.renameExport('clock', 'read');
-      const renamed = DiBag.createBuilder().installModule(feature.renameExport('clock', 'other')).register({ logger: () => ({ log(_message: string) {} }) });
+      feature.withRenamedExport({ currentExportKey: 'clock', newExportKey: 'read' });
+      const renamed = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'clock', newExportKey: 'other' })]).withServices({ logger: () => ({ log(_message: string) {} }) });
       // @ts-expect-error Renamed public references retain their consumer constraints.
-      renamed.replace('other', () => ({ now() { return 7; } }));
+      renamed.withReplacedService('other', () => ({ now() { return 7; } }));
       void [value, stamp, fresh, typed, scoped.close(), bag.close()];`;
     const options: ts.CompilerOptions = {
       strict: true,
@@ -416,7 +416,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`);
       const options: ts.CompilerOptions = {
         strict: true, noEmit: true, noUncheckedIndexedAccess: true,
-        exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022,
+        exactOptionalPropertyTypes: true, noErrorTruncation: true, types: [], target: ts.ScriptTarget.ES2022,
         module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext,
       };
       const host = ts.createCompilerHost(options);
@@ -445,7 +445,7 @@ for (const mode of ['commonjs', 'module'] as const) {
   }
 }
 
-for (const [name, specifier] of [['Bag', 'di-bag'], ['Bag', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module'], ['Provider', 'di-bag'], ['Provider', '../src/provider'], ['Token', 'di-bag'], ['Token', '../src/tokens']]) {
+for (const [name, specifier] of [['Container', 'di-bag'], ['Container', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module'], ['Provider', 'di-bag'], ['Provider', '../src/provider'], ['Token', 'di-bag'], ['Token', '../src/tokens']]) {
   test(`unchecked ${name} construction is rejected through ${specifier}`, () => {
     const path = resolve(__dirname, 'unchecked-consumer.cts');
     const source = `import { ${name} } from '${specifier}'; new ${name}({ value: () => 42 });`;

@@ -1,0 +1,2527 @@
+# Container Renames (Phase 6) Implementation Plan
+
+> **Status: Accepted for planning.** Controller review repairs are recorded in `docs/superpowers/plans/handoff/resume-2026-09-21.md`; execution and phase gates remain subject to the active heavy-command hold.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rename the `Bag` type to `Container`, give the container, module and configuration calls their 0.5.0 names and one-bag shapes (`serviceSnapshot`, `graphSnapshot`, `createChildContainer`, `createIndependentContainer`, `withRenamedExport`, `lifecycleObservers`), and remove the `di-bag/node` entry point.
+
+**Architecture:** Expand, migrate, contract, as the master plan prescribes. The new methods, option names and type names are added next to the old ones on the class that is still called `Bag`; the codemod then moves every typed call site in ONE pass while the 0.4.0 declaration names still resolve; everything the codemod cannot read (source held in strings, `.mjs` suites, packaging expectations, Markdown, the graph tool's fixtures) is moved by hand; only then are the old names, the class name `Bag` and `src/node.ts` removed. Spike S3 decides whether `replacementProviders` can be contextually typed from `replacedServiceKeys` inside one object literal; the fallback keeps the pair positional.
+
+**Tech Stack:** TypeScript 6.0.2 (`tsc6`) and 7.0.2 (`tsc`), Bun 1.4.0 (`bun test`), Node 24.20.0, `tools/codemod` from phase 1, TypeDoc and VitePress under `tools/docs`, `tools/graph`.
+
+**Spec:** `docs/superpowers/specs/2026-09-20-swift-api-style.md`, sections "Vocabulary" (container, child container, independent container), "Rename map" (tables "Facade", "Container", "Module", "Exported types"), "One entry point", and the S3 row of "Shapes decided by measurement". Worked examples 2, 3, 4, 6, 11, 12 and 13 in `docs/superpowers/specs/2026-09-20-swift-api-style-examples.md`. Master plan: `docs/superpowers/plans/2026-09-21-00-swift-api-style-master.md`, phase 6 row; its protocol, environment, commit format, evidence rules and gate list apply to every task here. The spec's names win over anything written in this plan.
+
+## Global Constraints
+
+- This is phase 6 of the master plan. Branch: `phase-06-container-renames`, cut from `next`. Executors never push, publish, merge, or edit the spec's decisions.
+- Names introduced here are final 0.5.0 names, copied from the spec: `Container`, `serviceSnapshot`, `graphSnapshot`, `createChildContainer`, `createIndependentContainer`, `replacedServiceKeys`, `replacementProviders`, `sharedParentServiceKeys`, `withRenamedExport`, `currentExportKey`, `newExportKey`, `lifecycleObservers`, `onLifecycleEvent`, `onObserverFailure`, `LifecycleObserver`, `CreateChildContainerOptions`, `CreateIndependentContainerOptions`, `CheckedChildContainerLifetimes`, `DisjointChildContainerSelection`. Do not shorten or vary them.
+- Names that stay in this phase although later phases change them: `DiBag.token(...).of<S>()` and `token.key` (phase 8), `DiBag.withLifetime`, `DiBag.withDisposal`, `withMetadata`, `transformService` and the lifetime values `'root'`, `'scoped'`, `'transient'` (phases 8 to 10), every error code including `DI_BAG_INVALID_SCOPE`, `DI_BAG_INVALID_OVERRIDE`, `DI_BAG_INVALID_EXPORT` and `DI_BAG_INVALID_CONFIGURATION` (phase 11), the event kinds `scope-opened` and the fields `scopeId`, `parentScopeId`, `label`, and the type `ScopeEventFields` (phase 11), `ObserverFailure`, `ObserverCallback`, `ObserverErrorCallback` (the spec does not rename them).
+- Names that stay for good: the product and facade name `DiBag`, the package name `di-bag`, the `DI_BAG_` code prefix, `resolve`, `close`, `ensureServicesReady`, and the internal class `BagRuntime` with its file `src/runtime.ts` (decision and reason in Task 8).
+- Parameter shape rule (spec, standard rule 4): both container-deriving calls have no required input, so each takes one optional bag. `withRenamedExport` has two required inputs, so it takes one bag. Never two positional parameters, except under the S3 fallback, which the spec names.
+- The package keeps zero runtime dependencies, and after this phase nothing under `src/` may contain a `node:` specifier in an `import` or `require`. `process.getBuiltinModule('node:util/types')` in `src/acquisition-mode.ts` is a call, not an import, and stays.
+- Runtime messages keep the format `DI_BAG_CODE: message; see <errors page>#<anchor>`. A reworded existing throw site keeps its 0.4.0 code; phase 11 moves it. A NEW validation site raises `DI_BAG_INVALID_ARGUMENT` with `details: { operation, argument, expected }` written as an object literal at the throw site, and `expected` taken from the closed vocabulary of `docs/superpowers/plans/2026-09-21-12-observability-and-errors.md` Task 9.
+- `details.operation` and the method name inside a message become the 0.5.0 method name in the same commit that adds the method. The two messages `bag is closing` and `bag is closed` are the explicit exception: their 15 assertions and the three interpolation sites remain unchanged until the separate plan 12, `2026-09-21-12-observability-and-errors.md`, which implements master phase 11.
+- Preserve phase 4's collection value boundary. A replacement provider owns and disposes its original array value, while each `resolve`, lazy read, and alias read returns a fresh frozen shallow view through `freshCollectionView`. Container renaming must continue through the phase-4 graph/runtime collection channel; it must not read a replacement public binding directly.
+- Master assumption 10 authorizes this bounded phase-6 exception: from `feat!: add container derivation APIs` through `refactor!: migrate generated and agent container calls`, only generated-reference freshness or API-card coverage/budget failures caused solely by simultaneous old/new public declarations may be red. Capture the actual failing assertions and counts before using it; a predicted failure is not evidence. All applicable compiler, runtime, codemod, graph, and other documentation checks must pass. Record affected hashes and the precise red checks in commit bodies and the phase report; bisect skips only those hashes. Tasks 8 through 11 end the exception with a green `refactor!: contract container API and publish reference` commit, preserving the unchanged 400-line card limit. No red state may be merged or released.
+- Reuse phase 5's `snapshotOptionsBag(options, operation, required, optional?)` from `src/options-bag.ts` for every new bag. Do not duplicate object-shape validation. The helper requires a non-null, non-array object, rejects unknown own keys and supported inherited keys, and reads each allowed own property once after all shape checks pass. It does not restrict the object prototype.
+- `AGENTS.md` is at its 150-line budget, enforced by `npm run docs:check`. Every edit there replaces text inside existing lines; `wc -l AGENTS.md` must print `150` or less after each edit.
+- Compile budget: instantiations of the twelve evidence cases may grow by at most 10% in total against `docs/superpowers/plans/evidence/baseline.md`, cumulatively over all phases.
+- Preserve Phase 5's explicit `in out` variance on both `Builder` type parameters and its existing invariant function witness. Their contract is unchanged; the explicit annotations avoid measured recursive-type checking overhead. Keep erased/widened-builder rejection and `CompositionReport` inference checks when editing builder declarations.
+- Never delete, skip or weaken a test or a negative fixture to get green. Most caught errors in tests are typed `any`, so the compiler does not flag a missed rename of an option key or an error field; use the audit greps in each task.
+- Every command runs from the repository root with this environment:
+
+```bash
+export PATH="<the directory that holds Bun 1.4.0>/bin:$PATH"
+export npm_config_update_notifier=false
+bun --version   # must print 1.4.0
+node --version  # must print v24.20.0
+```
+
+- Commits use Conventional Commits and end with these two lines. Commit after each task except the explicitly combined Tasks 1–2 and coherent Tasks 8–11 contract groups. The codemod's mechanical rewrite is its own commit whose body holds the exact command.
+
+```
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+```
+
+## What was verified for this plan, and what was not
+
+This plan was written on 2026-09-21 against the 0.4.0 source on `next`, under a memory guard that forbade running the TypeScript compiler in any form. Read every claim below with that in mind.
+
+- **Read, not run:** every statement about `src/`, the tests, the scripts, the docs tooling and the graph tool comes from reading the files at commit `491a33b`. Phases 3 to 5 will have changed some of them before this phase starts; "State on entry" tells you how to confirm each name.
+- **Run:** the runtime probes listed in the section "Probes that were run" at the end of this plan, each as one `bun test` file with the pinned Bun 1.4.0 in a scratch worktree of the 0.4.0 source. Every count in this plan was produced by the `git grep` or `grep` command printed next to it, run at commit `491a33b`; re-run the command on your tree, because phases 3 to 5 move the numbers.
+- **Not run, and therefore UNCOMPILED:** every TypeScript signature in Tasks 1 to 5, every compiler fixture, every codemod fixture, and every change to a `.mjs` tool. No `tsc`, `tsc6`, `npm run typecheck`, `npm run build`, `npm test`, `npm run docs:check`, `npm run graph:check`, benchmark or evidence script was run for this plan. Where a task contains an uncompiled design it says so once, lists the positive and negative cases that must hold, and gives the fallback.
+- An interrupted earlier attempt at this plan left an UNVERIFIED compiler transcript in the planner's scratch directory. It is used in Task 1 only as a warning about one shape (three overloads that all take one argument), never as evidence that something works.
+
+Execution prerequisite: the active heavy-command hold must be lifted before running the build, compiler-lane, documentation-generation, benchmark/evidence or full-gate commands below. The separately serialized single `tsc6 -p tsconfig.json` exception with at least 6 GiB available does not authorize those commands. Narrow planning probes do not verify this phase.
+
+## State on entry
+
+Phases 0 to 5 are merged into `next`. The code this plan was written against still had the 0.4.0 names, so the names below are DERIVED from the master plan's phase table, the spec and plans 01 to 04. Confirm every row before Task 1. When a row differs, find the real name with `grep`, use it wherever this plan uses the expected one, and say so in the phase report. Do not guess.
+
+Before executing any task, read the final `docs/superpowers/plans/evidence/phase-04.md`. A selected but budget-unverified S5 fallback is not adopted evidence. If it records `Decision: fallback`, collection reads use `resolveCollection`, collection inspection enters this phase as `inspectCollection`, and ordinary `resolve`/`inspect` remain single-service-only. Phase 4's exact four-entry naming-ratchet shrink remains unchanged.
+
+Public names on entry:
+
+- Facade: `DiBag.createBuilder()`, `DiBag.withConfiguration({ runtime, observers })`, `DiBag.token(symbol).of<S>()` and `DiBag.token(symbol).forCollectionOf<Item>()` (phase 4; `createToken` and `forService` arrive in phase 8), `DiBag.fromFactory`, `fromSyncFactory`, `fromAsyncFactory`, `fromFunction`, `fromClass`, `fromPlugin`, `optional`, `lazy`, `withDisposal`, `withLifetime`, `withMetadata`, `transformService`. `DiBag.all` is gone (phase 4).
+- Builder (phase 5): `withServices(providersByName)`, `withTokenService(token, provider)`, `withServiceAlias({ aliasKey, targetServiceKey })`, `withCollectionContribution({ collectionToken, provider })`, `withReplacedService(serviceKey, provider)`, `withInstalledModules(modules)`, `verifyGraphAtCompileTime()`, `buildModule({ exportedServiceKeys, moduleLabel? })`, `buildContainer()`. Phase 5 measured S1 and S7: `withTokenService` and `withReplacedService` take positional fallbacks; alias and contribution retain their bags, and installation retains the list. Read `docs/superpowers/plans/evidence/phase-05.md` and adjust the test code in this plan accordingly. `withServices`, `buildContainer` and `buildModule({ exportedServiceKeys })` do not depend on a spike.
+- The class returned by `buildContainer()` is still called `Bag<ServiceRegistrations, Constraints>` (type parameters renamed in phase 2) and has `resolve`, `inspect`, `inspectGraph`, `createScope` (three overloads), `fork` (two overloads), `close({ abortSignal?, waitTimeoutMs? })`, `ensureServicesReady(serviceKeys, options?)` (phase 3). `resolveAll` and `inspectAll` are gone (phase 4). The adopted S5 fallback uses `resolveCollection(collectionToken)` for the list and `inspectCollection(collectionToken)` for the list of snapshots; ordinary `resolve` and `inspect` remain single-service-only.
+- Module: `module.renameExport(oldKey, newKey)`. `module.withRenamedRequirement` does not exist yet (phase 7).
+- Configuration: `ConfigurationOptions { runtime?, observers? }`, `ObserverOptions { onEvent, onError }`.
+- Entry points: `di-bag` and `di-bag/node` (`src/node.ts`).
+- Support types this phase renames: `ScopeOptions`, `DisjointScopeSelection` (`src/scope-types.ts`), `CheckedScopeLifetimes` (`src/lifetime-types.ts`), `ObserverOptions` (`src/observers.ts`).
+
+```bash
+git switch next && git status --short
+# expect: no output
+bun --version && node --version
+# expect: 1.4.0 and v24.20.0
+grep -n "^class Bag<" src/di-bag.ts
+# expect: one line that starts: class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint
+grep -c "ensureServicesReady" src/di-bag.ts; grep -c "buildAndStart" src/di-bag.ts
+# expect (phase 3 landed): a number above 0, then 0
+grep -c -e "resolveAll" -e "inspectAll" src/di-bag.ts; grep -c "forCollectionOf" src/tokens.ts
+# expect (phase 4 landed): 0, then a number above 0
+grep -c -e "buildContainer(this" -e "^  withServices" src/di-bag.ts; grep -c -e "^  build(this" -e "^  register[<(]" src/di-bag.ts
+# expect (phase 5 landed): a number above 0, then 0
+grep -c -e "^  createScope[<(]" -e "^  fork[<(]" -e "^  inspect[<(]" -e "^  inspectGraph(" src/di-bag.ts; grep -c -e "createChildContainer" -e "serviceSnapshot" src/di-bag.ts
+# expect (this phase has not run): a number above 0, then 0
+ls src/node.ts && grep -c '"./node"' package.json
+# expect: the path, then 1
+node -e "const m=require('./tools/codemod/rename-map.json'); const from=(m.methods??[]).map(e=>e.from); console.log(from.includes('build'), from.includes('createScope'), (m.imports??[]).length)"
+# expect (the map holds phases 3 to 5 and nothing of this phase): true false 0
+grep -c -e '"retired-word: export Bag"' -e '"retired-word: export ScopeOptions"' -e '"retired-word: export DisjointScopeSelection"' -e '"retired-word: export CheckedScopeLifetimes"' -e '"retired-word: member createScope"' -e '"retired-word: member fork"' tests/api-naming-known-violations.json
+# expect (the naming ratchet still lists this phase's six entries): 6
+grep -c "^### DI_BAG_INVALID_ARGUMENT" docs/agent/errors.md
+# expect: 0 or 1. Task 1 Step 9 needs the answer.
+```
+
+Measured at commit `491a33b` (0.4.0 names), to size the work. Re-run on your tree; earlier phases do not touch these calls, so the numbers should be close.
+
+```bash
+for name in '\.createScope\(' '\.fork\(' '\.inspect\(' '\.inspectGraph\(' '\.renameExport\(' '\bobservers:' '\bonEvent\b' '\bonError\b' '\bBag\b'; do
+  printf '%-18s' "$name"; for area in tests examples scripts tools/graph docs/agent AGENTS.md src; do printf '%s=%s ' "$area" "$(git grep -hoE "$name" -- "$area" | wc -l)"; done; echo
+done
+```
+
+| Pattern | tests | examples | scripts | tools/graph | docs/agent | AGENTS.md | src |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `.createScope(` | 177 | 2 | 28 | 0 | 7 | 0 | 1 |
+| `.fork(` | 135 | 3 | 8 | 0 | 7 | 0 | 1 |
+| `.inspect(` | 174 | 2 | 0 | 0 | 2 | 0 | 6 |
+| `.inspectGraph(` | 13 | 0 | 0 | 0 | 4 | 0 | 2 |
+| `.renameExport(` | 75 | 0 | 0 | 1 | 1 | 0 | 0 |
+| `observers:` | 53 | 1 | 0 | 0 | 2 | 0 | 2 |
+| `onEvent` | 52 | 1 | 0 | 0 | 3 | 0 | 10 |
+| `onError` | 67 | 1 | 0 | 0 | 3 | 0 | 9 |
+| the word `Bag` | 28 | 1 | 8 | 3 | 2 | 2 | 25 |
+
+The spec says that about 200 files import the second entry. That number was not reproduced: `git grep -lE "src/node|di-bag/node" -- . ':!docs/superpowers'` lists 76 tracked files, 36 of them `tests/*.test.ts` files with the line `from '../src/node'`. Task 7 lists every one of the 76 by kind.
+
+## File Structure
+
+| File | Change | Responsibility |
+| --- | --- | --- |
+| `src/options-bag.ts` | consume, do not duplicate | Phase-5 `snapshotOptionsBag(options, operation, required, optional?)` validates and snapshots option bags |
+| `src/scope-selection.ts` | modify | `selectChildContainer` and `selectIndependentContainer`: use `snapshotOptionsBag`, then snapshot selected tuple indices before reading provider getters. Later: `selectScope` deleted |
+| `src/scope-types.ts` | modify | `CreateChildContainerOptions`, `CreateIndependentContainerOptions`, `DisjointChildContainerSelection`. Later: `ScopeOptions`, `DisjointScopeSelection` deleted |
+| `src/lifetime-types.ts` | modify | `CheckedScopeLifetimes` renamed to `CheckedChildContainerLifetimes` |
+| `src/types.ts` | modify | `Overrides` takes the operation name for its message; default operation names follow the renames |
+| `src/di-bag.ts` | modify | new methods on the class, later the class rename to `Container`, `ConfigurationOptions.lifecycleObservers`, JSDoc that feeds the API card |
+| `src/module.ts`, `src/module-types.ts` | modify | `withRenamedExport({ currentExportKey, newExportKey })` and its compile-time message |
+| `src/observers.ts` | modify | `LifecycleObserver { onLifecycleEvent, onObserverFailure }` |
+| `src/acquisition.ts`, `src/runtime.ts` | audit | preserve closing/closed messages; plan 12 owns their rename |
+| `src/acquisition-mode.ts` | modify | one comment and nothing else; `hostClassifier` already does what the removed entry did |
+| `src/node.ts` | delete | the second entry point |
+| `src/index.ts` | modify | the export list follows |
+| `package.json`, `tsconfig.build.json`, `tools/docs/typedoc.json`, `tools/docs/lib/coverage.mjs`, `tools/docs/vitepress.config.mjs` | modify | one entry point |
+| `tests/container-derivation.test.ts` | create | runtime tests of both new calls and their bag parsing |
+| `tests/container-names.test.ts` | create | runtime tests of `serviceSnapshot`, `graphSnapshot`, `withRenamedExport`, the configuration names, and, after the contract step, the absence of every old name |
+| `tests/types/container-derivation.ts`, `tests/types/container-derivation-consumer.ts`, `tests/types/negative/container-derivation.ts` | create | the S3 compiler fixtures |
+| `tests/types.test.ts` | modify | registers the two positive fixtures |
+| `tools/codemod/rename-map.json`, `tools/codemod/test/fixtures/container-renames/` | modify, create | this phase's map entries and one fixture pair |
+| `tests/**`, `examples/**` | modify | call sites: by the codemod where typed, by `reshape-untyped.mjs` and by hand where not |
+| `/tmp/di-bag-phase-06/reshape-untyped.mjs` | create, not committed | text-level migration of calls the codemod cannot read |
+| `scripts/agent-eval/**`, `tools/graph/**`, `scripts/*.ts`, `.github/workflows/ci.yml` | modify | untyped call sites, the graph tool's rename reader and README, packaging expectations |
+| `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md`, `docs/guides/api-reference.md` (rows that link to deleted pages only) | modify | documentation that `npm run docs:check` verifies |
+| `docs/agent/api-card.md`, `docs/reference/**` | regenerate | never edited by hand |
+| `tools/docs/api-card-tasks.json`, `tools/docs/lib/api-card.mjs`, `tools/docs/test/*.test.mjs` | modify | the card's receiver becomes `container`; pinned signatures follow |
+| `tests/types/negative/api-renaming.ts` | modify | one line per removed name |
+| `tests/api-naming-known-violations.json` | shrink | six entries leave |
+| `docs/superpowers/plans/evidence/phase-06.md` | create | the S3 decision and the twelve measurements |
+
+Task groups: Task 0 is the entry check. Tasks 1 to 4 are the expand step (Task 1 is spike S3 with its measurement). Tasks 5 to 7 are the migrate step. Tasks 8 to 10 are the contract step. Task 11 regenerates documentation and Task 12 is the gate.
+
+---
+
+### Task 0: Branch, entry check, scratch directory
+
+**Files:** none in the repository. Creates `/tmp/di-bag-phase-06/`.
+
+- [ ] **Step 1: Create the branch**
+
+```bash
+git switch next && git pull --ff-only 2>/dev/null; git switch -c phase-06-container-renames
+mkdir -p /tmp/di-bag-phase-06
+```
+
+- [ ] **Step 2: Run every row of "State on entry"**
+
+Expected: every expectation holds. Record the verified Phase 5 choices: positional `withTokenService` and `withReplacedService`, the selected `withInstalledModules` list with its `BuilderWithInstalledModules` callable facade, and whether `docs/agent/errors.md` already has a `DI_BAG_INVALID_ARGUMENT` section. Do not recreate the rejected singular installation fallback.
+
+- [ ] **Step 3: Build once, so that tests reading `dist/` start from a current build**
+
+Run: `npm run build`
+Expected: exits 0.
+
+---
+
+### Task 1: Expand container derivation and decide spike S3
+
+**Files:**
+- Modify: `src/scope-types.ts`
+- Modify: `src/lifetime-types.ts`
+- Modify: `src/di-bag.ts`
+- Modify: `src/types.ts`
+- Create: `tests/types/container-derivation.ts`
+- Create: `tests/types/container-derivation-consumer.ts`
+- Create: `tests/types/negative/container-derivation.ts`
+- Modify: `tests/types.test.ts`
+- Create: `docs/superpowers/plans/evidence/phase-06.md`
+
+**Interfaces:**
+- Consumes: phase 5's `snapshotOptionsBag(options: unknown, operation: string, required: readonly string[], optional: readonly string[] = [], inspectValue?: (name: string, value: unknown) => void): Record<string, unknown>`; the class type parameters `ServiceRegistrations` and `Constraints`; phase 4's final `Selection<ServiceRegistrations, Constraints, Keys, Operation>`, `Overrides<R,O,K=readonly []>`, `SelectedRegistrations`, `ReboundSelection`, `OverrideRegistrations`, `OverrideFactoryContext`, `ScopeShareAdmission`, `ScopedAliases`, and `UnsharedAliases` helpers. Do not reconstruct the pre-collection replacement graph.
+- Produces: `CreateChildContainerOptions`, `CreateIndependentContainerOptions`, `CheckedChildContainerLifetimes`, `DisjointChildContainerSelection`, and `Bag.createChildContainer` / `Bag.createIndependentContainer` during expand. Task 8 renames the receiver type to `Container`.
+
+The public signature composition carries forward Phase4's reviewed declaration repair (`b22f2b3`): synthetic collection selection and independent collection-output checks stay behind `Overrides<R,O,K>`, while contextual inference stays in `OverrideFactoryContext`. Do not print private `SelectionRegistrations`, `ReboundSelected`, or `AppliedSelection` in public overloads. The new container options shapes still require this phase's inference and physical consumer proofs.
+
+This type design is **UNCOMPILED**. The executor must prove inline and external tuples, named and token keys, collection tokens, consumer declaration output, wrong outputs, missing/extra providers, unknown keys, overlap, and root-capture diagnostics. After three serious attempts, or when any evidence case exceeds +10%, use Step 8's complete positional fallback.
+
+- [ ] **Step 1: Write the positive fixture**
+
+Create `tests/types/container-derivation.ts`:
+
+```ts
+import { DiBag, type Bag } from '../../src';
+import type { Assert, Equal } from './assert';
+
+type Clock = { now(): number };
+const clockKey = Symbol('clock');
+const clocksKey = Symbol('clocks');
+const clock = DiBag.token(clockKey).of<Clock>();
+const clocks = DiBag.token(clocksKey).forCollectionOf<Clock>();
+
+const root = DiBag.createBuilder()
+  .withServices({ value: () => 1, clock: (): Clock => ({ now: () => 1 }) })
+  .withTokenService(clock, (): Clock => ({ now: () => 2 }))
+  .withCollectionContribution({ collectionToken: clocks, provider: (): Clock => ({ now: () => 3 }) })
+  .buildContainer();
+
+export const emptyChild = root.createChildContainer();
+export const emptyIndependent = root.createIndependentContainer();
+export const emptyChildBag = root.createChildContainer({});
+export const emptyIndependentBag = root.createIndependentContainer({});
+export const inline = root.createIndependentContainer({
+  replacedServiceKeys: ['clock'],
+  replacementProviders: { clock: ({ value }) => ({ now: () => value + 6, source: 'test' as const }) },
+});
+type Inline = Assert<Equal<ReturnType<typeof inline.resolve<'clock'>>, { now(): number; source: 'test' }>>;
+
+const keys = ['value', clock] as const;
+export const external = root.createIndependentContainer({
+  replacementProviders: { value: () => 4, [clockKey]: ({ value }) => ({ now: () => value + 4 }) },
+  replacedServiceKeys: keys,
+});
+export const child = root.createChildContainer({
+  replacedServiceKeys: [clocks],
+  replacementProviders: { [clocksKey]: ({ value }) => [{ now: () => value + 7 }] },
+  sharedParentServiceKeys: ['value'],
+});
+const collection: readonly Clock[] = child.resolve(clocks);
+const annotation: Bag<{ value: () => number }> = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+void collection; void annotation; void emptyChildBag; void emptyIndependentBag;
+```
+
+These three unannotated destructuring parameters are deliberate contextual-inference probes: named service with keys first, token service with providers first, and collection token with keys first. Keep both property orders. If inference fails, record it as an S3 failure; do not add annotations that hide it.
+
+**Reviewed fallback boundary (Phase 6 execution).** All three preferred-bag candidates failed and their original probes remain evidence. A same-tree control proves the existing positional `fork` and `createScope` also reject unannotated dependency destructuring with TS7031. Under the selected positional fallback only, annotate these three parameters with `{ value: number }` and the missing-dependency negative with `{ missing: number }`. Preserve every exact richer-output assertion, invalid expression and admission check. This records the established positional contract; it does not repair or accept a failed preferred-bag candidate. The independent audit is `/tmp/di-bag-resume-20260921/phase06-fallback-type-audit.md`; retain the legacy-control log with phase evidence.
+
+The positional contextual bound also rejects four invalid providers before the preferred bag's graph-message intersections. Independent review permits only these observed, source-specific marker replacements: wrong named output `Type '() => string' is not assignable to type`; missing selected provider `Property 'b' is missing`; wrong token output `Type of computed property's value is '() => { now: string; }'`; missing dependency `Type '({ missing }: { missing: number; }) => number' is not assignable to type`. Keep the invalid calls and all other graph, overlap and lifetime markers unchanged. These are recorded fallback diagnostic priorities, not accepted preferred-shape results.
+
+If phase 5 chose the positional fallback for S1, change only the two builder calls to that recorded syntax.
+
+If the final Phase 4 evidence records the S5 fallback, change only collection-token reads in these fixtures: `child.resolve(clocks)` and both `independent.resolve(clocks)` calls become `resolveCollection`. Keep `resolve(clock)` and all named-service reads unchanged.
+
+- [ ] **Step 2: Write the negative fixture**
+
+Create `tests/types/negative/container-derivation.ts`; use the exact diagnostic-marker format from `tests/types/negative/scopes.ts`:
+
+```ts
+import { DiBag } from '../../../src';
+
+const key = Symbol('clock');
+const clock = DiBag.token(key).of<{ now(): number }>();
+const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 'b' })
+  .withTokenService(clock, () => ({ now: () => 1 })).buildContainer();
+
+// diagnostic: replacementProviders are required when replacedServiceKeys are present
+root.createIndependentContainer({ replacedServiceKeys: ['a'] });
+// diagnostic: replacedServiceKeys are required when replacementProviders are present
+root.createIndependentContainer({ replacementProviders: { a: () => 2 } });
+// diagnostic: createIndependentContainer accepts existing names or typed tokens only
+root.createIndependentContainer({ replacedServiceKeys: ['missing'], replacementProviders: { missing: () => 1 } });
+// diagnostic: provided service does not satisfy its consumer dependency
+root.createIndependentContainer({ replacedServiceKeys: ['a'], replacementProviders: { a: () => 'wrong' } });
+// diagnostic: missing createIndependentContainer replacement provider
+root.createIndependentContainer({ replacedServiceKeys: ['a', 'b'], replacementProviders: { a: () => 2 } });
+// diagnostic: createChildContainer cannot share and replace the same service
+root.createChildContainer({ replacedServiceKeys: ['a'], replacementProviders: { a: () => 2 }, sharedParentServiceKeys: ['a'] });
+// diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
+root.createChildContainer({ sharedParentServiceKeys: ['missing'] });
+// diagnostic: provided service does not satisfy its consumer dependency
+root.createIndependentContainer({ replacedServiceKeys: [clock], replacementProviders: { [key]: () => ({ now: 'wrong' }) } });
+
+const incomplete = DiBag.createBuilder().withServices({
+  selected: () => 1,
+  consumer: ({ selected }: { selected: number }) => selected,
+}).buildContainer();
+// diagnostic: required service registrations are missing
+incomplete.createIndependentContainer({ replacedServiceKeys: ['selected'], replacementProviders: { selected: ({ missing }) => missing } });
+
+const lifetime = DiBag.createBuilder().withServices({
+  db: DiBag.withLifetime(() => 1, 'root'),
+  rootService: DiBag.withLifetime(({ db }: { db: number }) => db, 'root'),
+}).buildContainer();
+// diagnostic: root lifetime cannot capture scoped dependency
+lifetime.createIndependentContainer({ replacedServiceKeys: ['db'], replacementProviders: { db: () => 2 } });
+```
+
+Compiler text comes from existing helper aliases. If it differs, update the operation-string type parameters in `src/types.ts` and `src/scope-types.ts` to the quoted 0.5.0 names, rerun, and put the exact emitted text in the markers. Never weaken the rejected expression.
+
+- [ ] **Step 3: Add the renamed types and option bags**
+
+Add `CheckedChildContainerLifetimes` beside the old lifetime name in `src/lifetime-types.ts` with the complete existing body and compatibility alias:
+
+```ts
+export type CheckedChildContainerLifetimes<
+  R extends Registrations,
+  O extends Registrations,
+  C = never,
+> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+  : [OverrideCaptives<R, O, C>] extends [never] ? unknown
+    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, {
+        readonly captives: OverrideCaptives<R, O, C>;
+      }>;
+
+/** @deprecated Use CheckedChildContainerLifetimes. Removed after the codemod migration. */
+export type CheckedScopeLifetimes<
+  R extends Registrations,
+  O extends Registrations,
+  C = never,
+> = CheckedChildContainerLifetimes<R, O, C>;
+```
+
+In `src/scope-types.ts`, keep `ScopeOptions` and `DisjointScopeSelection` unchanged and add these exported shapes beside them; keep property order exactly as shown:
+
+```ts
+export type CreateIndependentContainerOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createIndependentContainer'>;
+
+type ReplacementOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint,
+  ReplacedServiceKeys extends readonly unknown[],
+  ReplacementProviders,
+  Operation extends string,
+> =
+  [ReplacedServiceKeys[number]] extends [never]
+    ? { readonly replacedServiceKeys?: undefined; readonly replacementProviders?: undefined }
+    : {
+        readonly replacedServiceKeys: ReplacedServiceKeys
+          & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, Operation>;
+        readonly replacementProviders: ReplacementProviders;
+      };
+
+export type CreateChildContainerOptions<
+  ServiceRegistrations extends Registrations,
+  SharedParentServiceKeys extends readonly unknown[],
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createChildContainer'> & {
+  readonly sharedParentServiceKeys?: SharedParentServiceKeys
+    & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'>
+    & ScopeShareAdmission<SharedParentServiceKeys> & (
+    [Transients<ServiceRegistrations, SharedParentServiceKeys>] extends [never] ? unknown
+      : Unsatisfied<'createChildContainer cannot share transient providers', { tokens: Transients<ServiceRegistrations, SharedParentServiceKeys> }>
+  );
+} & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>;
+
+export type DisjointChildContainerSelection<ReplacedServiceKeys extends readonly unknown[], SharedParentServiceKeys extends readonly unknown[]> =
+  [SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>] extends [never] ? unknown
+    : Unsatisfied<'createChildContainer cannot share and replace the same service', {
+        tokens: SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>;
+      }>;
+```
+
+The first two generic positions of `CreateChildContainerOptions` deliberately match phase 4's corrected `ScopeOptions<ServiceRegistrations, SharedKeys, Constraints = never>` contract. `Constraints` stays third and defaulted, and replacement generics are appended fourth and fifth. This is what makes the phase-1 schema-supported `{ "from": "ScopeOptions", "to": "CreateChildContainerOptions" }` entry safe for existing two-argument annotations. `CreateIndependentContainerOptions` is new, so its defaults only serve the empty-bag overload.
+
+- [ ] **Step 4: Add the one-bag overloads beside the old methods**
+
+Add the following overload heads inside `class Bag<ServiceRegistrations, Constraints>`. For both replacement overloads, paste the complete existing `fork` / selected `createScope` intersection after `ReplacementProviders & object`: `Record`, `Overrides`, dependency compatibility/completeness, checked/complete constraints, and the corresponding checked lifetime expression. Merely saying “same checks” in source is forbidden; the resulting declaration must contain every named type below.
+
+```ts
+createChildContainer(
+  options?: CreateChildContainerOptions<ServiceRegistrations, readonly [], Constraints>,
+): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
+createChildContainer<const SharedParentServiceKeys extends readonly unknown[]>(
+  options: CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>,
+): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, SharedParentServiceKeys>, Constraints>;
+createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(
+  options: CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints, ReplacedServiceKeys,
+    ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> &
+    Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys> &
+    CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+    >,
+): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+
+createIndependentContainer(
+  this: Bag<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>,
+  options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>,
+): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
+createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>(
+  options: CreateIndependentContainerOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys,
+    ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> &
+    Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys> &
+    CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+    CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>>,
+): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+```
+
+Add overload declarations here, but do not add a temporary implementation and do not type-check or commit this task in isolation. Task 2 Steps 3 and 4 immediately add the exact selectors and public bodies before any compiler command. This avoids a transient implementation whose validation or collection routing differs from the final expand API.
+
+- [ ] **Step 5: Create and register the declaration consumer before any check**
+
+Create `tests/types/container-derivation-consumer.ts`:
+
+```ts
+import { child, emptyChild, emptyIndependent, external, inline } from './container-derivation';
+const a: number = emptyChild.resolve('value');
+const b: number = emptyIndependent.resolve('value');
+const c: number = external.resolve('value');
+const d: 7 | number = inline.resolve('clock').now();
+const e = child.resolve('value');
+void a; void b; void c; void d; void e;
+```
+
+In `tests/types.test.ts`, add the direct consumer test beside `selected scopes retain exact inferred cross-file contracts`:
+
+```ts
+test('container derivation retains exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/container-derivation-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+```
+
+Append `'container-derivation'` to the existing declaration-consumption fixture array that begins with `'lifetimes'`; do not create a second emitter. Register `tests/types/negative/container-derivation.ts` in the existing negative-marker discovery only if that discovery is not already glob-based. The consumer therefore exists and both direct/declaration tests are registered before Task 2 runs either compiler route.
+
+- [ ] **Step 6: Preserve expand compatibility and continue directly into Task 2**
+
+Keep `ScopeOptions`, `CheckedScopeLifetimes`, and `DisjointScopeSelection` exported with those exact phase-4 definitions throughout expand. Task 8 removes them only after every import and declaration has migrated.
+
+Do not run a compiler, evidence command, declaration-consumer command, or commit yet. Continue immediately with Task 2 Steps 1 through 4, then use Task 2 Step 5 for the first check of this combined implementation.
+
+- [ ] **Step 8: Record the complete fallback that Task 2 Step 6 applies if S3 fails**
+
+Do not apply this step yet. Task 2 first installs the adopted direct parser, then its Step 5 runs the first compiler check. If that check rejects S3, Task 2 Step 6 applies everything below as one bounded substitution.
+
+Keep the existing no-replacement optional-bag overloads: both methods still accept no arguments, `{}` and explicit `undefined`, while child containers also accept a sharing-only bag. In the fallback, change the empty branch of `ReplacementOptions` to `{ readonly replacedServiceKeys?: never; readonly replacementProviders?: never }`: under `exactOptionalPropertyTypes`, replacement fields explicitly set to undefined must reject just as the one-argument runtime normalizer rejects their presence. Prove both methods reject those fields and retain valid empty/undefined calls. S3 changes only the replacement pair. Change replacement forms to:
+
+```ts
+createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(
+  replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>,
+  replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+  options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'> & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>,
+): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+
+createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>(
+  replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>,
+  replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+```
+
+Under this fallback only, replace the public implementations from Task 2 Step 4 with these complete bodies. The helper snapshots the optional third bag before constructing the adopted internal bag; the selectors retain tuple-index-before-provider-getter ordering and all operation details:
+
+```ts
+function positionalChildOptions(args: readonly unknown[]): unknown {
+  if (args.length === 0) return undefined;
+  if (args.length === 1) return args[0] === undefined
+    ? undefined
+    : snapshotOptionsBag(args[0], 'createChildContainer', [], ['sharedParentServiceKeys']);
+  if (args.length !== 2 && args.length !== 3) {
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createChildContainer accepts zero, one, two, or three arguments', {
+      operation: 'createChildContainer', argument: 'arguments.length', expected: "one of: '0', '1', '2', '3'",
+    });
+  }
+  const sharing = args.length === 3 && args[2] !== undefined
+    ? snapshotOptionsBag(args[2], 'createChildContainer', [], ['sharedParentServiceKeys'])
+    : Object.create(null) as Record<string, unknown>;
+  const options: Record<string, unknown> = {
+    replacedServiceKeys: args[0],
+    replacementProviders: args[1],
+  };
+  if (Object.hasOwn(sharing, 'sharedParentServiceKeys')) {
+    options.sharedParentServiceKeys = sharing.sharedParentServiceKeys;
+  }
+  return options;
+}
+
+function positionalIndependentOptions(args: readonly unknown[]): unknown {
+  if (args.length === 0) return undefined;
+  if (args.length === 1) return args[0] === undefined
+    ? undefined
+    : snapshotOptionsBag(args[0], 'createIndependentContainer', [], []);
+  if (args.length !== 2) {
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createIndependentContainer accepts zero arguments, undefined, an empty options object, or selected keys and replacement providers', {
+      operation: 'createIndependentContainer', argument: 'arguments.length', expected: "one of: '0', '1', '2'",
+    });
+  }
+  return { replacedServiceKeys: args[0], replacementProviders: args[1] };
+}
+
+createChildContainer(...args: unknown[]): unknown {
+  this.#runtime.assertOpen();
+  const { graph, shared } = selectChildContainer(
+    this.#graph,
+    positionalChildOptions(args),
+    serviceKey => this.#runtime.isTransient(serviceKey),
+  );
+  return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
+}
+
+createIndependentContainer(...args: unknown[]): unknown {
+  this.#runtime.assertOpen();
+  const graph = selectIndependentContainer(this.#graph, positionalIndependentOptions(args));
+  return new Bag(graph, this.context);
+}
+```
+
+Append these complete tests only when S3 records the positional fallback; do not retain the adopted-bag variants of the same calls:
+
+```ts
+test('positional fallback normalizes every supported child and independent form', async () => {
+  const root = DiBag.createBuilder().withServices({ value: () => 1, shared: () => ({ id: 1 }) }).buildContainer();
+  const parentShared = root.resolve('shared');
+  const emptyChild = root.createChildContainer();
+  const shareOnly = root.createChildContainer({ sharedParentServiceKeys: ['shared'] });
+  const replaced = root.createChildContainer(['value'], { value: () => 2 });
+  const explicitUndefined = root.createChildContainer(['value'], { value: () => 3 }, undefined);
+  const replacedAndShared = root.createChildContainer(
+    ['value'],
+    { value: () => 4 },
+    { sharedParentServiceKeys: ['shared'] },
+  );
+  const emptyIndependent = root.createIndependentContainer();
+  const emptyIndependentBag = root.createIndependentContainer({});
+  const undefinedIndependent = root.createIndependentContainer(undefined);
+  const independent = root.createIndependentContainer(['value'], { value: () => 5 });
+  expect(emptyChild.resolve('value')).toBe(1);
+  expect(shareOnly.resolve('shared')).toBe(parentShared);
+  expect(replaced.resolve('value')).toBe(2);
+  expect(explicitUndefined.resolve('value')).toBe(3);
+  expect(replacedAndShared.resolve('value')).toBe(4);
+  expect(replacedAndShared.resolve('shared')).toBe(parentShared);
+  expect(emptyIndependent.resolve('value')).toBe(1);
+  expect(emptyIndependentBag.resolve('value')).toBe(1);
+  expect(undefinedIndependent.resolve('value')).toBe(1);
+  expect(independent.resolve('value')).toBe(5);
+  await Promise.all([
+    emptyChild.close(), shareOnly.close(), replaced.close(), explicitUndefined.close(),
+    replacedAndShared.close(), emptyIndependent.close(), emptyIndependentBag.close(),
+    undefinedIndependent.close(), independent.close(), root.close(),
+  ]);
+});
+
+test.each([
+  ['createChildContainer', [[], {}, {}, {}], "one of: '0', '1', '2', '3'"],
+  ['createIndependentContainer', [[], {}, {}], "one of: '0', '1', '2'"],
+] as const)('positional fallback rejects malformed arity for %s', (operation, args, expected) => {
+  const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+  try {
+    (root[operation] as (...values: unknown[]) => unknown)(...args);
+    throw new Error('expected arity rejection');
+  } catch (error) {
+    expect(error).toMatchObject({
+      code: 'DI_BAG_INVALID_ARGUMENT',
+      details: { operation, argument: 'arguments.length', expected },
+    });
+  }
+});
+
+test('positional fallback snapshots selected indices before a provider getter runs', async () => {
+  const selected = ['value'] as const;
+  const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+  const independent = root.createIndependentContainer(selected, {
+    get value() { (selected as unknown as string[])[0] = 'missing'; return () => 2; },
+  });
+  expect(independent.resolve('value')).toBe(2);
+  await independent.close(); await root.close();
+});
+```
+
+These cases cover argument-count handling, explicit `undefined`, third-bag validation through `snapshotOptionsBag`, selection snapshot order, operation details, sharing, and both ownership forms. Also retain the original empty-bag positives, and add precise negatives for transient parent sharing, unknown third-bag keys and one-argument replacement bags. The child third bag exposes only the checked sharing property (including transient and collection guards); the one-argument paths reject replacement fields before any provider getter is read. Assert renamed operation details and exactly-once caller getter reads. Both positional `Overrides` applications pass their new operation explicitly instead of inheriting the old `fork` default. They are skipped entirely when S3 adopts the bag.
+
+Rewrite all fixture calls to the positional pair followed by `{ sharedParentServiceKeys }`, change the codemod expected output and transform in Task 5 accordingly, rerun Task 2 Steps 5–7, record `Decision: positional fallback` and all failed attempts in phase evidence, and append the exception to `docs/guides/api-naming.md`.
+
+- [ ] **Step 9: Hand the complete uncommitted expand set to Task 2**
+
+Confirm `git diff --name-only` contains only the Task 1 files listed above, then continue directly into Task 2. Do not stage or commit. Task 2 Step 8 makes the single checked derivation commit after types, runtime selectors, declaration consumption, and S3 evidence all pass together.
+
+---
+### Task 2: Implement the derivation option-bag parsers and runtime behavior
+
+**Files:**
+- Modify: `src/scope-selection.ts`
+- Modify: `src/di-bag.ts`
+- Create: `tests/container-derivation.test.ts`
+- Modify: `docs/agent/errors.md` only if `DI_BAG_INVALID_ARGUMENT` has no section on entry
+
+**Interfaces:**
+- Consumes: `snapshotOptionsBag` from phase 5 and Task 1's overloads.
+- Produces: `selectChildContainer(graph, options, isTransient)` returning `{ graph, shared }`; `selectIndependentContainer(graph, options)` returning a `BindingGraph`; direct runtime implementations of both public calls.
+
+- [ ] **Step 1: Write the runtime tests**
+
+Apply the State-on-entry S5 substitution to both printed `independent.resolve(clocks)` expressions; the adjacent `resolve(clock)` service-token call stays unchanged.
+
+Create `tests/container-derivation.test.ts`:
+
+```ts
+import { describe, expect, test } from 'bun:test';
+import { DiBag } from '../src';
+
+describe('container derivation option bags', () => {
+  test('creates empty child and independent containers with distinct ownership', async () => {
+    let disposed = 0;
+    const root = DiBag.createBuilder().withServices({
+      value: DiBag.withDisposal(() => ({}), () => { disposed++; }),
+    }).buildContainer();
+    const child = root.createChildContainer();
+    const independent = root.createIndependentContainer();
+    const emptyChild = root.createChildContainer({});
+    const emptyIndependent = root.createIndependentContainer({});
+    child.resolve('value'); independent.resolve('value');
+    emptyChild.resolve('value'); emptyIndependent.resolve('value');
+    await root.close();
+    expect(disposed).toBe(2);
+    await Promise.all([independent.close(), emptyIndependent.close()]);
+    expect(disposed).toBe(4);
+  });
+
+  test('replaces selected services and shares selected parent acquisitions', async () => {
+    let acquired = 0;
+    const root = DiBag.createBuilder().withServices({
+      shared: () => ({ id: ++acquired }),
+      value: () => 1,
+    }).buildContainer();
+    const parentShared = root.resolve('shared');
+    const child = root.createChildContainer({
+      replacedServiceKeys: ['value'],
+      replacementProviders: { value: () => 2 },
+      sharedParentServiceKeys: ['shared'],
+    });
+    expect(child.resolve('value')).toBe(2);
+    expect(child.resolve('shared')).toBe(parentShared);
+    await child.close(); await root.close();
+  });
+
+  test('supports token and collection-token computed provider keys', async () => {
+    const key = Symbol('clock');
+    const listKey = Symbol('clocks');
+    const clock = DiBag.token(key).of<{ now(): number }>();
+    const clocks = DiBag.token(listKey).forCollectionOf<{ now(): number }>();
+    const root = DiBag.createBuilder()
+      .withTokenService(clock, () => ({ now: () => 1 }))
+      .withCollectionContribution({ collectionToken: clocks, provider: () => ({ now: () => 2 }) })
+      .buildContainer();
+    const replacement = [{ now: () => 4 }];
+    let disposed: unknown;
+    const independent = root.createIndependentContainer({
+      replacedServiceKeys: [clock, clocks],
+      replacementProviders: {
+        [key]: () => ({ now: () => 3 }),
+        [listKey]: DiBag.withDisposal(
+          (): readonly { now(): number }[] => replacement,
+          value => { disposed = value; },
+        ),
+      },
+    });
+    expect(independent.resolve(clock).now()).toBe(3);
+    const first = independent.resolve(clocks);
+    const second = independent.resolve(clocks);
+    expect(first.map(value => value.now())).toEqual([4]);
+    expect(first).not.toBe(second);
+    expect(Object.isFrozen(first)).toBe(true);
+    expect(replacement).not.toBe(first);
+    await independent.close();
+    expect(disposed).toBe(replacement);
+    await root.close();
+  });
+
+  test.each([
+    ['single-service', 'collection'],
+    ['collection', 'single-service'],
+  ] as const)('rejects a %s selection when the graph already owns the symbol as %s before reading its provider', (selectedKind, graphKind) => {
+    const key = Symbol('same-key');
+    const tokenFactory = DiBag.token(key);
+    const single = tokenFactory.of<number>();
+    const collection = tokenFactory.forCollectionOf<number>();
+    const root = graphKind === 'single-service'
+      ? DiBag.createBuilder().withTokenService(single, () => 1).buildContainer()
+      : DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
+    const selected = selectedKind === 'single-service' ? single : collection;
+    let providerReads = 0;
+    const providers = { get [key]() { providerReads++; return () => selectedKind === 'collection' ? [2] : 2; } };
+    try {
+      (root.createIndependentContainer as (...args: unknown[]) => unknown)({
+        replacedServiceKeys: [selected], replacementProviders: providers,
+      });
+      throw new Error('expected token-kind rejection');
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: 'DI_BAG_WRONG_TOKEN_KIND',
+        details: { operation: 'createIndependentContainer', expectedKind: graphKind, receivedKind: selectedKind },
+      });
+    }
+    expect(providerReads).toBe(0);
+  });
+
+  test('snapshots tuple indices before provider getters can mutate them', async () => {
+    const selected = ['value'] as const;
+    const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+    const independent = root.createIndependentContainer({
+      replacedServiceKeys: selected,
+      replacementProviders: { get value() { (selected as unknown as string[])[0] = 'missing'; return () => 2; } },
+    });
+    expect(independent.resolve('value')).toBe(2);
+    await independent.close(); await root.close();
+  });
+
+  test('reads every allowed option and provider property exactly once', async () => {
+    const reads = { replacedServiceKeys: 0, replacementProviders: 0, sharedParentServiceKeys: 0, value: 0 };
+    const providers = { get value() { reads.value++; return () => 2; } };
+    const options = {
+      get replacedServiceKeys() { reads.replacedServiceKeys++; return ['value'] as const; },
+      get replacementProviders() { reads.replacementProviders++; return providers; },
+      get sharedParentServiceKeys() { reads.sharedParentServiceKeys++; return ['shared'] as const; },
+    };
+    const root = DiBag.createBuilder().withServices({ value: () => 1, shared: () => 3 }).buildContainer();
+    const child = root.createChildContainer(options);
+    expect(child.resolve('value')).toBe(2);
+    expect(reads).toEqual({ replacedServiceKeys: 1, replacementProviders: 1, sharedParentServiceKeys: 1, value: 1 });
+    await child.close(); await root.close();
+  });
+
+  test.each(['createChildContainer', 'createIndependentContainer'] as const)('reports malformed replacement providers for %s', operation => {
+    const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+    try {
+      root[operation]({ replacedServiceKeys: ['value'], replacementProviders: { value: 1 } } as never);
+      throw new Error('expected malformed provider rejection');
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_REGISTRATION', details: { operation } });
+    }
+  });
+
+  test.each([
+    [null, 'createIndependentContainer requires one options object'],
+    [{ extra: true }, 'createIndependentContainer does not accept the option extra'],
+    [{ replacedServiceKeys: ['value'] }, 'replacementProviders'],
+    [{ replacementProviders: { value: () => 2 } }, 'replacedServiceKeys'],
+  ] as const)('rejects malformed independent options %#', (options, message) => {
+    const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+    expect(() => root.createIndependentContainer(options as never)).toThrow(message);
+  });
+
+  test('rejects inherited and overlapping child options before provider getters', () => {
+    const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+    const inherited = Object.create({ sharedParentServiceKeys: ['value'] });
+    expect(() => root.createChildContainer(inherited)).toThrow('createChildContainer reads own properties only');
+    let read = false;
+    expect(() => root.createChildContainer({
+      replacedServiceKeys: ['value'],
+      replacementProviders: { get value() { read = true; return () => 2; } },
+      sharedParentServiceKeys: ['value'],
+    })).toThrow('createChildContainer cannot share and replace the same service');
+    expect(read).toBe(false);
+  });
+});
+```
+
+Use the phase-5 positional builder syntax if S1 fell back.
+
+- [ ] **Step 2: Run the new file and confirm red**
+
+Run: `bun test tests/container-derivation.test.ts`
+
+Expected: failure because the new implementations still delegate incompletely or do not exist.
+
+- [ ] **Step 3: Add explicit selectors beside expand-compatible `selectScope`**
+
+Implement these exact exported signatures in `src/scope-selection.ts`:
+
+```ts
+export function selectChildContainer(
+  graph: BindingGraph,
+  options: unknown,
+  isTransient: (serviceKey: BindingKey) => boolean,
+): { readonly graph: BindingGraph; readonly shared: readonly BindingId[] };
+
+export function selectIndependentContainer(
+  graph: BindingGraph,
+  options: unknown,
+): BindingGraph;
+```
+
+Use the following complete normalization flow in both selectors:
+
+```ts
+type SelectedKey = {
+  readonly key: BindingKey;
+  readonly tokenKind: TokenKind | undefined;
+  readonly isCollection: boolean;
+};
+
+function snapshotSelection(selection: unknown, operation: string, argument: string): SelectedKey[] {
+  if (!Array.isArray(selection)) throw libraryError('DI_BAG_INVALID_ARGUMENT', `${operation} requires ${argument} to be an array`, {
+    operation, argument, expected: 'an array',
+  });
+  const values: unknown[] = [];
+  const length = selection.length;
+  for (let index = 0; index < length; index++) values[index] = selection[index];
+  return values.map(value => {
+    if (typeof value === 'string') return { key: value, tokenKind: undefined, isCollection: false };
+    const { key, kind } = readToken(value);
+    return { key, tokenKind: kind, isCollection: kind === 'collection' };
+  });
+}
+
+function claimContainerSelectionTokenKinds(
+  graph: BindingGraph,
+  selected: readonly SelectedKey[],
+  operation: string,
+): BindingGraph {
+  let claimed = graph;
+  for (const { key, tokenKind } of selected) {
+    if (tokenKind !== undefined) claimed = claimed.withTokenKind(key as symbol, tokenKind, operation);
+  }
+  return claimed;
+}
+
+function selectedBindings(graph: BindingGraph, operation: string, selected: readonly SelectedKey[], providers: unknown): Array<readonly [BindingKey, Registration]> {
+  if (typeof providers !== 'object' || providers === null || Array.isArray(providers)) {
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', `${operation} requires replacementProviders to be an object`, {
+      operation, argument: 'replacementProviders', expected: 'an object',
+    });
+  }
+  for (const { key, isCollection } of selected) {
+    if (!isCollection && !graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_OVERRIDE', `${operation} accepts existing names or typed tokens only: ${String(key)}`, { operation });
+    if (!Object.hasOwn(providers, key)) throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing ${operation} replacement provider: ${String(key)}`, { operation });
+  }
+  const bindings: Array<readonly [BindingKey, Registration]> = [];
+  const seen = new Set<BindingKey>();
+  for (const { key } of selected) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const registration: unknown = Reflect.get(providers, key);
+    normalize(registration, operation);
+    bindings.push([key, registration as Registration]);
+  }
+  return bindings;
+}
+```
+
+For `selectIndependentContainer`, return `graph` when `options === undefined`; otherwise call `snapshotOptionsBag(options, 'createIndependentContainer', [], ['replacedServiceKeys', 'replacementProviders'])`, require both replacement properties together, snapshot keys before reading any provider getter, and return `graph.withPublicBindings(...)`.
+
+For `selectChildContainer`, call `snapshotOptionsBag(options, 'createChildContainer', [], ['replacedServiceKeys', 'replacementProviders', 'sharedParentServiceKeys'])`; require replacement properties together; snapshot both selections; validate every key and the overlap before calling `selectedBindings`; reject transient shared services; deduplicate shared binding ids; return the replaced graph and shared ids. `snapshotOptionsBag` owns non-null/non-array object validation, supported inherited-property rejection, unknown-own-key rejection, and getter snapshot behavior; do not reproduce it.
+
+Use these complete bodies:
+
+```ts
+function replacementPair(options: Record<string, unknown>, operation: string): {
+  readonly present: boolean;
+  readonly selected: readonly SelectedKey[];
+  readonly providers: unknown;
+} {
+  const hasKeys = Object.hasOwn(options, 'replacedServiceKeys');
+  const hasProviders = Object.hasOwn(options, 'replacementProviders');
+  if (hasKeys !== hasProviders) {
+    const argument = hasKeys ? 'replacementProviders' : 'replacedServiceKeys';
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', `${operation} requires replacedServiceKeys and replacementProviders together`, {
+      operation, argument, expected: 'present',
+    });
+  }
+  return hasKeys
+    ? { present: true, selected: snapshotSelection(options.replacedServiceKeys, operation, 'replacedServiceKeys'), providers: options.replacementProviders }
+    : { present: false, selected: [], providers: undefined };
+}
+
+export function selectIndependentContainer(graph: BindingGraph, options: unknown): BindingGraph {
+  if (options === undefined) return graph;
+  const bag = snapshotOptionsBag(options, 'createIndependentContainer', [], ['replacedServiceKeys', 'replacementProviders']);
+  const { present, selected, providers } = replacementPair(bag, 'createIndependentContainer');
+  if (!present) return graph;
+  const selectedGraph = claimContainerSelectionTokenKinds(graph, selected, 'createIndependentContainer');
+  const bindings = selectedBindings(selectedGraph, 'createIndependentContainer', selected, providers);
+  return bindings.length === 0 ? selectedGraph : selectedGraph.withPublicBindings(bindings, 'createIndependentContainer');
+}
+
+export function selectChildContainer(
+  graph: BindingGraph,
+  options: unknown,
+  isTransient: (serviceKey: BindingKey) => boolean,
+): { readonly graph: BindingGraph; readonly shared: readonly BindingId[] } {
+  if (options === undefined) return { graph, shared: [] };
+  const bag = snapshotOptionsBag(options, 'createChildContainer', [], [
+    'replacedServiceKeys', 'replacementProviders', 'sharedParentServiceKeys',
+  ]);
+  const { present, selected, providers } = replacementPair(bag, 'createChildContainer');
+  const selectedGraph = claimContainerSelectionTokenKinds(graph, selected, 'createChildContainer');
+  const sharedKeys = Object.hasOwn(bag, 'sharedParentServiceKeys')
+    ? snapshotSelection(bag.sharedParentServiceKeys, 'createChildContainer', 'sharedParentServiceKeys')
+    : [];
+  const sharedGraph = claimContainerSelectionTokenKinds(selectedGraph, sharedKeys, 'createChildContainer');
+  for (const { key, isCollection } of sharedKeys) {
+    if (isCollection) throw wrongTokenKind('createChildContainer', 'single-service', key as symbol);
+  }
+  for (const { key, isCollection } of [...selected, ...sharedKeys]) {
+    if (!isCollection && !sharedGraph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createChildContainer' });
+  }
+  const selectedSet = new Set(selected.map(entry => entry.key));
+  const shared = [...new Set(sharedKeys.map(entry => entry.key))].map(key => {
+    if (selectedSet.has(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share and replace the same service: ${String(key)}`, { operation: 'createChildContainer' });
+    if (isTransient(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share transient providers: ${String(key)}`, { operation: 'createChildContainer' });
+    return sharedGraph.publicBinding(key);
+  });
+  const bindings = present ? selectedBindings(sharedGraph, 'createChildContainer', selected, providers) : [];
+  return { graph: bindings.length === 0 ? sharedGraph : sharedGraph.withPublicBindings(bindings, 'createChildContainer'), shared };
+}
+```
+
+**Entry-source preservation (reviewed during Phase 6 startup).** The explicit replacement-pair presence flag is independent of tuple length. For both new operations, an explicitly supplied empty selection still validates the provider-map shape; `null`, arrays, primitives and functions reject with `DI_BAG_INVALID_ARGUMENT`, while a valid empty selection must not read any unselected provider getter. An omitted pair remains valid. Add focused controls for these cases. The child selector claims token kinds for both replacement and shared selections, preserving the existing `selectScope` contract. Add a control that first installs a collection replacement (so the collection has a public binding), then attempts to share a single-service token made from that same symbol: it must reject with exact `DI_BAG_WRONG_TOKEN_KIND` details before reading replacement provider values. Keep the explicit prohibition on sharing collection tokens. Run the controls through the selected S3 shape, including the positional fallback if chosen.
+
+The existing `DI_BAG_INVALID_SCOPE` / `DI_BAG_INVALID_OVERRIDE` validation sites keep their codes when reworded. The two genuinely new pair-presence and non-array validation sites use `DI_BAG_INVALID_ARGUMENT` and literal `{ operation, argument, expected }`. If Task 0 found no section, copy the `DI_BAG_INVALID_ARGUMENT` section verbatim from plan 12 Task 9 into `docs/agent/errors.md` in this commit.
+
+`withTokenKind` plus `withPublicBindings` is the only collection replacement installation path. Do not add a container-level cache or direct collection return. The existing phase-4 `resolve`/lazy/alias routing must still call `freshCollectionView` for a replacement public binding, while disposal receives the provider's original array; the runtime test above pins identity, freezing, freshness, and disposal identity.
+
+- [ ] **Step 4: Connect the public implementations**
+
+Add these exact implementation bodies beneath Task 1's overloads; there are no temporary bodies to replace:
+
+```ts
+createChildContainer(options?: unknown): unknown {
+  this.#runtime.assertOpen();
+  const { graph, shared } = selectChildContainer(this.#graph, options, serviceKey => this.#runtime.isTransient(serviceKey));
+  return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
+}
+
+createIndependentContainer(options?: unknown): unknown {
+  this.#runtime.assertOpen();
+  const graph = selectIndependentContainer(this.#graph, options);
+  return new Bag(graph, this.context);
+}
+```
+
+Under the S3 fallback, use the exact `positionalChildOptions`, `positionalIndependentOptions`, and `(...args: unknown[])` bodies in Task 1 Step 8. They feed these same selectors and are the only positional validation path.
+
+- [ ] **Step 5: Run the runtime and compiler tests**
+
+```bash
+bun test tests/container-derivation.test.ts
+bun test tests/scopes.test.ts tests/selected-scopes.test.ts tests/runtime-diagnostics.test.ts
+bun test tests/types.test.ts --test-name-pattern 'container derivation|container-derivation'
+npm run typecheck
+npm run typecheck:native
+```
+
+Expected: all pass; the registered positive/negative/consumer fixtures have zero unexpected diagnostics under both compilers, and no old scope/fork behavior regresses during expand. This is the first compiler command after adding the overloads and exact implementation.
+
+- [ ] **Step 6: Decide S3 and measure all twelve cases**
+
+If Step 5 rejects contextual inference, make at most three serious signature repairs while retaining every inference/negative case. After three failed repairs, apply Task 1 Step 8 completely, rerun Task 2 Steps 1–5, and record `Decision: positional fallback`. If the preferred form passes, record `Decision: adopted one options bag`. The cumulative evidence budget below can also require the fallback.
+
+```bash
+node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/di-bag-phase-06/s3.json
+```
+
+Expected: twelve accepted rows, no token-case diagnostics, and every cumulative instantiation delta at or below +10%. Create `docs/superpowers/plans/evidence/phase-06.md` with the decision, compiler versions, commands, failed attempts if any, and `case | baseline | phase 06 | change` for all twelve rows.
+
+- [ ] **Step 7: Exercise the already-registered declaration consumer**
+
+```bash
+bun test tests/types.test.ts --test-name-pattern 'container derivation.*cross-file|container-derivation.*declaration consumption'
+npm run typecheck:native
+```
+
+Expected: both exit 0 and the emitted declaration preserves the inferred named, token, collection, empty-bag, and child return types. Do not create or register the consumer here; Task 1 Step 5 already did both before the first check.
+
+- [ ] **Step 8: Commit the combined type and runtime derivation API**
+
+```bash
+git add src/scope-types.ts src/lifetime-types.ts src/scope-selection.ts src/di-bag.ts src/types.ts tests/container-derivation.test.ts tests/types tests/types.test.ts docs/agent/errors.md docs/superpowers/plans/evidence/phase-06.md docs/guides/api-naming.md
+git commit -m "feat!: add container derivation APIs"
+```
+
+Omit `docs/guides/api-naming.md` if the preferred bag succeeds. The commit contains the exact implementation that Step 5 checked; it never contains declaration-only overloads or a temporary wrapper.
+
+---
+
+### Task 3: Expand snapshot and module names
+
+**Files:**
+- Modify: `src/di-bag.ts`
+- Modify: `src/module.ts`
+- Modify: `src/module-types.ts`
+- Create: `tests/container-names.test.ts`
+- Modify: `tests/types/contributions.ts`
+- Modify: `tests/types/contributions-consumer.ts`
+- Modify: `tests/types/negative/contributions.ts`
+
+**Interfaces:**
+- Consumes: the existing `inspect` overloads, `inspectGraph`, and `Module.renameExport` implementation.
+- Produces: all `serviceSnapshot` overloads that phase 4 left after collection consolidation, `graphSnapshot(): GraphSnapshot`, and `Module.withRenamedExport({ currentExportKey, newExportKey })`.
+
+- [ ] **Step 1: Write the failing runtime tests**
+
+Create `tests/container-names.test.ts`:
+
+```ts
+import { describe, expect, test } from 'bun:test';
+import { DiBag } from '../src';
+
+describe('0.5 container names', () => {
+  test('reads named, token, collection, and graph snapshots without acquisition', async () => {
+    const tokenKey = Symbol('token');
+    const listKey = Symbol('list');
+    const token = DiBag.token(tokenKey).of<number>();
+    const list = DiBag.token(listKey).forCollectionOf<number>();
+    const container = DiBag.createBuilder().withServices({ named: () => 1 })
+      .withTokenService(token, () => 2)
+      .withCollectionContribution({ collectionToken: list, provider: () => 3 })
+      .buildContainer();
+    expect(container.serviceSnapshot('named').acquisitions).toEqual([]);
+    expect(container.serviceSnapshot(token).acquisitions).toEqual([]);
+    expect(container.serviceSnapshot(list)).toHaveLength(1);
+    expect(container.graphSnapshot().bindings.length).toBe(3);
+    await container.close();
+  });
+
+  test('renames a module export through one options bag', async () => {
+    const feature = DiBag.createBuilder().withServices({ value: () => 1 })
+      .buildModule({ exportedServiceKeys: ['value'], moduleLabel: 'feature' })
+      .withRenamedExport({ currentExportKey: 'value', newExportKey: 'answer' });
+    const container = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
+    expect(container.resolve('answer')).toBe(1);
+    await container.close();
+  });
+
+  test('module rename snapshots the option bag once and classifies bag and export failures', () => {
+    const feature = DiBag.createBuilder().withServices({ value: () => 1 })
+      .buildModule({ exportedServiceKeys: ['value'] });
+    let currentReads = 0;
+    let newReads = 0;
+    const options = Object.defineProperties({}, {
+      currentExportKey: { enumerable: true, get() { currentReads++; return 'value'; } },
+      newExportKey: { enumerable: true, get() { newReads++; return 'answer'; } },
+    }) as { currentExportKey: 'value'; newExportKey: 'answer' };
+    const renamed = feature.withRenamedExport(options);
+    expect({ currentReads, newReads }).toEqual({ currentReads: 1, newReads: 1 });
+    expect(renamed).not.toBe(feature);
+    const callRename = (options: unknown): unknown =>
+      (feature.withRenamedExport as unknown as (options: unknown) => unknown)(options);
+
+    try {
+      callRename({ currentExportKey: 'value', newExportKey: 'answer', extra: true });
+      throw new Error('expected malformed bag rejection');
+    } catch (error: any) {
+      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_ARGUMENT', details: {
+        operation: 'withRenamedExport', argument: 'options',
+        expected: 'only the own properties: currentExportKey, newExportKey',
+      } });
+    }
+    try {
+      callRename({ currentExportKey: 'missing', newExportKey: 'answer' });
+      throw new Error('expected missing export rejection');
+    } catch (error: any) {
+      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_EXPORT', details: {
+        operation: 'withRenamedExport', currentExportKey: 'missing', newExportKey: 'answer',
+      } });
+      expect(error.message).toContain('withRenamedExport requires an existing export');
+    }
+  });
+});
+```
+
+Adapt only phase-5 S1/S7 fallback call syntax.
+
+- [ ] **Step 2: Run the test and confirm red**
+
+Run: `bun test tests/container-names.test.ts`
+
+Expected: missing-method failures.
+
+- [ ] **Step 3: Add every snapshot overload with the exact existing return types**
+
+Phase 4 selected its S5 fallback. Merge the two existing public methods under the final name without restoring the rejected conditional `ServiceKeyMember` signature. The ordinary overload retains `SingleServiceTokenMember<ServiceRegistrations, ServiceKey>` and the collection overload retains `CollectionTokenMember<Constraints, CollectionToken>`, its exact array return, and never-rest guard. Because both overloads now share one method name and explicit generic arity, put the same never-rest guard on the ordinary overload too: otherwise `serviceSnapshot<never>(collection as never)` can bypass the collection overload through the ordinary overload. This changes no inhabited call. Preserve `TokenMember<R,T>` as the original general helper used elsewhere.
+
+```ts
+serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(
+  serviceKey: ServiceKey & ([ServiceKey] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>),
+  ...invalid: [ServiceKey] extends [never] ? [never] : []
+): RegistrationSnapshot<
+  ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>,
+  ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>
+>;
+serviceSnapshot<CollectionToken extends CollectionTokenBase>(
+  collectionToken: CollectionToken & CollectionTokenMember<Constraints, CollectionToken>,
+  ...invalid: [CollectionToken] extends [never] ? [never] : []
+): readonly RegistrationSnapshot<object, readonly unknown[]>[];
+serviceSnapshot(serviceKey: unknown, ..._invalid: unknown[]): unknown {
+  if (typeof serviceKey === 'string') return this.#runtime.inspect(serviceKey);
+  const { key, kind } = readGraphToken(this.#graph, serviceKey, 'serviceSnapshot');
+  return kind === 'collection'
+    ? this.#runtime.inspectCollection(key)
+    : this.#runtime.inspect(key);
+}
+
+graphSnapshot(): GraphSnapshot { return this.#runtime.inspectGraph(); }
+```
+
+Update the new JSDoc examples and overload-specific `@param` names, but retain the old methods until Task 8. Keep imports on the two public facade names; do not substitute private token admissions into either public signature.
+
+- [ ] **Step 4: Add the module options bag and method**
+
+Do not change the shared rename diagnostic globally while `renameExport` remains public. In `src/module-types.ts`, parameterize the existing admission with an operation whose default preserves the old method:
+
+```ts
+export type RenameKeys<P, Old extends string, New extends string, Operation extends string = 'renameExport'> =
+  Singleton<Old> extends true ? Singleton<New> extends true
+    ? Old extends keyof P ? New extends Exclude<keyof P, Old> ? InvalidRename<Operation> : unknown
+      : InvalidRename<Operation> : InvalidRename<Operation> : InvalidRename<Operation>;
+type InvalidRename<Operation extends string> =
+  Unsatisfied<`${Operation} requires an existing export and a noncolliding singleton string-literal name`, {}>;
+```
+
+The `Operation extends string` parameter follows the existing `Selection` / `InvalidSelection` diagnostic-helper contract. Each public method fixes its own operation; the parameter is not an option value supplied to a runtime call. Do not add a camel-case literal union to this constraint or relax the API naming ratchet.
+
+The old two-argument `renameExport` keeps using `RenameKeys<ExportedServices, Old, New>` and therefore retains all existing negative markers during expand. In `src/module.ts`, add the new method with its explicit operation:
+
+```ts
+withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>(
+  options: {
+    readonly currentExportKey: CurrentExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+    readonly newExportKey: NewExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+  },
+): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
+```
+
+Implement it with `snapshotOptionsBag(options, 'withRenamedExport', ['currentExportKey', 'newExportKey'])`. Bag-shape failures (non-object, missing/unknown/inherited/symbol properties) are new malformed-argument sites and retain the helper's `DI_BAG_INVALID_ARGUMENT` with `{ operation, argument, expected }`. After the snapshot succeeds, validate string types, absent exports and collisions exactly as `renameExport` does, but use the new message, detail keys `currentExportKey` and `newExportKey`, and `details.operation: 'withRenamedExport'`; those semantic export failures retain `DI_BAG_INVALID_EXPORT`.
+
+Use this complete body after the signature:
+
+```ts
+{
+  const { currentExportKey, newExportKey } = snapshotOptionsBag(
+    options, 'withRenamedExport', ['currentExportKey', 'newExportKey'],
+  );
+  const description = descriptions.get(this)!;
+  if (typeof currentExportKey !== 'string' || !description.exports.has(currentExportKey)) {
+    throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires an existing export', {
+      operation: 'withRenamedExport', currentExportKey, newExportKey,
+    });
+  }
+  if (typeof newExportKey !== 'string') {
+    throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires a string new export key', {
+      operation: 'withRenamedExport', currentExportKey, newExportKey,
+    });
+  }
+  if (currentExportKey === newExportKey) return this as unknown as Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
+  if (description.exports.has(newExportKey)) {
+    throw libraryError('DI_BAG_INVALID_EXPORT', `duplicate export: ${newExportKey}`, {
+      operation: 'withRenamedExport', currentExportKey, newExportKey,
+    });
+  }
+  const exports = new Map(description.exports);
+  const localName = exports.get(currentExportKey)!;
+  exports.delete(currentExportKey);
+  exports.set(newExportKey, localName);
+  return new Module({ graph: description.graph, exports, label: description.label });
+}
+```
+
+Extend the already registered `contributions` declaration producer/consumer instead of creating another harness. Preserve its old `inspectCollectionMethod` and `renamedFeature` exports until Task 6 migrates them. In `tests/types/contributions.ts`, immediately after `aggregateBag` is created, add:
+
+```ts
+export const serviceSnapshotMethod = aggregateBag.serviceSnapshot;
+```
+
+Immediately after `moduleBuilder` is declared, add:
+
+```ts
+export const renamedFeatureCurrent = moduleBuilder.withServices({ helper: () => 1 })
+  .buildModule({ exportedServiceKeys: ['helper'] })
+  .withRenamedExport({ currentExportKey: 'helper', newExportKey: 'renamedCurrent' });
+```
+
+In `tests/types/contributions-consumer.ts`, add both names to the existing import and append:
+
+```ts
+const namedSnapshot = serviceSnapshotMethod('values');
+const collectionSnapshots = serviceSnapshotMethod(numbers);
+const namedMetadata: object = namedSnapshot.registrationMetadata;
+const exactCollectionSnapshots: ReadonlyArray<RegistrationSnapshot<object, readonly unknown[]>> = collectionSnapshots;
+const renamedCurrent = DiBag.createBuilder().withInstalledModules([renamedFeatureCurrent]).buildContainer();
+const renamedCurrentValue: number = renamedCurrent.resolve('renamedCurrent');
+// @ts-expect-error reflected overloads retain the explicit-never rejection after declaration emission
+serviceSnapshotMethod<never>(numbers as never);
+void namedMetadata; void exactCollectionSnapshots; void renamedCurrentValue;
+```
+
+`contributions` is already in the local declaration-consumption array in `tests/types.test.ts` and the classic/native installed-package producer-deletion matrix in `tests/native-package.test.ts`; do not add a duplicate fixture or a second source-deletion harness. These additions make both snapshot overloads and the new module method cross the existing declaration boundary while preserving every old control for the later mechanical migration.
+
+In `tests/types/negative/contributions.ts`, preserve the existing old-method control at line 128 and append the direct new-method control beside it:
+
+```ts
+// diagnostic: Expected 2 arguments
+builder.buildContainer().serviceSnapshot<never>(numbers as never);
+```
+
+Task 6 migrates the old call through the shipped map, so two byte-identical adjacent direct controls may temporarily remain. Task 8 removes one duplicate together with the old snapshot declarations, after the direct and reflected declaration gates have passed; it retains one direct control and the reflected consumer control.
+
+- [ ] **Step 5: Run narrow tests**
+
+```bash
+bun test tests/container-names.test.ts tests/inspect-graph.test.ts tests/modules.test.ts
+npm run typecheck
+bun test tests/types.test.ts -t 'contributions retain exact inferred cross-file contracts|contributions inferred exports survive declaration consumption|type rejection: contributions.ts|type rejection: module-rename.ts'
+npm run build
+bun test tests/native-package.test.ts -t 'native installed contracts and physical downstream declarations'
+```
+
+Expected: pass and no diagnostics. The focused `types.test.ts` command exercises the existing in-memory declaration emit with the producer source hidden from the consumer. The native-package command exercises the existing classic/native emitters and CTS/MTS consumers after deleting the copied producer source. It is the promised physical package proof; do not describe the ordinary cross-file compile alone as source deletion.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/di-bag.ts src/module.ts src/module-types.ts tests/container-names.test.ts tests/types/contributions.ts tests/types/contributions-consumer.ts tests/types/negative/contributions.ts
+git commit -m "feat!: add container snapshot and module names"
+```
+
+---
+
+### Task 4: Expand lifecycle observer configuration names
+
+**Files:**
+- Modify: `src/observers.ts`, `src/index.ts`
+- Modify: `src/di-bag.ts`
+- Modify: `tests/container-names.test.ts`
+- Modify: `tests/types/observers.ts`
+- Modify: `tests/types/observers-consumer.ts`
+- Modify: `tests/types/negative/observers.ts`
+
+**Interfaces:**
+- Consumes: `ObserverCallback`, `ObserverErrorCallback`, and `LifecycleObservers` queue semantics.
+- Produces: `LifecycleObserver { onLifecycleEvent, onObserverFailure }` and `ConfigurationOptions.lifecycleObservers?: readonly LifecycleObserver[]`.
+
+- [ ] **Step 1: Add runtime coverage**
+
+Append to `tests/container-names.test.ts`:
+
+```ts
+test('delivers lifecycle events and failures through the renamed callbacks', async () => {
+  const kinds: string[] = [];
+  const failures: unknown[] = [];
+  const observed = DiBag.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) { kinds.push(event.kind); if (event.kind === 'scope-opened') throw new Error('observer'); },
+    onObserverFailure(failure) { failures.push(failure.error); },
+  }] });
+  const container = observed.createBuilder().buildContainer();
+  await container.close();
+  await new Promise<void>(resolve => queueMicrotask(resolve));
+  expect(kinds).toEqual(['scope-opened', 'scope-closing', 'scope-closed']);
+  expect(failures).toHaveLength(1);
+});
+
+test('keeps legacy observers working throughout expand', async () => {
+  const kinds: string[] = [];
+  const observed = DiBag.withConfiguration({ observers: [{
+    onEvent(event) { kinds.push(`old:${event.kind}`); },
+    onError() {},
+  }] });
+  const container = observed.createBuilder().buildContainer();
+  await container.close();
+  await new Promise<void>(resolve => queueMicrotask(resolve));
+  expect(kinds).toEqual(['old:scope-opened', 'old:scope-closing', 'old:scope-closed']);
+});
+
+test('composes legacy and renamed observer configurations', async () => {
+  const kinds: string[] = [];
+  const oldConfigured = DiBag.withConfiguration({ observers: [{
+    onEvent(event) { kinds.push(`old:${event.kind}`); }, onError() {},
+  }] });
+  const mixed = oldConfigured.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) { kinds.push(`new:${event.kind}`); }, onObserverFailure() {},
+  }] });
+  const container = mixed.createBuilder().buildContainer();
+  await container.close();
+  await new Promise<void>(resolve => queueMicrotask(resolve));
+  expect(kinds).toContain('old:scope-opened');
+  expect(kinds).toContain('new:scope-opened');
+});
+
+test('rejects both observer fields in one options bag', () => {
+  expect(() => DiBag.withConfiguration({ observers: [], lifecycleObservers: [] } as never)).toThrow('observers or lifecycleObservers, not both');
+});
+```
+
+Run: `bun test tests/container-names.test.ts`
+
+Expected: type/runtime failure because the names do not exist.
+
+- [ ] **Step 2: Add the renamed observer interface beside the old one**
+
+```ts
+export interface LifecycleObserver {
+  readonly onLifecycleEvent: ObserverCallback;
+  readonly onObserverFailure: ObserverErrorCallback;
+}
+```
+
+Keep one private callback record so old and new public shapes can coexist during expand:
+
+```ts
+type ObserverRecord = {
+  readonly onEvent: ObserverCallback;
+  readonly onError: ObserverErrorCallback;
+};
+
+static appendLegacy(current: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+  if (typeof observer !== 'object' || observer === null) {
+    throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
+  }
+  const onEvent = Reflect.get(observer, 'onEvent') as unknown;
+  const onError = Reflect.get(observer, 'onError') as unknown;
+  if (typeof onEvent !== 'function' || typeof onError !== 'function') {
+    throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
+  }
+  return new LifecycleObservers([...(current?.callbacks ?? []), Object.freeze({ onEvent: onEvent as ObserverCallback, onError: onError as ObserverErrorCallback })]);
+}
+
+static append(current: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+  if (typeof observer !== 'object' || observer === null) {
+    throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+  }
+  const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
+  const onObserverFailure = Reflect.get(observer, 'onObserverFailure') as unknown;
+  if (typeof onLifecycleEvent !== 'function' || typeof onObserverFailure !== 'function') {
+    throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+  }
+  return new LifecycleObservers([...(current?.callbacks ?? []), Object.freeze({
+    onEvent: onLifecycleEvent as ObserverCallback,
+    onError: onObserverFailure as ObserverErrorCallback,
+  })]);
+}
+```
+
+Export `LifecycleObserver` from `src/index.ts` in this expand step so the new producer/consumer imports resolve; retain `ObserverOptions` until Task 9. Preserve the existing object-only callback-record validation and frozen snapshots in both append paths. Add a runtime rejection control for a function object carrying both callback properties, and a getter-count/mutation control for the renamed callbacks. Keep the queue over `ObserverRecord` and its existing `onEvent`/`onError` destructuring. This is private compatibility storage, not a public retired name. Retain event kinds/fields and `ScopeEventFields` until plan 12, phase 11.
+
+- [ ] **Step 3: Add `ConfigurationOptions.lifecycleObservers` beside `observers`**
+
+During expand, let `ConfigurationOptions` accept either property and reject an object that supplies both. Replace the facade body with:
+
+```ts
+withConfiguration: (options: ConfigurationOptions): DiBagApi => {
+  const bag = snapshotOptionsBag(options, 'withConfiguration', [], ['runtime', 'observers', 'lifecycleObservers']);
+  if (Object.hasOwn(bag, 'observers') && Object.hasOwn(bag, 'lifecycleObservers')) {
+    throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration accepts observers or lifecycleObservers, not both', {
+      operation: 'withConfiguration', argument: 'observers', expected: "absent when lifecycleObservers is 'present'",
+    });
+  }
+  const runtime = bag.runtime as RuntimeOptions | undefined;
+  const usesLifecycleNames = Object.hasOwn(bag, 'lifecycleObservers');
+  const lifecycleObservers = (usesLifecycleNames ? bag.lifecycleObservers : bag.observers) as readonly unknown[] | undefined;
+  let configured = runtime === undefined ? context : runtimeContext(runtime, context);
+  if (lifecycleObservers !== undefined) {
+    if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', usesLifecycleNames ? 'withConfiguration lifecycleObservers must be an array' : 'withConfiguration observers must be an array', { operation: 'withConfiguration' });
+    for (const observer of lifecycleObservers) {
+      configured = Object.freeze({
+        ...configured,
+        observers: usesLifecycleNames
+          ? LifecycleObservers.append(configured.observers, observer)
+          : LifecycleObservers.appendLegacy(configured.observers, observer),
+      });
+    }
+  }
+  return facade(configured);
+},
+```
+
+The new both-fields rejection uses `DI_BAG_INVALID_ARGUMENT` and a literal allowed detail object. The renamed pre-existing array/callback validation keeps `DI_BAG_INVALID_CONFIGURATION`.
+
+The old observer API must continue passing until the codemod migration. In `tests/types/observers.ts`, add `LifecycleObserver` to the type import and append:
+
+```ts
+export const onLifecycleEvent = (event: LifecycleEvent) => event.kind;
+export const onObserverFailure = (failure: ObserverFailure) => failure.error;
+export const lifecycleObserver = { onLifecycleEvent, onObserverFailure } satisfies LifecycleObserver;
+export const lifecycleObserved = DiBag.withConfiguration({ lifecycleObservers: [lifecycleObserver] });
+export function inferredLifecycleObserver() {
+  return lifecycleObserved.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) { return event.kind; },
+    onObserverFailure(failure) { return failure.error; },
+  }] });
+}
+```
+
+In `tests/types/observers-consumer.ts`, import `lifecycleObserved` and `inferredLifecycleObserver`, then append:
+
+```ts
+const lifecycleComposed = lifecycleObserved.withConfiguration({ lifecycleObservers: [{
+  onLifecycleEvent: async event => event.kind,
+  onObserverFailure: async failure => failure.error,
+}] });
+const lifecycleExact: typeof lifecycleObserved = inferredLifecycleObserver();
+lifecycleComposed.createBuilder().buildContainer();
+void lifecycleExact;
+// @ts-expect-error required failure callback survives declaration emission
+lifecycleObserved.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: LifecycleEvent) {} }] });
+// @ts-expect-error observer callbacks have a void receiver
+lifecycleObserved.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner: string }, event: LifecycleEvent) {}, onObserverFailure(failure: ObserverFailure) {} }] });
+```
+
+Append these complete negative cases to `tests/types/negative/observers.ts`:
+
+```ts
+// diagnostic: onObserverFailure
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {} }] });
+// diagnostic: onLifecycleEvent
+DiBag.withConfiguration({ lifecycleObservers: [{ onObserverFailure(failure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: 1, onObserverFailure(failure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onObserverFailure: null }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner: string }, event: LifecycleEvent) {}, onObserverFailure(failure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onObserverFailure(this: { owner: string }, failure: ObserverFailure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'scope-opened' }) {}, onObserverFailure(failure) {} }] });
+```
+
+- [ ] **Step 4: Run narrow checks**
+
+```bash
+bun test tests/container-names.test.ts tests/observers.test.ts
+bun test tests/types.test.ts --test-name-pattern observers
+```
+
+Expected: pass; the old and new configuration names both work during expand.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/observers.ts src/index.ts src/di-bag.ts tests/container-names.test.ts tests/types/observers.ts tests/types/observers-consumer.ts tests/types/negative/observers.ts
+git commit -m "feat!: rename lifecycle observer configuration"
+```
+
+---
+### Task 5: Teach the codemod every phase-6 rename and shape
+
+**Files:**
+- Modify: `tools/codemod/rename-map.json`
+- Create: `tools/codemod/lib/transforms/container-derivation.mjs`
+- Modify: `tools/codemod/lib/transforms/index.mjs`
+- Create: `tools/codemod/test/fixtures/container-renames/input.ts`
+- Create: `tools/codemod/test/fixtures/container-renames/expected.ts`
+- Create: `tools/codemod/test/fixtures/container-renames/expected-manual.json`
+- Modify: `tools/codemod/test/transforms.test.mjs`
+- Modify: `tools/codemod/test/rename-map.test.mjs`
+- Modify: `tools/codemod/test/pack.test.mjs`
+- Modify: `tools/codemod/test/fixtures/collection-tokens/expected.ts` and `tools/codemod/test/fixtures/collection-tokens-import/expected.ts` only for the cumulative `inspectCollection` to `serviceSnapshot` target change; preserve their inputs and every custom-map fixture
+
+**Interfaces:**
+- Consumes: phase 1's optional method-entry `transformNames`, entry-bound `nameForRole(role)`, closed map validation, and effective-method conflict comparison; owner strings always name the 0.4.0 declaration.
+- Produces: one pass that composes type/property/import/method rewrites and reshapes all three `createScope` and both `fork` forms.
+
+- [ ] **Step 1: Add the exact rename-map entries**
+
+Merge these entries into their existing arrays; retain every earlier entry:
+
+```json
+{
+  "methods": [
+    { "owner": "Bag", "from": "inspect", "to": "serviceSnapshot" },
+    { "owner": "Bag", "from": "inspectAll", "to": "serviceSnapshot", "transform": "collection-read" },
+    { "owner": "Bag", "from": "inspectGraph", "to": "graphSnapshot" },
+    { "owner": "Bag", "from": "createScope", "to": "createChildContainer", "arity": [0, 1, 2, 3], "transform": "container-derivation", "transformNames": { "keys": "replacedServiceKeys", "providers": "replacementProviders", "sharing": "sharedParentServiceKeys" } },
+    { "owner": "Bag", "from": "fork", "to": "createIndependentContainer", "arity": [0, 1, 2], "transform": "container-derivation", "transformNames": { "keys": "replacedServiceKeys", "providers": "replacementProviders" } },
+    { "owner": "Module", "from": "renameExport", "to": "withRenamedExport", "arguments": { "kind": "bag", "names": ["currentExportKey", "newExportKey"] } }
+  ],
+  "options": [
+    { "owner": "DiBagApi", "method": "withConfiguration", "argument": 0, "from": "observers", "to": "lifecycleObservers" }
+  ],
+  "properties": [
+    { "owner": "ObserverOptions", "from": "onEvent", "to": "onLifecycleEvent" },
+    { "owner": "ObserverOptions", "from": "onError", "to": "onObserverFailure" },
+    { "owner": "ScopeOptions", "from": "share", "to": "sharedParentServiceKeys" }
+  ],
+  "types": [
+    { "from": "Bag", "to": "Container" },
+    { "from": "ScopeOptions", "to": "CreateChildContainerOptions" },
+    { "from": "CheckedScopeLifetimes", "to": "CheckedChildContainerLifetimes" },
+    { "from": "DisjointScopeSelection", "to": "DisjointChildContainerSelection" },
+    { "from": "ObserverOptions", "to": "LifecycleObserver" }
+  ],
+  "imports": [
+    { "from": "di-bag/node", "to": "di-bag" },
+    { "fromSuffix": "/src/node", "toSuffix": "/src" }
+  ]
+}
+```
+
+Replace the existing `Bag.inspectAll` entry in place; do not append a duplicate. Its phase-4 `collection-read` transform remains, but its target must now be `serviceSnapshot`. The map always spans original0.4 to current0.5; `nameOf` does not transitively follow `inspectAll -> inspect -> serviceSnapshot`.
+
+This remains a direct original-to-final `inspectAll -> serviceSnapshot` mapping under the S5 fallback as well; do not add an intermediate `inspectCollection` map hop.
+
+Update the two existing shipped-map collection goldens listed above to that final target. Fixtures with their own `map.json` (`arguments-to-bag`, `method-rename`, `properties`, `types-and-imports`) exercise separate contracts: leave their maps and expected outputs unchanged unless a concrete engine change requires a separately reviewed regression. Do not apply the shipped map to custom-map expectations.
+
+`CreateIndependentContainerOptions` is new and has no type-map entry. Every `owner` remains an actual 0.4.0 declaration. `transformNames` is method-entry metadata, not a declaration lookup namespace; the transform reads it through the phase-1 engine API. `CreateChildContainerOptions` orders its generics as registrations, shared keys, defaulted constraints, replaced keys, replacement providers. The phase-1 type rename therefore preserves every old `ScopeOptions<R, S>` annotation; phase 4's internal three-argument use remains `CreateChildContainerOptions<R, S, C>`.
+
+Do not add another schema field, validator branch, typedef member, transform-API function, or custom
+dispatch edit in this phase. Verify and retain the phase-1 mechanism while extending the shipped
+map: method entries still have `additionalProperties: false`; the runtime method-entry allowlist
+still includes only `owner`, `from`, `to`, `arity`, `arguments`, `transform`, and
+`transformNames`; nonempty string role maps still require a transform; `sameEffectiveMethod`
+still compares `transformNames`; and custom dispatch still calls
+`transformApi(member, entry)` after the coverage and call-plan consistency gates.
+
+Append these exact assertions to `rename-map.test.mjs` and update the shipped-map transform id list in its existing validity test to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`:
+
+```js
+test('custom-transform role names survive loading the shipped map', () => {
+  const loaded = loadRenameMap(
+    join(packageRoot, 'rename-map.json'),
+    ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation'],
+  );
+  const buildEntry = loaded.methods.find(method => method.owner === 'Builder' && method.from === 'buildAndStart');
+  assert.deepEqual(buildEntry.transformNames, { concurrency: 'maxConcurrentServiceKeys' });
+  const entry = loaded.methods.find(method => method.owner === 'Bag' && method.from === 'createScope');
+  assert.deepEqual(entry.transformNames, {
+    keys: 'replacedServiceKeys',
+    providers: 'replacementProviders',
+    sharing: 'sharedParentServiceKeys',
+  });
+});
+
+test('phase 6 roles retain closed validation and effective-method conflict checks', () => {
+  const base = {
+    version: 1,
+    methods: [{
+      owner: 'Bag', from: 'createScope', to: 'createChildContainer',
+      transform: 'container-derivation',
+      transformNames: { keys: 'replacedServiceKeys' },
+    }],
+  };
+  assert.deepEqual(validateRenameMap({
+    ...base,
+    methods: [{ ...base.methods[0], inventedRoleField: true }],
+  }, ['container-derivation']), ['methods[0]: unknown field inventedRoleField']);
+  assert.deepEqual(validateRenameMap({
+    ...base,
+    methods: [
+      base.methods[0],
+      { ...base.methods[0], transformNames: { keys: 'chosenKeys' } },
+    ],
+  }, ['container-derivation']), [
+    'methods[1]: conflicts with methods[0] for Bag.createScope',
+  ]);
+});
+```
+
+Adding the container roles must not drop or overwrite earlier transform metadata.
+
+- [ ] **Step 2: Implement and register `container-derivation`**
+
+Export the default transform `containerDerivation(call, api)` and register its id. Read `call.expression.name.text` as the 0.4.0 method and ask `api.nameOf('Bag', oldName)` for the emitted method name; never hardcode it. Apply this table:
+
+| 0.4 call | Selected positional output |
+| --- | --- |
+| `createScope()` | `createChildContainer()` |
+| `createScope({ share })` | `createChildContainer({ sharedParentServiceKeys: share })` |
+| `createScope(keys, providers)` | `createChildContainer(keys, providers)` |
+| `createScope(keys, providers, { share })` | `createChildContainer(keys, providers, { sharedParentServiceKeys: share })` |
+| `fork()` | `createIndependentContainer()` |
+| `fork(keys, providers)` | `createIndependentContainer(keys, providers)` |
+
+Use `api.assemble(call, replacements)` so nested phase transforms compose and untouched comments, whitespace, trailing commas, and multiline layout survive. Accept scope options only when it is an object literal containing the sole syntactic key `share` and no spread/computed key. Ask `api.nameOf` for the method and `api.nameForRole` for every emitted field name. Render each role target with the transform-local `propertyName` helper printed below; do not extend the shared transform API. Otherwise call `api.manual(call, 'the createScope options are not an object literal; rewrite it to createChildContainer by hand')` and return `undefined`. Spread call arguments are reported by the engine.
+
+Under the S3 fallback, emit `createChildContainer(keys, providers, { sharedParentServiceKeys: share })` and `createIndependentContainer(keys, providers)`; zero-argument and share-only output remains unchanged.
+
+The S3 positional fallback is selected. Replace the three historical preferred-bag branches printed in Step 3 with these source-preserving variants; compiler-budget verification remains required:
+
+```js
+if (oldName === 'fork' && args.length === 2) {
+  return api.assemble(call, replacements);
+}
+if (oldName === 'createScope' && args.length === 2) {
+  return api.assemble(call, replacements);
+}
+if (oldName === 'createScope' && args.length === 3) {
+  const shared = shareReplacements(args[2], call, api, names.shared);
+  return shared === undefined ? undefined : api.assemble(call, [...replacements, ...shared]);
+}
+```
+
+Place these before the adopted branches they replace; do not leave both versions reachable. The `expected.ts` below already uses the selected positional output for every replacement call, including multiline and nested calls. Keep the same literal manual report.
+
+- [ ] **Step 3: Pin composition with a fixture**
+
+Create `tools/codemod/lib/transforms/container-derivation.mjs` from this historical preferred-bag implementation, applying the three selected positional branches in Step 2 before running it:
+
+```js
+// tools/codemod/lib/transforms/container-derivation.mjs
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const propertyName = name => IDENTIFIER.test(name) ? name : JSON.stringify(name);
+
+function methodReplacement(call, api) {
+  const name = call.expression.name;
+  return { start: api.start(name), end: name.end, text: api.nameOf('Bag', name.text) };
+}
+
+function fieldNames(oldName, api) {
+  const names = {
+    keys: propertyName(api.nameForRole('keys')),
+    providers: propertyName(api.nameForRole('providers')),
+  };
+  return oldName === 'createScope'
+    ? { ...names, shared: propertyName(api.nameForRole('sharing')) }
+    : names;
+}
+
+function shareReplacements(options, call, api, sharedName) {
+  const { ts } = api;
+  if (!ts.isObjectLiteralExpression(options) || options.properties.length !== 1) {
+    api.manual(call, 'the createScope options are not an object literal; rewrite it to createChildContainer by hand');
+    return undefined;
+  }
+  const [property] = options.properties;
+  if (ts.isShorthandPropertyAssignment(property) && property.name.text === 'share') {
+    return [{ start: api.start(property.name), end: property.name.end, text: `${sharedName}: share` }];
+  }
+  if (ts.isPropertyAssignment(property) && !ts.isComputedPropertyName(property.name)
+      && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
+      && property.name.text === 'share') {
+    return [{ start: api.start(property.name), end: property.name.end, text: sharedName }];
+  }
+  api.manual(call, 'the createScope options are not an object literal; rewrite it to createChildContainer by hand');
+  return undefined;
+}
+
+function openingBraceEnd(options, api) {
+  const opening = api.start(options);
+  return api.slice(opening + 1, opening + 2) === ' ' ? opening + 2 : opening + 1;
+}
+
+function wrapPair(call, api, names, args, replacements) {
+  replacements.push(
+    { start: api.start(args[0]), end: api.start(args[0]), text: `{ ${names.keys}: ` },
+    { start: api.start(args[1]), end: api.start(args[1]), text: `${names.providers}: ` },
+    { start: args[1].end, end: args[1].end, text: ' }' },
+  );
+  return api.assemble(call, replacements);
+}
+
+export default function containerDerivation(call, api) {
+  const oldName = call.expression.name.text;
+  const args = [...call.arguments];
+  const names = fieldNames(oldName, api);
+  const replacements = [methodReplacement(call, api)];
+  if (oldName === 'fork') {
+    if (args.length === 0) return api.assemble(call, replacements);
+    if (args.length === 2) return wrapPair(call, api, names, args, replacements);
+    api.manual(call, 'fork is called with an unexpected number of arguments; rewrite it to createIndependentContainer by hand');
+    return undefined;
+  }
+  if (args.length === 0) return api.assemble(call, replacements);
+  if (args.length === 1) {
+    const shared = shareReplacements(args[0], call, api, names.shared);
+    return shared === undefined ? undefined : api.assemble(call, [...replacements, ...shared]);
+  }
+  if (args.length === 2) return wrapPair(call, api, names, args, replacements);
+  if (args.length === 3) {
+    const shared = shareReplacements(args[2], call, api, names.shared);
+    if (shared === undefined) return undefined;
+    replacements.push(
+      { start: api.start(args[0]), end: api.start(args[0]), text: `{ ${names.keys}: ` },
+      { start: api.start(args[1]), end: api.start(args[1]), text: `${names.providers}: ` },
+      { start: api.start(args[2]), end: openingBraceEnd(args[2], api), text: '' },
+      ...shared,
+    );
+    return api.assemble(call, replacements);
+  }
+  api.manual(call, 'createScope is called with an unexpected number of arguments; rewrite it to createChildContainer by hand');
+  return undefined;
+}
+```
+
+Register the transform without replacing earlier registrations:
+
+```js
+import buildAndStart from './build-and-start.mjs';
+import collectionRead from './collection-read.mjs';
+import collectionReference from './collection-reference.mjs';
+import collectionToken from './collection-token.mjs';
+import containerDerivation from './container-derivation.mjs';
+
+export const transforms = {
+  'build-and-start': buildAndStart,
+  'collection-read': collectionRead,
+  'collection-reference': collectionReference,
+  'collection-token': collectionToken,
+  'container-derivation': containerDerivation,
+};
+```
+
+
+Create `input.ts`:
+
+```ts
+import { DiBag, type Bag, type ObserverOptions, type ScopeOptions } from 'di-bag/node';
+const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
+const keys = ['a'] as const;
+const replacements = { a: () => 3 };
+const sharing = { share: ['b'] as const };
+const observer: ObserverOptions = { onEvent() {}, onError() {} };
+export const configured = DiBag.withConfiguration({ observers: [observer] });
+export const a = root.inspect('a');
+export const graph = root.inspectGraph();
+export const child0 = root.createScope();
+export const child1 = root.createScope({ share: ['b'] });
+export const child2 = root.createScope(keys, replacements);
+export const child3 = root.createScope(keys /* k */, replacements /* p */, { share: ['b'], });
+export const manual = root.createScope(keys, replacements, sharing);
+export const fork0 = root.fork();
+export const fork1 = root.fork(keys, replacements);
+export const preserved = root.createScope(
+  keys, // selected keys stay commented
+  replacements, // providers keep the trailing comma
+);
+export const nested = root.fork(['a'], { a: () => DiBag.createBuilder().register({ inner: () => 1 }).build().resolve('inner') });
+export type App = Bag<{ a: () => number }>;
+export type ChildOptions = ScopeOptions<{ a: () => number }, readonly ['a']>;
+const collectionKey = Symbol('collection');
+const collection = DiBag.token(collectionKey).of<number>();
+const collectionContainer = DiBag.createBuilder().contribute(collection, () => 1).build();
+export const collectionSnapshots = collectionContainer.inspectAll(collection);
+```
+
+The selected positional `expected.ts` is:
+
+```ts
+import { DiBag, type Container, type LifecycleObserver, type CreateChildContainerOptions } from 'di-bag';
+const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
+const keys = ['a'] as const;
+const replacements = { a: () => 3 };
+const sharing = { share: ['b'] as const };
+const observer: LifecycleObserver = { onLifecycleEvent() {}, onObserverFailure() {} };
+export const configured = DiBag.withConfiguration({ lifecycleObservers: [observer] });
+export const a = root.serviceSnapshot('a');
+export const graph = root.graphSnapshot();
+export const child0 = root.createChildContainer();
+export const child1 = root.createChildContainer({ sharedParentServiceKeys: ['b'] });
+export const child2 = root.createChildContainer(keys, replacements);
+export const child3 = root.createChildContainer(keys /* k */, replacements /* p */, { sharedParentServiceKeys: ['b'], });
+export const manual = root.createScope(keys, replacements, sharing);
+export const fork0 = root.createIndependentContainer();
+export const fork1 = root.createIndependentContainer(keys, replacements);
+export const preserved = root.createChildContainer(
+  keys, // selected keys stay commented
+  replacements, // providers keep the trailing comma
+);
+export const nested = root.createIndependentContainer(['a'], { a: () => DiBag.createBuilder().withServices({ inner: () => 1 }).buildContainer().resolve('inner') });
+export type App = Container<{ a: () => number }>;
+export type ChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a']>;
+const collectionKey = Symbol('collection');
+const collection = DiBag.token(collectionKey).forCollectionOf<number>();
+const collectionContainer = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
+export const collectionSnapshots = collectionContainer.serviceSnapshot(collection);
+```
+
+Use the actual phase-5 builder syntax, including its recorded S1 fallback for the appended contribution if selected. The appended collection regression must compose the phase-4 token/read transforms with the final snapshot name in one pass. `expected-manual.json` has one item at the `manual` line with the exact Step-2 reason.
+
+The vendored published 0.4 `ScopeOptions` accepts exactly two type arguments. Do not put the later source-only constraints parameter into this original-version input; the two-argument `ChildOptions` row is the valid migration proof. The new options type retains its current third constraints slot as specified above, independently of the published 0.4 fixture.
+
+The nested builder fixture resolves its numeric inner service, so its replacement still satisfies `a: number` in published 0.4. Returning the nested bag itself would make the input invalid and would not establish a valid migration/composition proof.
+
+For the shown input, create this exact `expected-manual.json` (line 14 is the `manual` declaration in the fixture above):
+
+```json
+[
+  {
+    "line": 14,
+    "reason": "the createScope options are not an object literal; rewrite it to createChildContainer by hand"
+  }
+]
+```
+
+If formatting changes the fixture line, use the actual 1-based line printed by `nl -ba input.ts`; the reason string is exact. The harness uses deep equality on literal `{ line, reason }` objects; it does not accept patterns.
+
+In `tools/codemod/test/transforms.test.mjs`, update the pinned registry keys to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`. Add a test through the real `runCodemod` helper and vendored 0.4.0 declarations, using the fixture's exact `root.createScope(keys /* k */, replacements /* p */, { share: ['b'], })` call and an alternate method entry whose `to` is `spawnChild` and whose `transformNames` targets are `chosenKeys`, `providerMap`, and `parent-keys`. The non-identifier sharing target proves safe role rendering for the field actually emitted by the positional transform. The exact transformed line is:
+
+```ts
+export const child3 = root.spawnChild(keys /* k */, replacements /* p */, { "parent-keys": ['b'], });
+```
+
+Use the original-program checker path; do not invoke `containerDerivation` directly and do not mock `assemble`. Append this complete test, adding `runCodemod`, `defaultMapFile`, `readFileSync`, `fixturesRoot`, and `fixturesProgram` to the file's existing imports where absent:
+
+```js
+test('container derivation uses mapped role names and preserves three-argument trivia', () => {
+  const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
+  const alternate = {
+    ...shipped,
+    methods: shipped.methods.map(entry => entry.owner === 'Bag' && entry.from === 'createScope'
+      ? {
+          ...entry,
+          to: 'spawnChild',
+          transformNames: { keys: 'chosenKeys', providers: 'providerMap', sharing: 'parent-keys' },
+        }
+      : entry),
+  };
+  const common = {
+    typescript: compiler.ts,
+    root: fixturesRoot,
+    program: fixturesProgram(),
+    only: ['container-renames/input.ts'],
+  };
+  const alternateResult = runCodemod({ ...common, map: alternate });
+  assert.match(alternateResult.files[0].text,
+    /export const child3 = root\.spawnChild\(keys \/\* k \*\/, replacements \/\* p \*\/, \{ "parent-keys": \['b'\], \}\);/);
+  const shippedResult = runCodemod({ ...common, map: shipped });
+  assert.match(shippedResult.files[0].text,
+    /export const child3 = root\.createChildContainer\(keys \/\* k \*\/, replacements \/\* p \*\/, \{ sharedParentServiceKeys: \['b'\], \}\);/);
+});
+```
+
+These two original-program assertions pin comments, one space before the renamed sharing field, and the trailing comma. The shipped fixture still byte-compares the whole file through `fixtures.test.mjs`.
+
+In `tools/codemod/test/pack.test.mjs`, append `lib/transforms/container-derivation.mjs` to the exact packed-file list. Preserve phase 5's accumulated `builder-renames` expected output, including the collection-token `.forCollectionOf<string>()` line; update only the later names emitted by this phase.
+
+- [ ] **Step 4: Run and commit the codemod checks**
+
+```bash
+npm run codemod:check
+git add tools/codemod
+git commit -m "feat(codemod): migrate container APIs"
+```
+
+Expected: exit 0; older fixtures still pass, including nested transforms.
+
+---
+
+### Task 6: Run the codemod once over typed call sites
+
+**Files:**
+- Prerequisite: `src/di-bag.ts`, `src/index.ts`, and an existing physical-declaration producer/consumer fixture
+- Modify: typed `.ts` and `.tsx` files under `tests/`, `examples/`, `scripts/agent-eval/`, and `tools/graph/test/fixtures/`
+- Modify: older codemod expected fixtures that emit a phase-6 name
+- Create: `/tmp/di-bag-phase-06/codemod-report.txt` (untracked)
+
+**Interfaces:**
+- Consumes: dual old/new declarations and Task 5's codemod.
+- Produces: typed code on phase-6 names except explicit negative and codemod-input fixtures.
+
+**Reviewed missing expand prerequisite.** Before the write, export the existing class under both type names: `export type { Bag, Bag as Container, Builder }` from `src/di-bag.ts`, and re-export `Container` alongside `Bag` from `src/index.ts`. The shipped map already rewrites imported `Bag` to `Container`; waiting until Task8 to introduce that export would make the intermediate migration uncompilable. Keep the underlying class named `Bag` so original-owner authentication and class identity remain intact. No runtime export is added.
+
+Commit this prerequisite separately after a meaningful missing-export RED and focused source/emitted-declaration GREEN, source typecheck/build, emitted-JavaScript identity check, and the existing classic/native CTS/MTS physical producer-deletion proof. Use an already registered producer/consumer, preserving its existing assertions. To prove both names without creating duplicate locals after migration, import `Bag as LegacyContainer` beside `Container` and assert exact identity/assignability. Re-run the corrected preview after the alias; compare original-owner rewrites and manual items, explaining any fixture-only deltas. Task8 replaces the temporary alias export with the final renamed class export. The existing precise generated-doc exception remains bounded through Task7; record any observed additional alias-related generated drift rather than predicting it.
+
+Integrate the independently reviewed graph parser unit from Task7 Step3 before writing current graph fixtures. Those fixtures will use `withRenamedExport`, so their applicable graph gate must run against the updated parser. This is a dependency-order correction, not permission to migrate the old-version compatibility inputs. Retain the final preview/report comparison across the disjoint graph integration.
+
+- [ ] **Step 1: Rebuild, preview, and read every manual item**
+
+```bash
+npm run build
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'scripts/agent-eval/**/*.ts' --extra-files 'tools/graph/test/fixtures/ready-chain.ts' --extra-files 'tools/graph/test/fixtures/split-builder.ts' --extra-files 'tools/graph/test/fixtures/cross-module/*.ts' --extra-files 'tools/graph/test/fixtures/consumer/src/**/*.ts' --report /tmp/di-bag-phase-06/codemod-report.txt
+```
+
+Expected: rewrites outside `src`; every manual item has a file, line, and exact Task-5 reason. The explicit extra-file roots include the 31 agent-eval TypeScript files and 13 current graph fixture files absent from the root project. Preserve `tools/graph/test/fixtures/builder-names-0-4.ts` as the original compatibility input and the already-current `builder-names-0-5.ts`; neither is a write target. Keep `split-builder.ts` and its intentional unresolved-graph semantics in the migrated scope.
+
+- [ ] **Step 2: Apply exactly once and resolve manual items**
+
+```bash
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'scripts/agent-eval/**/*.ts' --extra-files 'tools/graph/test/fixtures/ready-chain.ts' --extra-files 'tools/graph/test/fixtures/split-builder.ts' --extra-files 'tools/graph/test/fixtures/cross-module/*.ts' --extra-files 'tools/graph/test/fixtures/consumer/src/**/*.ts' --write --report /tmp/di-bag-phase-06/codemod-report.txt
+```
+
+Migrate each reported `ScopeOptions` annotation, receiver typed `any`, spread, or indirect options object at its construction site. Do not rerun the codemod.
+
+**Selected S5 spelling requires an explicit hand migration.** The shipped map remains original-0.4 `Bag.inspectAll -> serviceSnapshot`. The engine's initial name gates use only `from` spellings, so current `inspectCollection` calls and references are neither rewritten nor reported. Do not add a fictional 0.4 map entry or a transitive map hop. Capture a separate exact `inspectCollection` inventory before the write, then retain its hand-edit diff separately from the checker report. The reviewed Phase 6 entry inventory has 26 textual rows in eleven typed files: seven in `tests/collection-tokens.test.ts` (including an operation literal), two in `tests/contributions-runtime-fixture.ts`, three in `tests/contributions.test.ts`, and one each in `tests/final-adversarial-runtime-fixture.ts`, `tests/nested-modules.test.ts`, `tests/observers-runtime-fixture.ts`, `tests/observers.test.ts`, and `tests/types/collection-tokens.ts`; six in `tests/types/negative/contributions.ts`; and three old reflected-binding rows across `tests/types/contributions.ts` and its consumer. Recount at execution and explain any delta.
+
+Migrate those member uses to `serviceSnapshot`, preserving all other negative markers and output assertions. Preserve the old collection-only reflected producer context: rename its binding to `collectionSnapshotMethod`, assign `bag.serviceSnapshot`, and update its existing consumer import/call without deleting the `reflectedSnapshots` exact assertion. Keep Task3's separate `serviceSnapshotMethod` on `aggregateBag`; that fixture additionally proves named snapshots in a different registration context.
+
+The two old method-specific wrong-kind checks in `tests/collection-tokens.test.ts` need a deliberate semantic adaptation: `inspect(collection)` and `inspectCollection(single)` both become valid `serviceSnapshot` calls. Assert lazy collection-array and single-service snapshots for those valid calls, then retain two genuine token-kind rejections by passing a forged single-service token for the collection graph's symbol and a forged collection token for the single-service graph's symbol. Both must assert `DI_BAG_WRONG_TOKEN_KIND` and exact `serviceSnapshot` operation/kind details. Keep the separate `resolve` and `resolveCollection` wrong-kind assertions unchanged. This follows the specified snapshot consolidation and does not waive graph-kind validation.
+
+- [ ] **Step 3: Audit and test**
+
+```bash
+git diff --check
+git diff --stat
+git diff -- tests/types/negative
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' tests examples scripts/agent-eval tools/graph/test/fixtures --include='*.ts' --include='*.tsx'
+grep -rnE "from ['\"](di-bag/node|.*src/node)['\"]" tests examples scripts/agent-eval tools/graph/test/fixtures --include='*.ts' --include='*.tsx'
+npm run typecheck
+bun test tests/container-derivation.test.ts tests/container-names.test.ts tests/scopes.test.ts tests/selected-scopes.test.ts tests/modules.test.ts tests/observers.test.ts
+```
+
+Expected: greps show only explicit rejection/codemod inputs; checks pass.
+
+Derive the affected compiler and runtime test inventory from the actual write report plus the separate hand-migration inventory. Run every changed negative fixture using its exact `type rejection: <file>` name in `tests/types.test.ts`, because the root typecheck excludes that directory; retain the relevant positive and emitted-declaration consumer checks as well. Run every changed runtime `.test.ts` file once, or use the established fast lane when it covers that complete inventory. Keep original invalid expressions and semantic rejection assertions; capture actual diagnostics before making any necessary operation-name or shape-derived marker correction. Record preserved compatibility/rejection inputs and expand-only legacy controls by exact path and purpose. Do not repeat an unchanged green subset merely because it also appears in the short command block above.
+
+- [ ] **Step 4: Commit the mechanical rewrite by itself**
+
+Preserve the exact checker-written patch before resolving manual items and retain each hand-migration patch separately. Commit the mechanical rewrite separately only if that tree passes its required gates; otherwise review and commit the coherent tested result while reporting the mechanical and hand-written provenance precisely. The heading does not authorize an unverified intermediate source commit or attributing the `inspectCollection` migration to the checker.
+
+```bash
+git add tests examples scripts/agent-eval tools/graph/test/fixtures tools/codemod/test/fixtures
+git commit -F - <<'MSG'
+refactor!: move typed call sites to container APIs
+
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'scripts/agent-eval/**/*.ts' --extra-files 'tools/graph/test/fixtures/ready-chain.ts' --extra-files 'tools/graph/test/fixtures/split-builder.ts' --extra-files 'tools/graph/test/fixtures/cross-module/*.ts' --extra-files 'tools/graph/test/fixtures/consumer/src/**/*.ts' --write
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+---
+
+### Task 7: Migrate generated strings, graph tooling, and shipped agent material
+
+**Files:**
+- Modify: `tests/compiler.ts`, package/native/token/release tests, `tests/host-builtin-module.ts`, `tests/*.node.mjs`, and generated strings in `tests/*-runtime-fixture.ts`
+- Modify: `scripts/benchmark-types.ts`, `scripts/compiler-case.ts`, `scripts/benchmark-compiler-ceiling.ts`, `scripts/runtime-benchmark-child.ts`, `scripts/performance-evidence.ts`, `tests/benchmarks/runtime-scenarios.ts`, `tests/runtime-benchmark-child.test.ts`, `scripts/platform-evidence.ts`, `scripts/react-browser-lane.ts`, `scripts/agent-eval/**`
+- Modify: `tools/graph/lib/extract.mjs`, `tools/graph/README.md`, `tools/graph/test/**`
+- Modify: `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md`, `tools/docs/api-card-tasks.json`
+- Create: `/tmp/di-bag-phase-06/reshape-untyped.mjs` (untracked migration helper)
+
+**Interfaces:**
+- Consumes: all adopted phase-6 names and phase 5's `moduleLabel` option.
+- Produces: generated/runtime source on 0.5.0 names; graph schema stays version 1 with `Unit.kind: 'bag' | 'module'`.
+
+- [ ] **Step 1: Migrate generated-source templates**
+
+Create `/tmp/di-bag-phase-06/reshape-untyped.mjs` first. It performs only context-free declaration/member/import renames, records exact per-file counts, and refuses to leave a positional derivation call for a human to overlook:
+
+```js
+import { globSync, readFileSync, writeFileSync } from 'node:fs';
+
+const patterns = [
+  'tests/**/*.{ts,tsx,mjs}', 'scripts/**/*.{ts,tsx,mjs}',
+  'tools/graph/**/*.{ts,tsx,mjs,md}', 'AGENTS.md', 'docs/agent/*.md',
+];
+const excluded = /(?:api-renaming\.ts|docs\/agent\/api-card\.md$|tests\/benchmarks\/runtime-scenarios\.ts|scripts\/runtime-benchmark-child\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4|tools\/graph\/test\/renamed-exports\.test\.mjs$|tests\/container-names\.test\.ts$|tests\/fixtures\/api-naming\/)/;
+const files = [...new Set(patterns.flatMap(pattern => globSync(pattern)))].filter(file => !excluded.test(file)).sort();
+const rules = [
+  [/(['"])(di-bag\/node)\1/g, (_m, quote) => `${quote}di-bag${quote}`, 'root import'],
+  [/(\/src)\/node(?=['"])/g, '$1', 'source root import'],
+  [/\bCheckedScopeLifetimes\b/g, 'CheckedChildContainerLifetimes', 'lifetime type'],
+  [/\bDisjointScopeSelection\b/g, 'DisjointChildContainerSelection', 'disjoint type'],
+  [/\bScopeOptions\b/g, 'CreateChildContainerOptions', 'child options type'],
+  [/\bObserverOptions\b/g, 'LifecycleObserver', 'observer type'],
+  [/\.inspectGraph\(/g, '.graphSnapshot(', 'graph snapshot'],
+  [/\.inspectCollection\(/g, '.serviceSnapshot(', 'collection snapshot'],
+  [/\.inspect\(/g, '.serviceSnapshot(', 'service snapshot'],
+  [/\.renameExport\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)/g, '.withRenamedExport({ currentExportKey: $1, newExportKey: $2 })', 'module export bag'],
+  [/\bobservers\s*:/g, 'lifecycleObservers:', 'observer list field'],
+  [/\bonEvent\s*:/g, 'onLifecycleEvent:', 'observer event field'],
+  [/\bonError\s*:/g, 'onObserverFailure:', 'observer failure field'],
+  [/\bonEvent\s*\(/g, 'onLifecycleEvent(', 'observer event method'],
+  [/\bonError\s*\(/g, 'onObserverFailure(', 'observer failure method'],
+];
+const inventory = { before: {}, changes: {}, after: {} };
+const retired = /\.(?:createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(|\b(?:ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b|\b(?:observers\s*:|onEvent\s*[:(]|onError\s*[:(])/g;
+for (const file of files) {
+  const unresolved = readFileSync(file, 'utf8').match(/\.(?:createScope|fork)\s*\(/g) ?? [];
+  if (unresolved.length) throw new Error(`${file}: ${unresolved.length} derivation call(s) require an explicit migration to the selected container signature before this script writes anything`);
+}
+for (const file of files) {
+  let text = readFileSync(file, 'utf8');
+  inventory.before[file] = [...text.matchAll(retired)].length;
+  const counts = {};
+  for (const [pattern, replacement, label] of rules) {
+    let count = 0;
+    text = text.replace(pattern, (...args) => {
+      count++;
+      return typeof replacement === 'function' ? replacement(...args) : replacement.replace(/\$(\d+)/g, (_m, n) => args[Number(n)]);
+    });
+    if (count) counts[label] = count;
+  }
+  inventory.changes[file] = counts;
+  inventory.after[file] = [...text.matchAll(retired)].length;
+  if (inventory.before[file] > 0 && Object.keys(counts).length === 0) throw new Error(`${file}: retired inventory changed by no rule`);
+  writeFileSync(file, text);
+}
+writeFileSync('/tmp/di-bag-phase-06/untyped-inventory.json', `${JSON.stringify(inventory, null, 2)}\n`);
+if (Object.values(inventory.after).some(count => count !== 0)) throw new Error('retired names remain; inspect untyped-inventory.json');
+```
+
+Run it after the exact derivation-call edits in Steps 1 through 4. Expected before inventory: every nonzero file belongs to the explicit file groups in this task. Expected after inventory: every value is `0`. Review `changes` file by file; reject an empty change record for a nonzero input. The script deliberately aborts on a retired `createScope` or `fork` call; edit that specific source string to one of the selected signatures shown below, then rerun from the task commit's clean starting tree. Do not add a permissive regex.
+
+The exact additional exclusions protect `tools/graph/test/renamed-exports.test.mjs`'s positional/current compatibility chain, the three expand-only legacy/mixed/conflict observer controls in the already migrated `tests/container-names.test.ts`, and the intentionally invalid naming-analysis inputs under `tests/fixtures/api-naming/`. Record those controls and their unchanged file hashes separately; excluded controls are not zero-count migrated inputs. Task9 owns retirement of the observer compatibility controls. Task6 also owns the indirect observer record migration, including the later `options.onLifecycleEvent` mutation in `tests/observers.test.ts`; verify that repair is present instead of relying on the helper's declaration regex to rename a member reference. Callback audits cover both property and method syntax.
+
+Before editing, capture the positional derivation inventory from the phase entry tree:
+
+```bash
+rg -n '\.(createScope|fork)\(' tests/*.node.mjs tests/compiler.ts tests/package.test.ts tests/native-package.test.ts tests/token-package.test.ts tests/release-artifacts.test.ts tests/host-builtin-module.ts scripts --glob '!scripts/agent-eval/**' > /tmp/di-bag-phase-06/untyped-derivations.before.txt
+cat /tmp/di-bag-phase-06/untyped-derivations.before.txt
+test "$(wc -l < /tmp/di-bag-phase-06/untyped-derivations.before.txt)" -eq 10
+```
+
+The expected ten calls and their exact replacements are:
+
+| File | Count | Entry call | Exact replacement |
+| --- | ---: | --- | --- |
+| `tests/runtime-scale.node.mjs` | 1 | `bag.createScope()` | `bag.createChildContainer()` |
+| `tests/native-package.test.ts` generated source | 2 | `parent.createScope()`; `child.fork()` | `parent.createChildContainer()`; `child.createIndependentContainer()` |
+| `tests/token-package.test.ts` generated source | 1 | `root.fork([samePublicToken], { [publicKey]: () => childValue })` | `root.createIndependentContainer([samePublicToken], { [publicKey]: () => childValue })` |
+| `tests/package.test.ts` generated source | 2 | `parent.createScope()`; `scope.fork()` | `parent.createChildContainer()`; `scope.createIndependentContainer()` |
+| `tests/package.test.ts` generated source | 1 | multiline `bag.fork(['clock'], { ... })` | `bag.createIndependentContainer(['clock'], { ... })` with the provider object and its indentation unchanged |
+| `tests/package.test.ts` generated source | 1 | `bag.fork()` | `bag.createIndependentContainer()` |
+| `tests/package.test.ts` generated source | 1 | `composed.fork(['clock'], { clock: () => ({ ... }) })` | `composed.createIndependentContainer(['clock'], { clock: () => ({ ... }) })` |
+| `tests/package.test.ts` generated source | 1 | `composed.fork(['clock', 'promised'], asyncOverrides)` | `composed.createIndependentContainer(['clock', 'promised'], asyncOverrides)` |
+
+Apply those ten replacements to the named package/node files. They are not the complete helper-wide derivation inventory: the Task6 committed tree also retains twelve derivation calls inside eight `tests/*-runtime-fixture.ts` generated-source templates. Capture those twelve separately before editing, migrate each to the selected signatures, then run `reshape-untyped.mjs`. Run the named-file `rg` into `/tmp/di-bag-phase-06/untyped-derivations.after.txt`; expected output is empty and `test ! -s` passes. `scripts/agent-eval/**` is excluded because Task 6 sends those real TypeScript calls through the checker-backed codemod. The graph tool's 0.4 fixtures remain deliberately excluded compatibility inputs.
+
+The additional generated-runtime derivation inventory is exact: `aliases-runtime-fixture.ts` (1), `composition-adapters-runtime-fixture.ts` (1), `contributions-runtime-fixture.ts` (1), `dependency-references-runtime-fixture.ts` (1), `observers-runtime-fixture.ts` (2), `plugins-runtime-fixture.ts` (1), `selected-scope-runtime-fixture.ts` (4), and `startup-runtime-fixture.ts` (1). Preserve each positional replacement pair and provider body; rename `share` to `sharedParentServiceKeys` in either the sharing-only bag or the third argument, and rename no-argument calls directly. Retain all ownership, alias, token, readiness and observer assertions. This is hand migration of generated strings, not a second checker write. Record exact before/after rows against Task7 entry commit `594e91c59e90c743c63660b2ee074d7a2f3c1d15`; the final generated-runtime derivation scan must be empty. The Task6 residual-classification artifact additionally accounts for all 28 generated-runtime old-call rows, including snapshots and module renames handled by the helper.
+
+The separate S5 untyped snapshot inventory has one current executable call: `tests/acquisition-retention.node.mjs` uses `bag.inspectCollection(token)[0]`. Its explicit collection-snapshot rule changes this to `bag.serviceSnapshot(token)[0]` while preserving every retention assertion. The private `BagRuntime.inspectCollection` channel remains unchanged. `scripts/phase05-strings.py` is historical migration evidence, outside this script's input globs: do not execute or rewrite its old replacement literals, and distinguish that exact file in residual textual audits.
+
+In `tests/compiler.ts` and all three compiler scripts, apply the codemod table inside source strings: positional replacement pairs with optional checked sharing bags, `Container`, snapshots, module bag, and observer fields. Keep the twelve cases logically identical.
+
+`tests/benchmarks/runtime-scenarios.ts` is a deliberate bilingual executable fixture, not an untyped migration input. Phase 5 selects a current or pinned-739b509 adapter from the child request lane before timing. Exclude this file and `scripts/runtime-benchmark-child.ts` from `reshape-untyped.mjs`; migrate only the current adapter's container operations by hand (`inspect` to `serviceSnapshot` and `createScope` to `createChildContainer`; `resolve` and `close` stay shared because this phase does not rename them). Retain the actual pinned-739b509 adapter members byte-for-byte: `begin`/`add`/`end`, `factory` with `acquisition`, and container `scope`/`inspect`. Its remaining retired-name rows are exact path/adapter allowlist entries, not permission for another old executable call. Run the focused current and exact pinned-`739b509` archive child smokes after the hand edit; do not add a performance matrix or threshold gate.
+
+```bash
+node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/di-bag-phase-06/migrated-generators.json
+```
+
+Expected: twelve accepted rows and no token diagnostics. Replace Task 1's provisional phase values with these final values in `phase-06.md`.
+
+- [ ] **Step 2: Migrate package/runtime strings**
+
+Apply the same rewrites in `tests/package.test.ts`, `tests/native-package.test.ts`, `tests/token-package.test.ts`, `tests/release-artifacts.test.ts`, `tests/host-builtin-module.ts`, the three `.node.mjs` suites, and generated code under `scripts/`. Every current-API `di-bag/node` import becomes `di-bag`; preserve only the exact baseline native-Promise branch described below. Compile strings import `type Container`. Keep the runtime assertion that type-only `Container`, `Module`, and `Provider` are not constructible exports. Release-artifact expected entries become `['di-bag']`.
+
+`tests/token-package.test.ts` still compares ESM and CJS views of the root package for canonical token identity. In `scripts/runtime-benchmark-child.ts`, select the entry by both lane and scenario: only the pinned-739b509 `baseline` lane's `node-native-promise` request loads `di-bag/node`; every `current` request and every other baseline scenario loads `di-bag`. This preserves the historical native-promise boundary while proving the current root-only entry. Reject an unknown lane before import/preparation. Update `runRuntimeArchiveSmoke` in `scripts/performance-evidence.ts` and its assertions in `tests/runtime-benchmark-child.test.ts` to use the same lane-and-scenario entry rule: only baseline native-Promise expects `dist/node.js`; every other row expects `dist/index.js`. The direct current scenario tests must use root `DiBag` for every scenario and remove their old `NodeDiBag` import/selection. Preserve all seven paired archive scenarios, the exact baseline commit assertion, archive identities and canonical results. `scripts/platform-evidence.ts` replaces the node-subpath boundary fact with root-entry coverage. Leave the `scripts/react-browser-lane.ts` assertion about `src/node.ts` until Task 10 deletes that file.
+
+- [ ] **Step 3: Update graph recognition without changing JSON**
+
+Preserve Phase 5's reviewed bilingual extractor and tests in `tools/graph`: all old/current terminals, service and alias bags, positional token/replacement calls, module bags, inline/constant ordered module lists, and repeated-contribution omission parity. Extend only renamed-export parsing for this step: read `withRenamedExport({ currentExportKey, newExportKey })` beside positional `renameExport`; a spread or nonliteral options bag remains untraceable. Do not replace the existing broader recognition with a reduced set of branches.
+
+For the new method, trace only statically known string values; a shorthand or identifier value must never be interpreted as its identifier's spelling. Leaving those values opaque is acceptable and keeps this parser bounded. A same-name rename is an identity operation: unwrap it without deleting the export in the rename map. Keep discriminating controls for literal mixed chains, same-name identity, shorthand constants and unknown-value opacity; preserve the existing positional parser.
+
+Keep output `kind: 'bag'`. `tools/graph/README.md` must say a source `buildContainer()` emits established schema-v1 `kind: "bag"`. Do not change expected JSON kind values.
+
+Run: `npm run graph:check`
+
+Expected: exit 0; every unit kind remains `bag` or `module`.
+
+- [ ] **Step 4: Migrate agent-eval and shipped agent docs**
+
+Migrate `scripts/agent-eval/reference/**`, `scripts/agent-eval/skeleton/**`, `AGENTS.md`, and authored `docs/agent/*.md`, excluding generated `docs/agent/api-card.md`. The helper excludes that exact file too; Task11 regenerates it from the final declarations. Its old spellings during this intermediate task are documented generated drift, not an unowned executable call. Use these canonical shapes:
+
+```ts
+const child = container.createChildContainer(
+  ['request'],
+  { request: () => requestContext },
+  { sharedParentServiceKeys: ['client'] },
+);
+const testContainer = container.createIndependentContainer(
+  ['clock'],
+  { clock: (): Clock => ({ now: () => 0 }) },
+);
+```
+
+Update `tools/docs/api-card-tasks.json` rows exactly:
+
+```json
+{ "task": "Replace services for a test", "call": "container.createIndependentContainer" }
+{ "task": "Open a child container", "call": "container.createChildContainer" }
+```
+
+Use receiver `container` for close, readiness, and snapshot rows. Delete a summary-exception id only if that exact renamed task id is present. Replace lines in `AGENTS.md`; never add lines.
+
+- [ ] **Step 5: Audit and test**
+
+```bash
+node /tmp/di-bag-phase-06/reshape-untyped.mjs
+cat /tmp/di-bag-phase-06/untyped-inventory.json
+rg -n '\.(createScope|fork)\(' tests/*.node.mjs tests/compiler.ts tests/package.test.ts tests/native-package.test.ts tests/token-package.test.ts tests/release-artifacts.test.ts tests/host-builtin-module.ts scripts --glob '!scripts/agent-eval/**' > /tmp/di-bag-phase-06/untyped-derivations.after.txt
+test ! -s /tmp/di-bag-phase-06/untyped-derivations.after.txt
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\b(Bag|ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\b(observers\s*:|onEvent\s*[:(]|onError\s*[:(])' tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
+wc -l AGENTS.md
+npm run agent-eval:test
+npm run graph:check
+bun test tests/runtime-benchmark-child.test.ts
+```
+
+Expected: only deliberate compatibility/rejection fixtures remain; line count is 150 or less; both suites pass.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add tests examples scripts tools/graph tools/docs/api-card-tasks.json AGENTS.md docs/agent docs/superpowers/plans/evidence/phase-06.md
+git commit -m "refactor!: migrate generated and agent container calls"
+```
+
+---
+
+### Task 8: Contract the public type and container methods
+
+**Files:**
+- Modify: `src/di-bag.ts`, `src/scope-selection.ts`, `src/scope-types.ts`, `src/lifetime-types.ts`, `src/types.ts`, `src/startup.ts`, `src/index.ts`
+- Modify: `tests/container-names.test.ts`
+- Modify: `tests/types/negative/api-renaming.ts`, `tests/types/lifetimes.ts`
+- Modify: `tests/package.test.ts`
+
+**Interfaces:**
+- Consumes: migrated call sites and adopted S3 shape.
+- Produces: `Container<ServiceRegistrations, Constraints>` as the only public container type; no `Bag`, `inspect`, `inspectCollection`, `inspectGraph`, `createScope`, `fork`, `ScopeOptions`, `CheckedScopeLifetimes`, or `DisjointScopeSelection` declaration.
+
+- [ ] **Step 1: Add contract tests before deleting names**
+
+Append to `tests/container-names.test.ts`:
+
+```ts
+test('retired container members are absent at runtime', async () => {
+  const container = DiBag.createBuilder().buildContainer();
+  for (const name of ['inspect', 'inspectCollection', 'inspectGraph', 'createScope', 'fork']) expect(name in container).toBe(false);
+  await container.close();
+});
+```
+
+Append these lines to `tests/types/negative/api-renaming.ts` (and use the file's post-codemod root import):
+
+```ts
+// diagnostic: no exported member
+import type { Bag } from '../../../src';
+// diagnostic: no exported member
+import type { ScopeOptions } from '../../../src';
+// diagnostic: no exported member
+import type { CheckedScopeLifetimes } from '../../../src';
+// diagnostic: no exported member
+import type { DisjointScopeSelection } from '../../../src';
+const retiredContainer = DiBag.createBuilder().buildContainer();
+// diagnostic: does not exist
+retiredContainer.inspect('value');
+// diagnostic: does not exist
+retiredContainer.inspectCollection('value');
+// diagnostic: does not exist
+retiredContainer.inspectGraph();
+// diagnostic: does not exist
+retiredContainer.createScope();
+// diagnostic: does not exist
+retiredContainer.fork();
+```
+
+Because a single invalid import may suppress useful member diagnostics, split the type imports into one statement per retired export if the fixture harness reports fewer diagnostics than markers.
+
+Run the negative-fixture test and `bun test tests/container-names.test.ts`. Expected: fail because old exports/members remain.
+
+- [ ] **Step 2: Rename the class and every public-context helper**
+
+In `src/di-bag.ts`, rename the declaration and exact export:
+
+```ts
+class Container<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never> { /* existing body */ }
+export type { Container, Builder };
+```
+
+Every `new Bag`, return type, `this` type, builder `buildContainer` return, JSDoc `{@link Bag...}`, example variable, and public-facing prose becomes `Container`/`container`. Audit identifier names matching `BuildBag|BagBuild|BuiltBag` and rename any phase-5 helper to the equivalent `BuildContainer|ContainerBuild|BuiltContainer` form. Export `Container` from `src/index.ts` and remove `Bag`.
+
+Remove Task6's temporary `Bag as Container` export alias while renaming the class; the final declaration exports only the renamed `Container` and `Builder` types. In `tests/types/lifetimes.ts`, retire only the expand-only `Bag as LegacyContainer` import and `ContainerAliasIdentity` equality. Do not turn that equality into a tautological comparison of `Container` with itself. Retain exported `defaultBag: Container`, `ContainerAliasValue`, producer-hidden declaration consumption, and the reflected-method wrapper assertions.
+
+Keep `BagRuntime`: it is an internal runtime/ownership engine, never exported, and renaming it would add churn without changing user vocabulary. Keep `DiBag`, every `DiBag*Error`, the package name, and `DI_BAG_*` codes because the spec explicitly preserves them.
+
+- [ ] **Step 3: Remove old methods and support types**
+
+Delete `inspect`, `inspectCollection`, `inspectGraph`, all `createScope` overloads/body, all `fork` overloads/body, `selectScope`, `ScopeOptions`, `CheckedScopeLifetimes`, and `DisjointScopeSelection`. Remove their imports and old JSDoc. If Task 6 produced two adjacent byte-identical direct `serviceSnapshot<never>` controls from the expand-old and expand-new lines, delete one now; retain one direct control and the reflected declaration-consumer control. Export these exact phase-6 types from `src/index.ts`:
+
+```ts
+export type { Container, Builder, DiBagApi, ConfigurationOptions } from './di-bag';
+export type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
+export type { CheckedLifetimes, CheckedChildContainerLifetimes, LifetimeObligation, Reach } from './lifetime-types';
+```
+
+Retain all seven phase-5 callable facades: `BuilderWithServices`, `BuilderWithTokenService`, `BuilderWithServiceAlias`, `BuilderWithReplacedService`, `BuilderBuildModule`, and `BuilderWithInstalledModules` from `./builder-method-types`, plus `BuilderWithCollectionContribution` from `./contribution-types`. The block above changes only the named container/scope/lifetime exports. Keep `builder-renames` registered in the existing physical producer-deletion matrix when removing `src/node.ts`; its source and physical imports migrate to the root entry with the other fixtures, and must continue proving all callable facades and both replacement paths. These future root-entry declarations remain uncompiled until this phase.
+
+No extra sharing-only options type is exported: `CreateChildContainerOptions` covers that overload through its defaulted replacement generics.
+
+- [ ] **Step 4: Update container terminology except deferred message families**
+
+Change user-facing comments/JSDoc in `src/` from bag/scope/fork to container/child container/independent container. Change `startup.ts` links from `Bag.close` to `Container.close` and authorized “Bag close” prose to “Container close”. Do **not** modify these three runtime constructions:
+
+```ts
+diagnosticMessage('DI_BAG_CLOSING', 'bag is closing')
+diagnosticMessage('DI_BAG_CLOSED', `bag is ${state}`)
+```
+
+The exact code may have two acquisition sites and one runtime site. Preserve all 10 `toThrow('bag is closing')` and 5 `toThrow('bag is closed')` assertions for plan 12 (phase 11). Run:
+
+```bash
+grep -rhoE "toThrow\((/|['\x60])[^)]*" tests | grep -iE '\bbag is (closing|closed)\b' | sort | uniq -c
+```
+
+Expected: `10 ...bag is closing` and `5 ...bag is closed`. No replacement command is run in this phase.
+
+- [ ] **Step 5: Run contract tests and audits**
+
+```bash
+bun test tests/container-names.test.ts
+bun test tests/types.test.ts --test-name-pattern 'api-renaming|container derivation|container-derivation'
+grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers\s*:|onEvent\s*[:(]|onError\s*[:(])" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
+```
+
+Expected: tests pass. At this contract point, the first two greps show only the Task-9 observer/module expand declarations, explicit negative/codemod-input fixtures, and the preserved private inspection channels: `this.#runtime.inspect`, `inspectCollection` and `inspectGraph` in `src/di-bag.ts`, acquisition-owner `inspect` calls in `src/acquisition.ts`, and `this.acquisitions.inspect` in `src/runtime.ts`. These internal calls are not retired public container members. The operation grep has no public container-operation hit. Record every allowed path and receiver, and carry the same precise internal-channel classification into the final Task-12 audit. `BagRuntime`, `DiBag*`, package names, codes, and graph `kind: "bag"` remain intentionally.
+
+- [ ] **Step 6: Keep the checked contract changes uncommitted**
+
+Record the Step-5 results, run `git diff --check`, and continue directly into Task 9. Do not stage or commit: module/observer contraction, node-entry removal, regenerated reference files, and the source declaration removals must land together in Task 11's coherent green contract commit.
+
+---
+
+### Task 9: Contract module and lifecycle configuration names
+
+**Files:**
+- Modify: `src/module.ts`, `src/module-types.ts`, `src/observers.ts`, `src/di-bag.ts`, `src/index.ts`
+- Modify: `tests/container-names.test.ts`, `tests/types/negative/api-renaming.ts`
+
+**Interfaces:**
+- Consumes: all call sites migrated in Tasks 6–7.
+- Produces: only `withRenamedExport`, `lifecycleObservers`, `LifecycleObserver.onLifecycleEvent`, and `LifecycleObserver.onObserverFailure`.
+
+- [ ] **Step 1: Add removed-name tests**
+
+Append to the negative fixture with one `// diagnostic: does not exist` per line:
+
+```ts
+// diagnostic: no exported member
+import type { ObserverOptions } from '../../../src';
+const moduleForRename = DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'] });
+// diagnostic: does not exist
+moduleForRename.renameExport('value', 'other');
+// diagnostic: does not exist
+DiBag.withConfiguration({ observers: [] });
+const lifecycleObserver = { onLifecycleEvent() {}, onObserverFailure() {} } satisfies import('../../../src').LifecycleObserver;
+// diagnostic: does not exist
+lifecycleObserver.onEvent;
+// diagnostic: does not exist
+lifecycleObserver.onError;
+```
+
+Append a runtime check that `renameExport` is absent from a built module. Run the narrow tests; expected: fail while old names remain.
+
+- [ ] **Step 2: Remove old declarations and expand-only branches**
+
+Delete `Module.renameExport`. Change `RenameKeys`'s default `Operation` from `'renameExport'` to `'withRenamedExport'`, retain `Operation extends string` on both diagnostic helpers and remove the old diagnostic spelling; keep the explicit fourth argument on `withRenamedExport` so its emitted signature stays stable across contraction. Remove `ObserverOptions`, `ConfigurationOptions.observers`, the both-fields conflict branch, and `LifecycleObservers.appendLegacy`. Replace the expand-only private record with `readonly LifecycleObserver[]`; make `append(previous, observer)` validate/read `onLifecycleEvent` and `onObserverFailure` once as in Task 4, freeze that new-shape pair, and make the queue destructure/call those two names. This removes every internal `onEvent`/`onError` access together with the public declarations. Export `LifecycleObserver` from `src/index.ts`. Keep `ObserverCallback`, `ObserverErrorCallback`, and `ObserverFailure` unchanged, per spec. Keep event kinds, `ScopeEventFields`, and event field names for plan 12, master phase 11.
+
+Now retire the two expand-only legacy/mixed observer compatibility cases in `tests/container-names.test.ts` that Tasks6–7 deliberately preserved. Keep all current callback/getter/mutation checks. Replace the both-fields conflict expectation with the contracted rejection of the retired `observers` field: the options-bag boundary rejects it with `DI_BAG_INVALID_ARGUMENT`, `operation: 'withConfiguration'`, `argument: 'options'`, and `expected: 'only the own properties: runtime, lifecycleObservers'`. Preserve the existing invalid payload and assert the actual code/details; the old conflict branch no longer defines this rejection.
+
+The contracted storage and delivery edits are exact:
+
+```ts
+let queue: Array<{ event: LifecycleEvent; callbacks: readonly LifecycleObserver[] }> | undefined;
+
+private constructor(private readonly callbacks: readonly LifecycleObserver[]) {}
+
+static append(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+  if (typeof observer !== 'object' || observer === null) {
+    throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+  }
+  const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
+  const onObserverFailure = Reflect.get(observer, 'onObserverFailure') as unknown;
+  if (typeof onLifecycleEvent !== 'function' || typeof onObserverFailure !== 'function') {
+    throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+  }
+  return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({
+    onLifecycleEvent: onLifecycleEvent as ObserverCallback,
+    onObserverFailure: onObserverFailure as ObserverErrorCallback,
+  })]);
+}
+
+// Inside emit's existing delivery loop:
+for (const { event, callbacks } of deliveries) for (const { onLifecycleEvent, onObserverFailure } of callbacks) {
+  const failed = (error: unknown) => {
+    try { monitor(onObserverFailure(Object.freeze({ error, event })), ignore); }
+    catch { /* Error reporting must not recursively report itself. */ }
+  };
+  try { monitor(onLifecycleEvent(event), failed); }
+  catch (error) { failed(error); }
+}
+```
+
+- [ ] **Step 3: Verify operation names and messages**
+
+```bash
+grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\b" src
+grep -rnE '\b(renameExport|ObserverOptions)\b' src
+```
+
+Expected: no output except event callback type descriptions that do not use retired property names. All reworded validation sites retain their 0.4.0 codes, and details use `serviceSnapshot`, `graphSnapshot`, `createChildContainer`, `createIndependentContainer`, or `withRenamedExport`.
+
+- [ ] **Step 4: Run and retain the checked changes for the contract group**
+
+```bash
+bun test tests/container-names.test.ts tests/modules.test.ts tests/observers.test.ts
+bun test tests/types.test.ts --test-name-pattern 'api-renaming|observers'
+```
+
+Expected: tests pass. Continue with all changes unstaged into Task 10.
+
+---
+
+### Task 10: Remove the `di-bag/node` entry point
+
+**Files:**
+- Delete: `src/node.ts`
+- Delete: generated `docs/reference/node/**`
+- Modify: `package.json`, `tsconfig.build.json`, `tools/docs/typedoc.json`, `tools/docs/lib/coverage.mjs`, `tools/docs/vitepress.config.mjs`, `.github/workflows/ci.yml`
+- Modify: package/platform/release tests, `scripts/verify-release-artifacts.ts`, and `scripts/react-browser-lane.ts`
+- Modify: `scripts/runtime-benchmark-child.ts` only to retain its explicit pinned-baseline entry selection
+- Modify: `src/acquisition-mode.ts`
+
+**Interfaces:**
+- Consumes: root-entry imports migrated in Tasks 6–7 and existing `hostClassifier()`.
+- Produces: one `di-bag` export for ESM/CJS/browser; Node 22.3+, Node 24, and Bun use `process.getBuiltinModule('node:util/types')` through the main entry.
+
+- [ ] **Step 1: Pin root-entry behavior and subpath absence**
+
+In `tests/package.test.ts`, retain its packed temporary consumer and make its ESM script import `DiBag` from `di-bag`, build `{ promised: () => Promise.resolve(42) }`, await `resolve('promised')`, assert `42`, and close. Add the same assertions to its CommonJS script with `const { DiBag } = require('di-bag')`. In both scripts, assert importing/requiring `di-bag/node` rejects with `ERR_PACKAGE_PATH_NOT_EXPORTED`. Update `tests/native-package.test.ts` and `tests/token-package.test.ts` to import both ESM and CJS views from the root while preserving their compiler/token-identity assertions. Update `tests/release-artifacts.test.ts` to assert there is no `node.js`, `node.d.ts`, node condition, or `./node` export.
+
+In `tests/package.test.ts`, require both `dist/index.js` and `dist/index.d.ts` in the packed archive and explicitly reject `dist/node.js` and `dist/node.d.ts`; retain the removed-adapter checks. Preserve the release verifier's missing-public-export negative by deleting `package/dist/index.d.ts` instead of the retired node declaration and updating its artifact label. Exercise the removed-entry negative cases for each of `node`, `sas-box`, and `val-box` with both `.js` and `.d.ts` archive files; neither obsolete node files nor a stale node export map may pass verification.
+
+The runtime fact behind this change was probed on Bun 1.4.0 during planning: the main `src/index` entry automatically classified `Promise.resolve(42)` and closed successfully. The executor must additionally run the package test under Node 24 after rebuilding.
+
+- [ ] **Step 2: Delete the entry and packaging references**
+
+Delete `src/node.ts`. In `package.json`, remove the complete `exports['./node']` object and any node-specific `files`/script item. Change `tsconfig.build.json` include to only `src/index.ts`. Remove the node entry from TypeDoc, coverage roots, VitePress labels/navigation, and CI/package loops. Delete generated `docs/reference/node/` only after confirming the index reference tree exists.
+
+Contract `scripts/verify-release-artifacts.ts` with the manifest: require the `index` JavaScript/declaration pair only, add `node` to the forbidden removed-entry names beside `sas-box` and `val-box`, and require the exact root-only exports object `{ '.': { types: './dist/index.d.ts', default: './dist/index.js' } }`. Keep archive-byte verification, dependency checks, missing-file diagnostics, and all unrelated release controls unchanged.
+
+In `src/acquisition-mode.ts`, update only the comment to state that the root entry self-configures through `process.getBuiltinModule`; do not change `hostClassifier`. No file reachable from `src/index.ts` gains a `node:` import.
+
+- [ ] **Step 3: Update platform and browser assertions**
+
+Delete `scripts/react-browser-lane.ts`'s special rejection of input `src/node.ts`; keep its assertion that bundled root code contains no `node:` import. In `tests/composition-adapters.test.ts`, keep the `withoutBuiltinModule` case and assert a plain factory fails with `DI_BAG_CLASSIFIER_REQUIRED` while `fromSyncFactory` and `fromAsyncFactory` build and resolve. In `tests/platform/browser-worker.test.ts` and `tests/platform/browser-entry.ts`, import the root package, keep the same three explicit-classifier assertions inside the worker, and assert the bundle has no `node:` input. `tests/host-builtin-module.ts` remains only their helper and is not listed as a test target.
+
+- [ ] **Step 4: Run focused packaging checks**
+
+```bash
+npm run build
+bun test tests/package.test.ts tests/native-package.test.ts tests/token-package.test.ts tests/release-artifacts.test.ts tests/composition-adapters.test.ts tests/platform/browser-worker.test.ts
+node --input-type=module -e "import { DiBag } from './dist/index.js'; const c=DiBag.createBuilder().withServices({ promised:()=>Promise.resolve(42) }).buildContainer(); if(await c.resolve('promised')!==42) throw Error('ESM root classifier'); await c.close()"
+node -e "const { DiBag }=require('./dist/index.js'); (async()=>{const c=DiBag.createBuilder().withServices({ promised:()=>Promise.resolve(42) }).buildContainer(); if(await c.resolve('promised')!==42) throw Error('CJS root classifier'); await c.close()})()"
+grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json tsconfig.build.json src tests examples scripts tools .github AGENTS.md docs/agent
+grep -rnE "from ['\"]node:|require\(['\"]node:" src
+```
+
+Expected: run the two `node` probes with the repository's pinned Node 24.20.0 from `scripts/pin-platform-tools.ts`; both exit 0. Package, portable-host, and browser-worker tests pass. The first grep has only codemod input/expected fixtures that deliberately demonstrate import migration and the exact `scripts/runtime-benchmark-child.ts` baseline-only `node-native-promise` branch proved against archive `739b509`; current requests never select that subpath. The second grep has no output. `process.getBuiltinModule('node:util/types')` remains because it is a runtime call, not an import.
+
+- [ ] **Step 5: Retain node-entry removals for the contract group**
+
+```bash
+git ls-files src/node.ts docs/reference/node > /tmp/di-bag-phase-06/deleted-node-paths.txt
+test -s /tmp/di-bag-phase-06/deleted-node-paths.txt
+cat /tmp/di-bag-phase-06/deleted-node-paths.txt
+```
+
+Expected: the file lists the actual tracked node entry and generated node-reference paths removed by this task. Do not stage or commit. Task 11 regenerates the reference tree and commits these deletions with the final source contract.
+
+---
+
+### Task 11: Regenerate reference docs and close the naming ratchet
+
+**Files:**
+- Modify: `tools/docs/api-card-tasks.json`, `tools/docs/lib/api-card.mjs`, `tools/docs/test/api-card.test.mjs`, `tools/docs/test/exact-rendering.test.mjs`
+- Modify: `tools/docs/api-card-summary-exceptions.json` only for stale ids
+- Modify: `docs/guides/api-reference.md` only for generated-page rows
+- Modify: `tests/documented-names.test.ts` if its receiver inventory is literal
+- Modify: `tests/api-naming-known-violations.json`
+- Regenerate: `docs/agent/api-card.md`, `docs/reference/index/**`
+
+**Interfaces:**
+- Consumes: final source declarations and phase-2 exact-rendering/summary tests.
+- Produces: generated documentation for `Container` and the new option/support types; no generated `Bag`, node entry, scope-option, or observer-option page.
+
+- [ ] **Step 1: Update docs-tool receiver and exact-signature expectations**
+
+In `tools/docs/lib/api-card.mjs`, rename only the display receiver/category from `bag` to `container`; keep package/product references to DI Bag. In `api-card.test.mjs`, find TypeDoc child `Container` and expect names such as `container.close`. Update `exact-rendering.test.mjs` to read `index/interfaces/Container.md` and pin these fragments, adjusted only if S3 used its recorded fallback:
+
+```text
+serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>
+graphSnapshot(): GraphSnapshot
+createChildContainer<const SharedParentServiceKeys extends readonly unknown[]>
+createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[]
+withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>
+lifecycleObservers?: readonly LifecycleObserver[]
+```
+
+Preserve the existing collection-snapshot exact-rendering coverage by migrating its `inspectCollection` assertion to the second `serviceSnapshot<CollectionToken extends CollectionTokenBase>` overload, including `CollectionTokenMember`, the explicit-never rest guard and readonly snapshot-array return. Pin the explicit-never rest guard on the ordinary overload too, as established by Task3; do not replace both existing snapshot checks with only the short ordinary-signature fragment above. Pin `LifecycleObserver`'s two properties too. Remove old exact assertions for `Bag`, `inspect`, `inspectCollection`, `createScope`, `ObserverOptions`, and `src/node`.
+
+- [ ] **Step 2: Regenerate, then edit only allowed reference links**
+
+```bash
+npm run build
+npm run docs:generate
+```
+
+Expected: TypeDoc creates `Container`, `CreateChildContainerOptions`, `CreateIndependentContainerOptions`, `CheckedChildContainerLifetimes`, `DisjointChildContainerSelection`, and `LifecycleObserver` pages; it removes the corresponding old pages and all `docs/reference/node/**` pages.
+
+Update only the affected rows in `docs/guides/api-reference.md` so their links point at those new files. Delete the `di-bag/node` entry-table row whose target `../reference/node/index.md` no longer exists; do not repoint that retired entry to the root reference. Do not rewrite guide prose; phase 12 owns it. Never hand-edit generated `docs/reference/**` or `docs/agent/api-card.md`.
+
+- [ ] **Step 3: Shrink the known-violation list through its ratchet**
+
+```bash
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+bun test tests/api-naming.test.ts tests/documented-names.test.ts
+```
+
+Expected: both pass. Confirm the six entry-state violations for export `Bag`, `ScopeOptions`, `DisjointScopeSelection`, `CheckedScopeLifetimes`, and members `createScope`/`fork` are gone. Do not hand-delete unrelated entries belonging to phases 7–11.
+
+- [ ] **Step 4: Run docs checks and stale-id checks**
+
+```bash
+node --test tools/docs/test/api-card.test.mjs tools/docs/test/api-card-summaries.test.mjs tools/docs/test/exact-rendering.test.mjs
+npm run docs:check
+wc -l AGENTS.md
+```
+
+Expected: all pass, no stale summary exception, all generated files current, and `AGENTS.md` at most 150 lines.
+
+- [ ] **Step 5: Commit the complete coherent source-and-generated-doc contract**
+
+```bash
+git add src package.json tsconfig.build.json tools/docs .github tests scripts docs/agent/api-card.md docs/reference docs/guides/api-reference.md tests/api-naming-known-violations.json tests/documented-names.test.ts AGENTS.md
+git diff --cached --check
+git commit -m "refactor!: contract container API and publish reference"
+```
+
+This one commit owns Tasks 8 through 11: removal of old container/module/observer declarations, deletion of the node entry and generated node reference, package/CI changes, regenerated `Container` reference/API card, ratchet updates, and final JSDoc. Immediately after committing, rerun `npm run docs:check`, the Task-8/9 contract tests, and Task-10 package tests against `HEAD`; all must pass. The bounded phase-6 generated-doc exception ends here; report only failures actually observed at preceding named commits.
+
+---
+
+### Task 12: Contract audit, final evidence, and full phase gate
+
+**Files:**
+- Modify: `docs/superpowers/plans/evidence/phase-06.md`
+- Modify: any in-scope file whose audit or gate exposes a missed phase-6 migration
+
+**Interfaces:**
+- Consumes: contracted source, migrated repository, regenerated docs.
+- Produces: a green phase with complete evidence and a controller-ready report.
+
+- [ ] **Step 1: Run retired-name and operation audits**
+
+```bash
+grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers\s*:|onEvent\s*[:(]|onError\s*[:(])" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
+grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json tsconfig.build.json src tests examples scripts tools .github AGENTS.md docs/agent --exclude-dir='container-renames'
+grep -rnE "from ['\"]node:|require\(['\"]node:" src
+```
+
+Expected: no executable old public API outside deliberate negative/codemod/graph compatibility fixtures and the exact lane-selected benchmark baseline branches in `tests/benchmarks/runtime-scenarios.ts` / `scripts/runtime-benchmark-child.ts`; focused archive smokes prove those branches execute only against `739b509`, while current requests use the final surface and root entry. Retain and classify the precise private runtime/acquisition inspection channels listed in Task8; do not rename those internal methods to silence a lexical scan. No `node:` import remains in `src`. Inspect all `Bag` substring hits: only `DiBag`, `DiBag*`, `DI_BAG_*`, `BagRuntime`, product prose, and the two deferred close-state messages may remain.
+
+- [ ] **Step 2: Recount message assertions without changing them**
+
+```bash
+grep -rhoE "toThrow\((/|['\x60])[^)]*" tests | grep -iE '\bbag is (closing|closed)\b' | sort | uniq -c
+grep -rnE "bag is \$\{state\}|bag is closing|bag is closed" src
+```
+
+Expected: 10 `bag is closing`, 5 `bag is closed`, and three runtime construction sites. These remain until `2026-09-21-12-observability-and-errors.md` (phase 11). Ten unrelated `bag` hits in package name `di-bag` also remain and must not be rewritten.
+
+- [ ] **Step 3: Re-run final compile evidence**
+
+```bash
+node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/di-bag-phase-06/final.json
+```
+
+Expected: twelve rows accepted, token diagnostics empty, each cumulative delta at or below +10%. Replace phase evidence values with the final numbers, state adopted/fallback, and record TypeScript versions and commands. If over budget, take Task 1 Step 8 and repeat Tasks 2, 5–12 with the fallback; do not waive the budget.
+
+- [ ] **Step 4: Run the complete master-plan gate**
+
+```bash
+npm run check
+npm run docs:check
+npm run graph:check
+npm run codemod:check
+npm run typecheck:native
+npm run build:native
+npm run check:native
+npm run build
+node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs
+npm run agent-eval:test
+for example in examples/*.ts; do bun run "$example" >/dev/null || { echo "FAILED $example"; exit 1; }; done
+```
+
+Expected: every command exits 0, both compiler lanes have zero diagnostics, all test lanes report zero failures, and the examples loop prints nothing. The final classic build restores `dist/` after native build output.
+
+- [ ] **Step 5: Verify the codemod from a clean 0.4.0 fixture**
+
+```bash
+npm run codemod:check
+node --test tools/codemod/test/fixtures.test.mjs tools/codemod/test/transforms.test.mjs
+```
+
+Expected: exit 0; the fixture harness transforms a temporary copy, compares it byte-for-byte with `expected.ts`, and deep-compares the literal manual report with `expected-manual.json`.
+
+- [ ] **Step 6: Commit final evidence and report**
+
+```bash
+git add docs/superpowers/plans/evidence/phase-06.md
+git commit -m "docs(plans): record phase 6 evidence"
+git status --short
+git log --oneline next..HEAD
+```
+
+Expected: clean status. Report branch, commits, every gate result, S3 decision/numbers, manual codemod items resolved, the deliberate `BagRuntime` and `kind: "bag"` decisions, and deviations in at most 60 lines.
+
+---
+
+## Planning-time probes and limits
+
+The planner ran one Bun 1.4.0 file against the private archived 0.4.0 tree `/tmp/di-bag-resume-20260921/probe-07` and removed it afterward. Three tests passed: the main entry self-configured `Promise.resolve(42)`; `fork` snapshotted tuple indices before an override getter mutated the tuple; and close-state errors contained `bag is closing` then `bag is closed`. The archive remained otherwise unchanged. After controller review, a TypeScript `createSourceFile` parse-only check parsed all 45 TypeScript/JavaScript code blocks, wrapping class-member and facade-property fragments in declarations, with zero syntax diagnostics. A separate range-replacement probe passed both the shipped three-argument transform and alternate role-name/trivia output. `review-plan.py` reported 13 tasks, 70 steps, balanced fences, zero placeholders, and a complete header/self-review. No compiler program, build, docs, graph, evidence, or full test command was run during planning, so all proposed signatures and original-program transform composition remain uncompiled until execution.
+
+## Self-review
+
+**Spec coverage.** Tasks 1 and 2 cover S3, both derivation methods, all positive/negative inference cases, option validation, sharing, ownership, and the positional fallback. Tasks 3 and 4 cover snapshots, module export rename, and observer configuration. Tasks 5 through 7 provide the 0.4.0-to-0.5.0 codemod, golden fixture, typed/untyped migration, graph compatibility, generators, agent-eval, `AGENTS.md`, and docs sources. Tasks 8 through 10 remove every old declaration and the Node entry while retaining internal `BagRuntime`, `DiBag`, codes, and graph JSON `kind: "bag"`. Tasks 11 and 12 regenerate docs, shrink the ratchet, measure all twelve cases, audit errors/details, and run every master gate.
+
+**Exact message inventory.** This phase intentionally replaces none of the measured assertion strings. The exact inventory is 10 occurrences of `'bag is closing'` and 5 of `'bag is closed'`; common-plan obligations move them in plan 12 (`2026-09-21-12-observability-and-errors.md`, phase 11). The plan supplies both count commands and guards the three source sites.
+
+**Type consistency.** The historical preferred-bag probes and selected positional replacement overloads use `Selection<ServiceRegistrations, Constraints, Keys, Operation>`, `Overrides<R,O,K,Operation>`, `SelectedRegistrations`, `ReboundSelection`, and `OverrideRegistrations`; the selected public replacement parameters are `replacedServiceKeys` and `replacementProviders`, with `sharedParentServiceKeys` in the optional child third bag. No-argument, empty-bag, explicit-undefined and child sharing-only overloads remain supported. The exported normalized option types do not restore a public replacement-bag overload. `CreateChildContainerOptions` preserves the original registrations/shared-keys generic positions, appends defaulted constraints third, and appends replacement generics after it. Return types use `CheckedChildContainerLifetimes` and `DisjointChildContainerSelection`. The module bag always uses `currentExportKey`/`newExportKey`. Observer types always use `LifecycleObserver`, `lifecycleObservers`, `onLifecycleEvent`, and `onObserverFailure`. Codemod owners intentionally remain the 0.4.0 names.
+
+**Placeholder scan.** The executor must substitute measured numeric evidence because planning was forbidden to run compilers; the procedure, decision rule, table columns, and fallback are complete. No implementation step delegates unspecified error handling or tests. Any `if S1/S7/S3` branch is tied to a prior evidence file and includes the exact alternative syntax.
+
+Controller cumulative-map probe: `/tmp/di-bag-resume-20260921/cumulative-codemod/check-snapshot.mjs` used the recovered phase01/04 engine and original published0.4 declarations. Before the explicit map-target correction it emitted `app.inspect(list)`; after replacing the existing entry target it emitted `app.serviceSnapshot(list)`, with no manual rows (320MiB maximum RSS). This is a narrow checker-backed codemod probe, not a compiler diagnostic/declaration or complete accumulated-map proof.

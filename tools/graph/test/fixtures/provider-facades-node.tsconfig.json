@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "paths": { "di-bag/node": ["./retired-node-entry.d.ts"] }
+  },
+  "files": ["provider-facades-node.ts"]
+}

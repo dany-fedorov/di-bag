@@ -8,15 +8,16 @@ The guides below describe the current public API.
 
 | Document | Purpose |
 | --- | --- |
-| [Tutorial](guides/tutorial.md) | Build a first graph, then learn ownership, scopes, modules, tokens, and advanced APIs. |
+| [Tutorial](guides/tutorial.md) | Build a first graph, then learn ownership, child containers, modules, tokens, and advanced APIs. |
+| [Migrating from 0.4 to 0.5](guides/migrating-to-0.5.md) | Run the codemod, review behavior changes, and map every old public name to its replacement. |
 | [Comparison with alternatives](guides/comparison.md) | Assess DI Bag alongside manual DI and other libraries, with primary sources and tradeoffs. |
 | [Server guide](guides/server-integration.md) | Connect application services to Node HTTP, Express, Fastify, Bun, and Deno. |
 | [React guide](guides/react-integration.md) | Own application and project runtimes from React effects in the browser: Strict Mode, cancellation, bounded teardown, and external stores. |
-| [Integration recipes](guides/enterprise-integration.md) | Own request scopes, substitute test services, and manage dynamic features. |
+| [Integration recipes](guides/enterprise-integration.md) | Own request containers, substitute test services, and manage dynamic features. |
 | [Agent harnesses and graphs](guides/agent-harnesses-and-graphs.md) | One worked application of the module pattern: model and tool modules, metadata inspection, and node tests with typed fixtures. |
 | [Agent docs](../AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](agent/recipes.md) and [errors and messages](agent/errors.md). Shipped in the package. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |
-| [Generated reference](reference/index.md) | Read exact signatures and source comments for both package entries. |
+| [Generated reference](reference/index.md) | Read exact signatures and source comments for the package entry point. |
 | [Runnable examples](../examples) | Execute focused examples from the repository. |
 
 ## Why DI Bag? In practice
@@ -36,6 +37,7 @@ Each guide contains three complete, independently runnable application examples.
 | --- | --- |
 | [Changelog](../CHANGELOG.md) | Review changes by release. |
 | [Development](guides/development.md) | Run source, package, compiler, and platform checks. |
+| [API naming standard](guides/api-naming.md) | Name a public method, option, string value, error code, or type; see what the naming test enforces. |
 | [Documentation maintenance](guides/documentation.md) | Edit guides, regenerate the API reference, and preview the website. |
 | [Publishing](../PUBLISHING.md) | Prepare and verify a local package candidate. |
 | [Compiler scale](benchmarks/typescript.md) | Understand the measured limits of large fluent expressions and run the compiler benchmarks. |

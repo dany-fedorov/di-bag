@@ -8,9 +8,9 @@
 type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = SharedAliasProviders<UnsharedAliases<R>, Parent, S>;
 ```
 
-Defined in: [scope-types.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L64)
+Defined in: [scope-types.ts:98](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L98)
 
-The registration map visible in a child after clearing and applying selected sharing routes.
+The provider map visible in a child after clearing and applying selected sharing routes.
 
 ## Type Parameters
 
@@ -22,4 +22,4 @@ The registration map visible in a child after clearing and applying selected sha
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers

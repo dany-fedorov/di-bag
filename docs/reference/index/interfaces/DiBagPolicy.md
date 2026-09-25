@@ -4,7 +4,7 @@
 
 # Interface: DiBagPolicy
 
-Defined in: [types.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L57)
+Defined in: [types.ts:59](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L59)
 
 Project-wide compile-time policy switches. Augment it to relax a check:
 `declare module 'di-bag' { interface DiBagPolicy { readonly structuralThenables: 'allow' } }`.

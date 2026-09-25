@@ -5,14 +5,12 @@
 # Type Alias: ProviderCollectionTokens\<R\>
 
 ```ts
-type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? G extends {
-    readonly all: infer T extends readonly TokenBase[];
-} ? T[number] : never : never;
+type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? CollectionTokens<G> : never;
 ```
 
-Defined in: [provider.ts:116](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L116)
+Defined in: [provider.ts:131](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L131)
 
-Extract token collection requirements from a registration.
+Extract token collection requirements from a provider.
 
 ## Type Parameters
 

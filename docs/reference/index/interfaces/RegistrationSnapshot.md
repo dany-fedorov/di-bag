@@ -6,7 +6,7 @@
 
 Defined in: [inspection.ts:35](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L35)
 
-A frozen registration description and copied acquisition state returned by bag inspection.
+A frozen binding description and copied acquisition state returned by container inspection.
 
 ## See
 
@@ -42,7 +42,7 @@ Point-in-time attempts; inspection does not retain failed-attempt history.
 ```ts
 readonly aliasTarget?: {
     readonly bindingId: symbol;
-    readonly label: string;
+    readonly bindingLabel: string;
 };
 ```
 
@@ -56,10 +56,10 @@ Direct lexical target; acquisition snapshots follow the canonical target.
 readonly bindingId: symbol;
 ```
 
-#### label
+#### bindingLabel
 
 ```ts
-readonly label: string;
+readonly bindingLabel: string;
 ```
 
 ***
@@ -76,10 +76,10 @@ Stable identity for the canonical graph binding.
 
 ***
 
-### label
+### bindingLabel
 
 ```ts
-readonly label: string;
+readonly bindingLabel: string;
 ```
 
 Defined in: [inspection.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L39)

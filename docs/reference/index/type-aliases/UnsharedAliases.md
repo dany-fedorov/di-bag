@@ -10,9 +10,9 @@ type UnsharedAliases<R extends Registrations> = [SharedKeys<R>] extends [never] 
 };
 ```
 
-Defined in: [scope-types.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L43)
+Defined in: [scope-types.ts:77](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L77)
 
-Remove parent-sharing routes when creating a fresh scope or independent fork.
+Remove parent-sharing routes when creating a fresh child or independent container.
 
 ## Type Parameters
 
@@ -22,4 +22,4 @@ Remove parent-sharing routes when creating a fresh scope or independent fork.
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers

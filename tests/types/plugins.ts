@@ -1,52 +1,40 @@
 import { DiBag } from '../../src';
-import type { PluginOptions, PluginOutputValidator, ProviderAcquiredValue, ProviderCollectionTokens, ProviderGraphContract, ProviderOptionalTokens, ProviderOutput, ProviderRequiredTokens, TokenDependencyContract } from '../../src';
+import type { CreateProviderFromPluginOptions, PluginOutputValidator, ProviderAcquiredValue, ProviderCollectionTokens, ProviderGraphContract, ProviderOptionalTokens, ProviderOutput, ProviderRequiredTokens, TokenDependencyContract } from '../../src';
 import type { Assert, Equal } from './assert';
 
 export interface Handler { handle(value: string): string }
 export const handlerKey = Symbol('handler');
-export const handler = DiBag.token(handlerKey).of<Handler>();
+export const handler = DiBag.createToken(handlerKey).forService<Handler>();
 export const numberKey = Symbol('number');
-export const number = DiBag.token(numberKey).of<number>();
+export const number = DiBag.createToken(numberKey).forService<number>();
 export const optionalKey = Symbol('optional');
-export const optional = DiBag.token(optionalKey).of<number>();
+export const optional = DiBag.createToken(optionalKey).forService<number>();
 export const lazyKey = Symbol('lazy');
-export const lazy = DiBag.token(lazyKey).of<number>();
+export const lazy = DiBag.createToken(lazyKey).forService<number>();
 export const allKey = Symbol('all');
-export const all = DiBag.token(allKey).of<number>();
+export const all = DiBag.createToken(allKey).forCollectionOf<number>();
 export const selected: unknown = {
   apiVersion: 1,
   create: (value: number) => ({ handle: (text: string) => `${value}:${text}` }),
 };
-export const raw = DiBag.fromPlugin([number], selected, {
-  acquisitionMode: 'raw',
-  validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
-});
-export const native = DiBag.fromPlugin([], selected, {
-  acquisitionMode: 'nativePromise',
-  validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
-});
-export const references = DiBag.fromPlugin([number, DiBag.optional(optional), DiBag.lazy(lazy), DiBag.all(all)], selected, {
-  acquisitionMode: 'raw',
-  validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
-});
-export const rawOwned = DiBag.withDisposal(raw, value => { const exact: Handler = value; void exact; });
-export const nativeOwned = DiBag.withDisposal(native, value => { const exact: Handler = value; void exact; });
-export const feature = DiBag.createBuilder().register(handler, raw).buildModule([handler]);
-export const bag = DiBag.createBuilder().register(number, DiBag.fromFactory(() => 7, { acquisitionMode: 'raw' })).installModule(feature).build();
+export const raw = DiBag.createProviderFromPlugin({ dependencies: [number], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
+export const native = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: selected, factoryReturnKind: 'native-promise', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
+export const references = DiBag.createProviderFromPlugin({ dependencies: [number, DiBag.optional(optional), DiBag.lazy(lazy), all], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
+export const rawOwned = DiBag.providerWithDisposal({ provider: raw, disposeService: value => { const exact: Handler = value; void exact; } });
+export const nativeOwned = DiBag.providerWithDisposal({ provider: native, disposeService: value => { const exact: Handler = value; void exact; } });
+export const feature = DiBag.createBuilder().withTokenService(handler, raw).buildModule({ exportedServiceKeys: [handler] });
+export const bag = DiBag.createBuilder().withTokenService(number, DiBag.createProvider(() => 7, { factoryReturnKind: 'uninspected' })).withInstalledModules([feature]).buildContainer();
 export const value = bag.resolve(handler);
-export const fromPlugin = DiBag.fromPlugin;
-export const extracted = fromPlugin([], selected, {
-  acquisitionMode: 'raw',
-  validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
+export const createPlugin = DiBag.createProviderFromPlugin;
+export const extracted = createPlugin({ dependencies: [], pluginDescriptor: selected,
+  factoryReturnKind: 'uninspected',
+  isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
 });
 export const privateKey = Symbol('private');
-export const privateToken = DiBag.token(privateKey).of<number>();
-export const privatePlugin = DiBag.fromPlugin([privateToken], selected, {
-  acquisitionMode: 'raw',
-  validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
-});
-export const privateFeature = DiBag.createBuilder().register(privateToken, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).register({ privatePlugin }).buildModule(['privatePlugin']);
-export const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
+export const privateToken = DiBag.createToken(privateKey).forService<number>();
+export const privatePlugin = DiBag.createProviderFromPlugin({ dependencies: [privateToken], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
+export const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' })).withServices({ privatePlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
+export const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
 export type Exact = [
   Assert<Equal<typeof value, Handler>>,
   Assert<Equal<ProviderOutput<typeof raw>, Handler>>,
@@ -60,5 +48,5 @@ export type Exact = [
   Assert<Equal<ProviderAcquiredValue<typeof rawOwned>, Handler>>,
   Assert<Equal<ProviderAcquiredValue<typeof nativeOwned>, Handler>>,
   Assert<Equal<ThisParameterType<PluginOutputValidator<Handler>>, void>>,
-  Assert<Equal<PluginOptions<'raw', Handler>['acquisitionMode'], 'raw'>>,
+  Assert<Equal<CreateProviderFromPluginOptions<'uninspected', Handler>['factoryReturnKind'], 'uninspected'>>,
 ];

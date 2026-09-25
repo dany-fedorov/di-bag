@@ -12,9 +12,9 @@ type Reports<E extends Entry, C extends NeedConstraint> =
   | ReportOf<CheckedLifetimes<RegistrationsFromEntries<E>, C>>;
 
 /**
- * The compile-time verdict for a builder: `void` when `build()` would be accepted,
- * otherwise the same failure `build()` reports, including its details.
- * Read it through `builder.verifyGraph() satisfies void;` or as `CompositionReport<typeof builder>`.
+ * The compile-time verdict for a builder: `void` when `buildContainer()` would be accepted,
+ * otherwise the same failure `buildContainer()` reports, including its details.
+ * Read it through `builder.verifyGraphAtCompileTime() satisfies void;` or as `CompositionReport<typeof builder>`.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#read-compile-time-rejections
  */
 export type CompositionReport<B> = B extends Builder<infer E, infer C>

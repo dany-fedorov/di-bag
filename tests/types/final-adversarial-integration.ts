@@ -9,7 +9,7 @@ import {
 import type { Assert, Equal } from './assert';
 
 export const portKey = Symbol('final-adversarial-port');
-export const port = DiBag.token(portKey).of<number>();
+export const port = DiBag.createToken(portKey).forService<number>();
 
 export class Client {
   constructor(readonly port: number) {}
@@ -21,28 +21,25 @@ export interface PluginService {
   readonly port: number;
 }
 
-export const client = DiBag.fromClass([port], Client);
-export const plugin = DiBag.fromPlugin([port], {
+export const client = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client });
+export const plugin = DiBag.createProviderFromPlugin({ dependencies: [port], pluginDescriptor: {
   apiVersion: 1,
   create: (value: number) => ({ plugin: true as const, port: value }),
-}, {
-  acquisitionMode: 'raw',
-  validate: (value): value is PluginService => typeof value === 'object' && value !== null
-    && Reflect.get(value, 'plugin') === true && typeof Reflect.get(value, 'port') === 'number',
-});
+}, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is PluginService => typeof value === 'object' && value !== null
+    && Reflect.get(value, 'plugin') === true && typeof Reflect.get(value, 'port') === 'number' });
 
-const annotatedSource = DiBag.fromFunction([port], value => ({
+const annotatedSource = DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => ({
   value: { annotated: true as const, port: value },
   metadata: { origin: 'final-adversarial' as const },
-}));
-export const annotated = DiBag.transformService(DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'direct', describe: result => result.metadata } }), { mode: 'direct', transform: result => result.value });
+}) });
+export const annotated = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: annotatedSource, describeAcquisition: result => result.metadata, callbackReceives: 'exposed-service' }), transformService: result => result.value, callbackReceives: 'exposed-service' });
 
-export const finalAdversarialFeature = DiBag.createBuilder().register(port, () => 8080).register({ client, plugin, annotated }).alias('clientAlias', 'client').buildModule(['client', 'plugin', 'annotated', 'clientAlias']);
+export const finalAdversarialFeature = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ client, plugin, annotated }).withServiceAlias({ aliasKey: 'clientAlias', targetServiceKey: 'client' }).buildModule({ exportedServiceKeys: ['client', 'plugin', 'annotated', 'clientAlias'] });
 
-export const finalAdversarialBag = DiBag.createBuilder().installModule(finalAdversarialFeature).build();
-export const finalAdversarialChild = finalAdversarialBag.createScope(['plugin'], {
+export const finalAdversarialBag = DiBag.createBuilder().withInstalledModules([finalAdversarialFeature]).buildContainer();
+export const finalAdversarialChild = finalAdversarialBag.createChildContainer(['plugin'], {
   plugin: () => ({ plugin: true as const, port: 9090, selected: true as const }),
-}, { share: ['annotated'] });
+}, { sharedParentServiceKeys: ['annotated'] });
 
 type AnnotatedValue = { annotated: true; port: number };
 export type FinalAdversarialProducerContracts = [

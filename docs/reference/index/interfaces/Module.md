@@ -2,11 +2,11 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Module
 
-# Interface: Module\<P *extends* `object`, R *extends* `object`, C *extends* `NeedConstraint` = `never`, D *extends* `Registrations` = `PublicRegistrations`\<`P`\>\>
+# Interface: Module\<ExportedServices *extends* `object`, RequiredServices *extends* `object`, Constraints *extends* `NeedConstraint` = `never`, PublicProviders *extends* `Registrations` = `PublicRegistrations`\<`ExportedServices`\>\>
 
-Defined in: [module.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L37)
+Defined in: [module.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L45)
 
-A sealed, non-resolving module with private registrations and selected public exports.
+A sealed, non-resolving module with private providers and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
 type-only class has no public constructor.
 
@@ -18,37 +18,38 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `P` | - |
-| `R` | - |
-| `C` | - |
-| `D` | - |
+| `ExportedServices` | The services this module exports, keyed by export name or token symbol. |
+| `RequiredServices` | The services the installing builder must provide. |
+| `Constraints` | The checks retained from the sealed graph and applied again at installation. |
+| `PublicProviders` | The provider contract of each export, as the installing builder sees it. |
 
 ## Methods
 
-### renameExport()
+### withRenamedExport()
 
 ```ts
-renameExport<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedProviders<D, Old, New>>;
+withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>(options: {
+    readonly currentExportKey: CurrentExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+    readonly newExportKey: NewExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+}): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L56)
+Defined in: [module.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L73)
 
-Return a module view with one string-named export renamed.
-Factory dependency names and private identities remain unchanged.
+Return a module view with one string-named export renamed through an options object.
 
 #### Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `Old` | - |
-| `New` | - |
+| `CurrentExportKey` | - |
+| `NewExportKey` | - |
 
 #### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `oldKey` | An existing public string export. |
-| `newKey` | A noncolliding string-literal export name. |
+| `options` | The current export and its noncolliding new name. |
 
 #### Returns
 
@@ -56,4 +57,68 @@ A new sealed module, or the same instance when both names are equal.
 
 #### Throws
 
-If runtime input names are invalid, absent, or collide.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
+
+#### Example
+
+```ts
+const feature = DiBag.createBuilder().withServices({ service: () => 1 })
+  .buildModule({ exportedServiceKeys: ['service'] });
+const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+```
+
+***
+
+### withRenamedRequirement()
+
+```ts
+withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequirementKey extends string>(options: {
+    readonly currentRequirementKey: CurrentRequirementKey & CurrentRequirementKeyAdmission<RequiredServices, CurrentRequirementKey>;
+    readonly newRequirementKey: NewRequirementKey & NewRequirementKeyAdmission<ExportedServices, RequiredServices, CurrentRequirementKey, NewRequirementKey>;
+}): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>>;
+```
+
+Defined in: [module.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L132)
+
+Return a module view that asks its host for a requirement under a new name.
+Factory parameter names and private bindings retain their lexical meaning.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `CurrentRequirementKey` | - |
+| `NewRequirementKey` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `options` | The current requirement and its noncolliding new host key. |
+
+#### Returns
+
+A new sealed module, or this module when both keys are equal.
+
+#### Throws
+
+`DI_BAG_INVALID_ARGUMENT` for malformed options; `DI_BAG_UNKNOWN_SERVICE_KEY`
+for a known non-requirement; `DI_BAG_DUPLICATE_SERVICE_KEY` for a known collision.
+
+#### Remarks
+
+Type checking rejects unknown requirements and all name collisions.
+Runtime checks cover only facts available without executing a factory.
+
+#### Example
+
+```ts
+const feature = DiBag.createBuilder()
+  .withServices({ answer: ({ config }: { config: number }) => config })
+  .buildModule({ exportedServiceKeys: ['answer'] });
+const app = DiBag.createBuilder()
+  .withInstalledModules([feature.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'featureConfig' })])
+  .withServices({ featureConfig: () => 42 }).buildContainer();
+console.log(app.resolve('answer'));
+await app.close();
+```

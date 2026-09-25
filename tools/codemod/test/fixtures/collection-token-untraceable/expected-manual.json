@@ -1,0 +1,3 @@
+[
+  { "line": 5, "reason": "token creation is not bound to a traceable program variable; choose forService or forCollectionOf by hand" }
+]

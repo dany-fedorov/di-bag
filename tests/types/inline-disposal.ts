@@ -1,20 +1,18 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const bag = DiBag.createBuilder().register({
+const bag = DiBag.createBuilder().withServices({
     clock: () => ({
       now() {
         return 42;
       },
     }),
-    resource: DiBag.withDisposal(
-      async ({ clock }: { clock: { now(): number } }) => ({
+    resource: DiBag.providerWithDisposal({ provider: async ({ clock }: { clock: { now(): number } }) => ({
         stamp() {
           return clock.now();
         },
         close() {},
-      }),
-      (resource) => {
+      }), disposeService: (resource) => {
         type Resource = Assert<
           Equal<
             typeof resource,
@@ -25,9 +23,8 @@ const bag = DiBag.createBuilder().register({
           >
         >;
         resource.close();
-      },
-    ),
-  }).build();
+      } }),
+  }).buildContainer();
 
 const resource = bag.resolve('resource');
 type Resource = Assert<
@@ -40,7 +37,7 @@ type Resource = Assert<
   >
 >;
 
-const borrowed = bag.fork(['resource'], {
+const borrowed = bag.createIndependentContainer(['resource'], {
     resource: async () => ({
       stamp() {
         return 7;

@@ -12,10 +12,10 @@ type ModulePublicProviders<R extends Registrations, P extends keyof R> = [Extrac
 } & SymbolProviders<R, P>;
 ```
 
-Defined in: [module-types.ts:146](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L146)
+Defined in: [module-types.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L152)
 
 Project selected module exports to dependency-free providers that keep behavioral contracts.
-The conditional answer carries no alias, so declarations print the providers, not the registrations.
+The conditional answer carries no alias, so declarations print the providers directly.
 
 ## Type Parameters
 

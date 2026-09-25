@@ -6,13 +6,13 @@
 
 ```ts
 type SelectedRegistrations<K extends readonly unknown[], O> = {
-    [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
+    [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], ProviderOrFactory>;
 };
 ```
 
-Defined in: [types.ts:340](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L340)
+Defined in: [types.ts:350](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L350)
 
-Select registration-valued own fields corresponding to a checked key tuple.
+Select provider-valued own fields corresponding to a checked key tuple.
 
 ## Type Parameters
 
@@ -23,4 +23,4 @@ Select registration-valued own fields corresponding to a checked key tuple.
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container

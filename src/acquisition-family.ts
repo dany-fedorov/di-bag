@@ -71,7 +71,7 @@ export class AcquisitionFamily {
       .map(id => this.attempts.get(id))
       .filter((attempt): attempt is AttemptIdentity => !!attempt && (attempt.state === 'creating' || attempt.state === 'pending'));
     const repeated = active.findIndex(attempt => attempt.bindingId === bindingId && attempt.ownerId === ownerId);
-    if (repeated !== -1) throw libraryError('DI_BAG_CYCLE', `cycle: ${[...active.slice(repeated).map(attempt => attempt.label), label].join(' -> ')}`, { path: Object.freeze([...active.slice(repeated).map(attempt => attempt.label), label]) });
+    if (repeated !== -1) throw libraryError('DI_BAG_DEPENDENCY_CYCLE', `cycle: ${[...active.slice(repeated).map(attempt => attempt.label), label].join(' -> ')}`, { path: Object.freeze([...active.slice(repeated).map(attempt => attempt.label), label]) });
     return ancestry;
   }
 
@@ -88,9 +88,9 @@ export class AcquisitionFamily {
   }
 
   /** Distinct consumer-to-dependency binding edges recorded by live attempts, in attempt order. */
-  observedEdges(): readonly { readonly from: BindingId; readonly to: BindingId }[] {
+  observedEdges(): readonly { readonly consumerBindingId: BindingId; readonly dependencyBindingId: BindingId }[] {
     const seen = new Map<BindingId, Set<BindingId>>();
-    const edges: { readonly from: BindingId; readonly to: BindingId }[] = [];
+    const edges: { readonly consumerBindingId: BindingId; readonly dependencyBindingId: BindingId }[] = [];
     for (const attempt of this.attempts.values()) {
       for (const dependency of attempt.dependencies) {
         const target = this.attempts.get(dependency);
@@ -99,7 +99,7 @@ export class AcquisitionFamily {
         if (!targets) seen.set(attempt.bindingId, targets = new Set());
         if (targets.has(target.bindingId)) continue;
         targets.add(target.bindingId);
-        edges.push(Object.freeze({ from: attempt.bindingId, to: target.bindingId }));
+        edges.push(Object.freeze({ consumerBindingId: attempt.bindingId, dependencyBindingId: target.bindingId }));
       }
     }
     return Object.freeze(edges);
@@ -120,7 +120,7 @@ export class AcquisitionFamily {
     const path = this.path(to.id, from.id);
     if (path) {
       const labels = [...path, to.id].map(id => this.attempts.get(id)!.label);
-      throw libraryError('DI_BAG_CYCLE', `cycle: ${labels.join(' -> ')}`, { path: Object.freeze(labels) });
+      throw libraryError('DI_BAG_DEPENDENCY_CYCLE', `cycle: ${labels.join(' -> ')}`, { path: Object.freeze(labels) });
     }
     from.dependencies.add(to.id);
     const consumers = this.incoming.get(to.id) ?? new Set<AcquisitionId>();

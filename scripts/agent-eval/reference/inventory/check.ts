@@ -4,9 +4,9 @@ import type { StockLevels } from './contract.js';
 import { inventoryModule } from './module.js';
 
 DiBag.createBuilder()
-  .installModule(inventoryModule)
-  .register({
-    stockLevels: DiBag.withLifetime((): StockLevels => ({}), 'root'),
-    catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
+  .withInstalledModules([inventoryModule])
+  .withServices({
+    stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({}), lifetime: 'singleton:one-per-container-tree' }),
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: () => undefined, list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Bag", "from": "resolve", "to": "resolveService" },
+    { "owner": "BagRuntime", "from": "resolve", "to": "runtimeResolve" }
+  ],
+  "properties": [
+    { "owner": "Presence", "from": "present", "to": "isPresent" },
+    { "owner": "DiBagStartupCancelledError", "from": "cleanupPromise", "manual": "follow startup cleanup guidance" },
+    { "owner": "DiBagCloseCancelledError", "from": "cleanupPromise", "manual": "follow close cleanup guidance" }
+  ],
+  "values": [
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-opened", "to": "container-opened" }
+  ]
+}

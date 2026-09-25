@@ -1,33 +1,33 @@
-import { DiBag } from '../../../src';
+import { DiBag, type ProviderOrFactory } from '../../../src';
 
 const good = (_deps: { dep: boolean }) => ({
   read: () => 42,
 });
-const provider = DiBag.withMetadata(good, { static: { owner: 'source' } });
-const owned = DiBag.withDisposal(good, () => {});
+const provider = DiBag.providerWithRegistrationMetadata({ provider: good, registrationMetadata: { owner: 'source' } });
+const owned = DiBag.providerWithDisposal({ provider: good, disposeService: () => {} });
 const bad = () => ({ read: (): unknown => 42 });
 declare const mixed: typeof provider | typeof owned | typeof bad;
 declare const reversed: typeof bad | typeof owned | typeof provider;
 // diagnostic: not assignable
-DiBag.transformService(mixed, { mode: 'direct', transform: (value: number) => value.toFixed() });
+DiBag.providerWithTransformedService({ provider: mixed, transformService: (value: number) => value.toFixed(), callbackReceives: 'exposed-service' });
 // diagnostic: not assignable
-DiBag.transformService(mixed, { mode: 'awaited', transform: (value: number) => value.toFixed() });
-// diagnostic: No overload matches
-DiBag.withDisposal(mixed, (value: number) => { value.toFixed(); });
+DiBag.providerWithTransformedService({ provider: mixed, transformService: (value: number) => value.toFixed(), callbackReceives: 'fulfilled-value' });
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: mixed, disposeService: (value: number) => { value.toFixed(); } });
 // diagnostic: duplicate metadata
-DiBag.withMetadata(mixed, { static: { owner: 'duplicate' } });
+DiBag.providerWithRegistrationMetadata({ provider: mixed, registrationMetadata: { owner: 'duplicate' } });
 // diagnostic: duplicate metadata
-DiBag.withMetadata(reversed, { static: { owner: 'duplicate' } });
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(mixed, { mode: 'direct', transform: value => value.read() }) }).build();
+DiBag.providerWithRegistrationMetadata({ provider: reversed, registrationMetadata: { owner: 'duplicate' } });
+// diagnostic: required services are missing
+DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: mixed, transformService: value => value.read(), callbackReceives: 'exposed-service' }) }).buildContainer();
 
-type Registration = Parameters<typeof DiBag.withMetadata>[0];
+type Registration = ProviderOrFactory;
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaqueMixed: NoInfer<Opaque | typeof owned | typeof bad>;
 // diagnostic: not assignable
-DiBag.transformService(opaqueMixed, { mode: 'direct', transform: (value: number) => value.toFixed() });
-// diagnostic: No overload matches
-DiBag.withDisposal(opaqueMixed, (value: number) => {});
+DiBag.providerWithTransformedService({ provider: opaqueMixed, transformService: (value: number) => value.toFixed(), callbackReceives: 'exposed-service' });
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: opaqueMixed, disposeService: (value: number) => {} });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(opaqueMixed, { mode: 'direct', transform: () => 42 }) }).build();
+// diagnostic-also: TS2684 required services are missing
+DiBag.createBuilder().withServices({ mapped: DiBag.providerWithTransformedService({ provider: opaqueMixed, transformService: () => 42, callbackReceives: 'exposed-service' }) }).buildContainer();

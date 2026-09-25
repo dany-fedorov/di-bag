@@ -1,3 +1,3 @@
 import { DiBag } from '../../../src/di-bag';
 // diagnostic: assignable
-DiBag.createBuilder().register({ clock: () => 1 }).build().fork(['clock'], { clock: () => 'wrong' });
+DiBag.createBuilder().withServices({ clock: () => 1 }).buildContainer().createIndependentContainer(['clock'], { clock: () => 'wrong' });

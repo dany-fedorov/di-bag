@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "build", "to": "buildContainer" },
+    { "owner": "Builder", "from": "buildModule", "to": "buildModule", "transform": "bag" }
+  ],
+  "types": [{ "from": "Bag", "to": "Container" }, { "from": "PluginProvider", "to": "PluginProvider" }],
+  "codes": [{ "from": "DI_BAG_CYCLE", "to": "DI_BAG_DEPENDENCY_CYCLE" }],
+  "values": [{ "owner": "DiBagApi", "method": "providerWithLifetime", "argument": 0, "from": "root", "to": "singleton:one-per-container-tree" }],
+  "imports": [{ "from": "di-bag/node", "to": "di-bag" }]
+}

@@ -4,8 +4,8 @@ import type { Catalog, CatalogData } from '../../src/features/catalog/contract.j
 import { catalogModule } from '../../src/features/catalog/module.js';
 
 const builder = DiBag.createBuilder()
-  .installModule(catalogModule)
-  .register({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') });
+  .withInstalledModules([catalogModule])
+  .withServices({ catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({ products: [] }), lifetime: 'singleton:one-per-container-tree' }) });
 
-builder.verifyGraph() satisfies void;
-export const exported = (): Catalog => builder.build().resolve('catalog');
+builder.verifyGraphAtCompileTime() satisfies void;
+export const exported = (): Catalog => builder.buildContainer().resolve('catalog');

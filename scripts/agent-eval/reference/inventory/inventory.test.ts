@@ -6,23 +6,23 @@ import type { StockLevels } from './contract.js';
 import { inventoryModule } from './module.js';
 
 const fixture = DiBag.createBuilder()
-  .installModule(inventoryModule)
-  .register({
-    stockLevels: DiBag.withLifetime((): StockLevels => ({}), 'root'),
-    catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
+  .withInstalledModules([inventoryModule])
+  .withServices({
+    stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({}), lifetime: 'singleton:one-per-container-tree' }),
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: () => undefined, list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
   })
-  .build();
+  .buildContainer();
 after(() => fixture.close());
 
 test('closing a scope releases its uncommitted reservations', async () => {
-  const bag = fixture.fork(['stockLevels', 'catalog'], {
-    stockLevels: DiBag.withLifetime((): StockLevels => ({ tea: 5 }), 'root'),
-    catalog: DiBag.withLifetime((): Catalog => ({ find: sku => ({ sku, name: sku, priceCents: 1 }), list: () => [] }), 'root'),
+  const bag = fixture.createIndependentContainer(['stockLevels', 'catalog'], {
+    stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({ tea: 5 }), lifetime: 'singleton:one-per-container-tree' }),
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: sku => ({ sku, name: sku, priceCents: 1 }), list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
   });
   try {
-    const request = bag.createScope();
+    const request = bag.createChildContainer();
     assert.equal(request.resolve('inventory').reserve('tea', 2), true);
-    const other = bag.createScope();
+    const other = bag.createChildContainer();
     assert.equal(other.resolve('inventory').available('tea'), 3);
     await request.close();
     assert.equal(other.resolve('inventory').available('tea'), 5);

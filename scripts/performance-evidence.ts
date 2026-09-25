@@ -483,6 +483,7 @@ Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> 
     cpSync(join(root, 'scripts', 'performance-evidence.ts'), protocolScript);
     cpSync(join(root, 'scripts', 'platform-evidence.ts'), join(consumer, 'scripts', 'platform-evidence.ts'));
     cpSync(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts'), fixtureScript);
+    cpSync(join(root, 'tests', 'benchmarks', 'comparator-contract.ts'), join(consumer, 'tests', 'benchmarks', 'comparator-contract.ts'));
     const installedPackageRoot = realpathSync(join(consumer, 'node_modules', 'di-bag'));
     const git = currentGit(root);
     const implementationIdentity = `current:${git.sha}${git.dirty ? ':dirty' : ''}`;
@@ -550,10 +551,68 @@ function installRuntimeConsumer(
     cpSync(join(root, 'scripts', 'performance-evidence.ts'), join(consumer, 'scripts', 'performance-evidence.ts'));
     cpSync(join(root, 'scripts', 'platform-evidence.ts'), join(consumer, 'scripts', 'platform-evidence.ts'));
     cpSync(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts'), fixtureScript);
+    cpSync(join(root, 'tests', 'benchmarks', 'comparator-contract.ts'), join(consumer, 'tests', 'benchmarks', 'comparator-contract.ts'));
     return { root: consumer, childScript, installedPackageRoot: realpathSync(join(consumer, 'node_modules', 'di-bag')) };
   } catch (error) {
     rmSync(consumer, { recursive: true, force: true });
     throw error;
+  }
+}
+
+export type RuntimeArchiveSmokeResult = {
+  readonly current: readonly (Pick<BenchmarkSample, 'lane' | 'scenario' | 'archiveIdentity' | 'implementationIdentity' | 'checksum' | 'factories' | 'disposers' | 'cleanupLog'> & { readonly relativeEntry: string })[];
+  readonly baseline: readonly (Pick<BenchmarkSample, 'lane' | 'scenario' | 'archiveIdentity' | 'implementationIdentity' | 'checksum' | 'factories' | 'disposers' | 'cleanupLog'> & { readonly relativeEntry: string })[];
+  readonly baselineCommit: string;
+};
+
+/** Execute one single-sample compatibility smoke against the current package and an exact historical archive. */
+export async function runRuntimeArchiveSmoke(root: string, baselineRef: string): Promise<RuntimeArchiveSmokeResult> {
+  const checked = await Promise.all((['node', 'npm', 'classic6'] as const).map(name => verifyTool(root, name)));
+  const unavailable = checked.find(tool => tool.status === 'unavailable');
+  if (unavailable?.status === 'unavailable') throw new Error(`runtime smoke tool unavailable: ${unavailable.reason}`);
+  const [node, npm, classic6] = checked as [VerifiedTool, VerifiedTool, VerifiedTool];
+  let currentArchive: Awaited<ReturnType<typeof packIsolatedClassic>> | undefined;
+  let baselineArchive: BaselinePackedArchive | undefined;
+  let currentConsumer: InstalledRuntimeConsumer | undefined;
+  let baselineConsumer: InstalledRuntimeConsumer | undefined;
+  try {
+    currentArchive = await packIsolatedClassic(root, node, npm, classic6);
+    baselineArchive = await buildBaselineArchive(root, baselineRef);
+    currentConsumer = installRuntimeConsumer(root, currentArchive, npm);
+    baselineConsumer = installRuntimeConsumer(root, baselineArchive, npm);
+    const execute = (lane: 'current' | 'baseline', scenario: RuntimeScenario, archiveIdentity: string, consumer: InstalledRuntimeConsumer): BenchmarkSample => {
+      const request: RuntimeChildRequest = {
+        lane, scenario, providers: 10, archiveIdentity,
+        implementationIdentity: lane === 'current' ? 'current:smoke' : `baseline:${baselineArchive!.baseline.commit}`,
+        orderSlot: 0, installedPackageRoot: consumer.installedPackageRoot,
+        expected: expectedScenarioResult(scenario, 10),
+      };
+      const execution = exactChildExecution(node, consumer.childScript, request);
+      if (execution.status !== 0 || execution.signal !== null || execution.timedOut) {
+        throw new Error(`runtime ${lane} smoke failed: ${execution.stderr || execution.stdout}`);
+      }
+      const sample = parseRuntimeChild(request, execution);
+      const entry = lane === 'baseline' && scenario === 'node-native-promise' ? 'node.js' : 'index.js';
+      if (sample.resolvedDiBag !== join(consumer.installedPackageRoot, 'dist', entry)) {
+        throw new Error(`runtime ${lane} smoke resolved an unexpected package entry`);
+      }
+      return sample;
+    };
+    const result = (sample: BenchmarkSample, consumer: InstalledRuntimeConsumer) => ({
+      lane: sample.lane, archiveIdentity: sample.archiveIdentity, implementationIdentity: sample.implementationIdentity,
+      scenario: sample.scenario, checksum: sample.checksum, factories: sample.factories,
+      disposers: sample.disposers, cleanupLog: sample.cleanupLog,
+      relativeEntry: relative(consumer.root, sample.resolvedDiBag),
+    });
+    const current = runtimeScenarios.map(scenario => result(execute('current', scenario, currentArchive!.sha256, currentConsumer!), currentConsumer!));
+    const baseline = runtimeScenarios.map(scenario => result(execute('baseline', scenario, baselineArchive!.sha256, baselineConsumer!), baselineConsumer!));
+    return { current, baseline,
+      baselineCommit: baselineArchive.baseline.commit };
+  } finally {
+    if (currentConsumer) rmSync(currentConsumer.root, { recursive: true, force: true });
+    if (baselineConsumer) rmSync(baselineConsumer.root, { recursive: true, force: true });
+    if (currentArchive) rmSync(currentArchive.packageTree, { recursive: true, force: true });
+    if (baselineArchive) rmSync(baselineArchive.packageTree, { recursive: true, force: true });
   }
 }
 

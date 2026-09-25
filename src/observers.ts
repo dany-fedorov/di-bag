@@ -3,44 +3,44 @@ import type { AcquisitionMetadataPresence } from './inspection';
 import type { Lifetime } from './lifetime';
 
 /**
- * Identity shared by lifecycle events for one owning scope.
+ * Identity shared by lifecycle events for one owning container.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
-export interface ScopeEventFields {
-  /** The scope that owns the transition. */
-  readonly scopeId: symbol;
-  /** The tracked parent, present only for child-scope events. */
-  readonly parentScopeId?: symbol;
+export interface ContainerEventFields {
+  /** The container that owns the transition. */
+  readonly containerId: symbol;
+  /** The tracked parent, present only for child-container events. */
+  readonly parentContainerId?: symbol;
 }
 /**
- * Copied binding and acquisition details carried by acquisition and cleanup events.
+ * Copied binding and acquisition details carried by acquisition and disposal events.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
 export interface AcquisitionEventFields {
-  readonly scopeId: symbol;
+  readonly containerId: symbol;
   readonly bindingId: symbol;
   readonly acquisitionId: symbol;
-  readonly label: string;
+  readonly bindingLabel: string;
   readonly lifetime: Lifetime;
   readonly registrationMetadata: Readonly<object>;
   readonly acquisitionMetadata: AcquisitionMetadataPresence<readonly unknown[]>;
 }
 /**
  * A frozen discriminated lifecycle transition emitted after the corresponding state change.
- * Narrow on `kind` to access failure, cleanup outcome, or disposal-index fields.
+ * Narrow on `kind` to access failure, disposal outcome, or disposal-index fields.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
 export type LifecycleEvent =
-  | (ScopeEventFields & { readonly kind: 'scope-opened' })
-  | (ScopeEventFields & { readonly kind: 'scope-closing' })
-  | (ScopeEventFields & { readonly kind: 'scope-closed' })
-  | (ScopeEventFields & { readonly kind: 'scope-close-failed'; readonly error: unknown })
+  | (ContainerEventFields & { readonly kind: 'container-opened' })
+  | (ContainerEventFields & { readonly kind: 'container-closing' })
+  | (ContainerEventFields & { readonly kind: 'container-closed' })
+  | (ContainerEventFields & { readonly kind: 'container-close-failed'; readonly error: unknown })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-started' })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-ready' })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-started' })
+  | (AcquisitionEventFields & { readonly kind: 'disposal-started' })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-failed'; readonly error: unknown })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-failed'; readonly error: unknown; readonly disposalSequence: number })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-completed'; readonly outcome: 'success' | 'failure' });
+  | (AcquisitionEventFields & { readonly kind: 'disposal-failed'; readonly error: unknown; readonly disposalSequence: number })
+  | (AcquisitionEventFields & { readonly kind: 'disposal-completed'; readonly outcome: 'success' | 'failure' });
 /**
  * A failure thrown or rejected by an observer together with its original event.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
@@ -63,11 +63,11 @@ export type ObserverErrorCallback = (this: void, failure: ObserverFailure) => un
  * Both callbacks required by {@link DiBagApi.withConfiguration}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
-export interface ObserverOptions {
-  /** Receives events in transition and observer-registration order on a microtask queue. */
-  readonly onEvent: ObserverCallback;
-  /** Receives synchronous throws and rejected results from `onEvent`. */
-  readonly onError: ObserverErrorCallback;
+export interface LifecycleObserver {
+  /** Receives events in transition and observer attachment order on a microtask queue. */
+  readonly onLifecycleEvent: ObserverCallback;
+  /** Receives synchronous throws and rejected results from `onLifecycleEvent`. */
+  readonly onObserverFailure: ObserverErrorCallback;
 }
 
 const then = Promise.prototype.then<void, void>;
@@ -79,15 +79,26 @@ function monitor(result: unknown, failed: (error: unknown) => void): void {
   then.call(pending, ignore, failed);
 }
 // One lazy queue preserves ordering when a callback observes multiple facades.
-let queue: Array<{ event: LifecycleEvent; callbacks: readonly ObserverOptions[] }> | undefined;
+let queue: Array<{ event: LifecycleEvent; callbacks: readonly LifecycleObserver[] }> | undefined;
 export class LifecycleObservers {
-  private constructor(private readonly callbacks: readonly ObserverOptions[]) {}
+  private constructor(private readonly callbacks: readonly LifecycleObserver[]) {}
 
-  static append(previous: LifecycleObservers | undefined, options: ObserverOptions): LifecycleObservers {
-    if (typeof options !== 'object' || options === null) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
-    const { onEvent, onError } = options;
-    if (typeof onEvent !== 'function' || typeof onError !== 'function') throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
-    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({ onEvent, onError })]);
+  static append(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+    if (typeof observer !== 'object' || observer === null) {
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration', argument: 'lifecycleObservers[]', expected: 'an object' });
+    }
+    const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
+    const onObserverFailure = Reflect.get(observer, 'onObserverFailure') as unknown;
+    if (typeof onLifecycleEvent !== 'function') {
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration', argument: 'lifecycleObservers[].onLifecycleEvent', expected: 'a function' });
+    }
+    if (typeof onObserverFailure !== 'function') {
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration', argument: 'lifecycleObservers[].onObserverFailure', expected: 'a function' });
+    }
+    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({
+      onLifecycleEvent: onLifecycleEvent as ObserverCallback,
+      onObserverFailure: onObserverFailure as ObserverErrorCallback,
+    })]);
   }
 
   emit(event: LifecycleEvent): void {
@@ -98,12 +109,12 @@ export class LifecycleObservers {
       // Detach this batch: reentrant transitions schedule another microtask.
       const deliveries = queue!;
       queue = undefined;
-      for (const { event, callbacks } of deliveries) for (const { onEvent, onError } of callbacks) {
+      for (const { event, callbacks } of deliveries) for (const { onLifecycleEvent, onObserverFailure } of callbacks) {
         const failed = (error: unknown) => {
-          try { monitor(onError(Object.freeze({ error, event })), ignore); }
+          try { monitor(onObserverFailure(Object.freeze({ error, event })), ignore); }
           catch { /* Error reporting must not recursively report itself. */ }
         };
-        try { monitor(onEvent(event), failed); }
+        try { monitor(onLifecycleEvent(event), failed); }
         catch (error) { failed(error); }
       }
     });

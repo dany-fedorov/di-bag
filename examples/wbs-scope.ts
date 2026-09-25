@@ -130,13 +130,10 @@ export function createRoot(
   now: () => number = Date.now,
 ) {
   return DiBag.createBuilder()
-    .register({
+    .withServices({
       source: () => source, // Borrowed from startup; no disposal declaration.
       clock: () => ({ now }),
-      replayBuffer: DiBag.withDisposal(
-        () => new ReplayBuffer(lifecycle),
-        (buffer) => buffer.close(),
-      ),
+      replayBuffer: DiBag.providerWithDisposal({ provider: () => new ReplayBuffer(lifecycle), disposeService: (buffer) => buffer.close() }),
       stores: ({ source }: { source: Source }) => source.stores('root'),
       broadcast: ({ replayBuffer }: { replayBuffer: ReplayBuffer }): Broadcaster =>
         replayBuffer,
@@ -156,7 +153,7 @@ export function createRoot(
         },
       }),
     })
-    .build();
+    .buildContainer();
 }
 
 export function createBatch(
@@ -164,14 +161,14 @@ export function createBatch(
   stores: Stores,
   openCollector: () => Collector,
 ) {
-  return root.fork(['source', 'clock', 'replayBuffer', 'stores', 'broadcast'], {
+  return root.createIndependentContainer(['source', 'clock', 'replayBuffer', 'stores', 'broadcast'], {
     source: () => root.resolve('source'),
     clock: () => root.resolve('clock'),
     replayBuffer: () => root.resolve('replayBuffer'),
     stores: () => stores,
     // If opening/preparing the collector fails, openCollector must clean up
     // what it acquired. The bag takes ownership only on successful return.
-    broadcast: DiBag.withDisposal(openCollector, (collector) => collector.close()),
+    broadcast: DiBag.providerWithDisposal({ provider: openCollector, disposeService: (collector) => collector.close() }),
     // workItems is deliberately not overridden: its factory sees batch deps.
   });
 }

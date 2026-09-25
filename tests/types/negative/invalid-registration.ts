@@ -1,3 +1,3 @@
 import { DiBag } from '../../../src';
-// diagnostic: not assignable to type 'Registration'
-DiBag.createBuilder().register({ value: 42 });
+// diagnostic: not assignable to type 'ProviderOrFactory'
+DiBag.createBuilder().withServices({ value: 42 });

@@ -18,7 +18,7 @@ declare the dependency contracts as shown in the
 
 To run these JavaScript examples, save any one block as an `.mjs`
 file in a Node application with `di-bag` installed and run it with Node 24. Each
-block is independent, includes its data and assertions, and closes its bag.
+block is independent, includes its data and assertions, and closes its container.
 See the [installation instructions](../../README.md#install) to install this
 checkout. The notification and reporting adapters run entirely in memory; they
 demonstrate application contracts without requiring an email service or database.
@@ -79,13 +79,13 @@ const order = {
   ],
 };
 
-const app = DiBag.createBuilder().register({
+const app = DiBag.createBuilder().withServices({
   rules: () => rules,
   price: () => priceInvoice,
   format: () => formatMoney,
   issueInvoice: ({ rules, price, format }) =>
     createInvoiceIssuer(rules, price, format),
-}).build();
+}).buildContainer();
 
 try {
   const issue = app.resolve('issueInvoice');
@@ -171,13 +171,13 @@ const directory = new Map([
     name: 'Oleh', email: 'oleh@example.test', shippingUpdates: false,
   }],
 ]);
-const app = DiBag.createBuilder().register({
+const app = DiBag.createBuilder().withServices({
   directory: () => directory,
   sender: () => 'shipping@example.test',
-  transport: DiBag.withDisposal(openMemoryTransport, (client) => client.close()),
+  transport: DiBag.providerWithDisposal({ provider: openMemoryTransport, disposeService: client => client.close() }),
   notifications: ({ directory, transport, sender }) =>
     new NotificationDispatcher(directory, transport, sender),
-}).build();
+}).buildContainer();
 
 try {
   const notifications = app.resolve('notifications');
@@ -211,9 +211,9 @@ decorators, inheritance contract, or reflection metadata. A `Map`, a string, and
 a transport object all participate in the same composition.
 
 DI Bag does not infer constructor dependencies from parameter names. The factory
-provides them; [`fromClass`](tutorial.md#adapt-classes-and-positional-functions)
+provides them; [`createProviderFromClass`](tutorial.md#adapt-classes-and-positional-functions)
 is another option when dependencies are declared with typed tokens. The transport
-is owned because its registration uses `withDisposal`; a method named `close`
+is owned because its registration uses `DiBag.providerWithDisposal`; a method named `close`
 alone does not make DI Bag call it. A production transport must implement its own
 delivery, retry, and deduplication policy.
 
@@ -254,13 +254,13 @@ function serializeReport(report) {
   return JSON.stringify(report, null, 2);
 }
 
-const app = DiBag.createBuilder().register({
+const app = DiBag.createBuilder().withServices({
   config: () => ({ currency: 'EUR', channels: new Set(['web', 'partner']) }),
   serialize: () => serializeReport,
-  warehouse: DiBag.withDisposal(
-    () => openMemoryWarehouse(rows),
-    (client) => client.close(),
-  ),
+  warehouse: DiBag.providerWithDisposal({
+    provider: () => openMemoryWarehouse(rows),
+    disposeService: client => client.close(),
+  }),
   report: async ({ warehouse, config, serialize }) => {
     const client = await warehouse;
     return async (day) => {
@@ -274,7 +274,7 @@ const app = DiBag.createBuilder().register({
       });
     };
   },
-}).build();
+}).buildContainer();
 
 try {
   assert.equal(connections, 0);
@@ -300,10 +300,10 @@ assert.equal(closedConnections, 1);
 The async factory exposes a native `Promise`; its consumer explicitly awaits
 it. The resolved report is an ordinary callable service, and its dependencies
 include an object containing a `Set`, another function, and a client with methods.
-`withDisposal` receives the initialized client when the bag closes.
+`DiBag.providerWithDisposal` receives the initialized client when the container closes.
 
-Repeated resolution shares the report's promise in this bag under the default
+Repeated resolution shares the report's promise in this container under the default
 scoped lifetime. That does not cache individual report results: each call still
 queries the adapter. DI Bag also does not validate warehouse rows or guarantee
 that an async operation succeeds. For custom thenables and explicit acquisition
-modes, see [async boundaries](tutorial.md#async-edges-are-explicit).
+kinds, see [async boundaries](tutorial.md#async-edges-are-explicit).

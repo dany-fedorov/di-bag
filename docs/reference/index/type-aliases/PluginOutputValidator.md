@@ -5,10 +5,10 @@
 # Type Alias: PluginOutputValidator\<V\>
 
 ```ts
-type PluginOutputValidator<V> = (this: void, value: unknown) => value is V;
+type PluginOutputValidator<V> = (this: void, pluginOutput: unknown) => pluginOutput is V;
 ```
 
-Defined in: [plugins.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L20)
+Defined in: [plugins.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L40)
 
 A synchronous predicate that admits an unknown plugin output as a service type.
 
@@ -23,7 +23,7 @@ A synchronous predicate that admits an unknown plugin output as a service type.
 | Parameter | Description |
 | ------ | ------ |
 | `this` | - |
-| `value` | - |
+| `pluginOutput` | - |
 
 ## See
 

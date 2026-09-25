@@ -14,17 +14,17 @@ const PUBLIC_EVIDENCE = 'docs/reports/2026-09-08-release-candidate-evidence.json
 const PACKAGE_NAMES = ['di-bag'] as const;
 const EXPECTED_RUNTIME = {
   I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'source'], acquisitions: 1 },
-  I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
+  I2: { promiseIdentity: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
   I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: ['source'], acquisitions: 3 },
-  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
-  I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
+  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
+  I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
   I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: ['installation-2', 'installation-1'], acquisitions: 2 },
   I7: { root: 1, scoped: 1, transient: 2, contributions: 2, cleanupFailureIdentity: true, independentCleanupCount: 5 },
-  I8: { callbackOrder: ['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed'], filteredOnEventCalls: 4, aOnErrorCalls: 1, bOnErrorCalls: 0, observerErrorIdentity: true, observerErrorEventIdentity: true, telemetryBlocksClose: false, lateDisposals: 1 },
+  I8: { callbackOrder: ['A:acquisition-ready', 'B:acquisition-ready', 'A:disposal-completed', 'B:disposal-completed'], filteredOnEventCalls: 4, aOnErrorCalls: 1, bOnErrorCalls: 0, observerErrorIdentity: true, observerErrorEventIdentity: true, telemetryBlocksClose: false, lateDisposals: 1 },
   I9: { automaticEffects: 0, rawIdentity: true, thenReads: 0, rawDisposals: 1 },
   I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: 0, asyncThenReads: 1, failureIdentity: true, disposerCalls: 0 },
   I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
-  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
+  I12: { ordinaryWrapper: 'DiBagServiceReadinessError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagServiceReadinessCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagServiceReadinessCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
   I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
   I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
   I15: { cjsMatchesSource: true, esmMatchesSource: true, runtimeDependencies: 0, rootLoadsNode: false, forbiddenFiles: 0 },
@@ -113,9 +113,9 @@ function contentFailures(record: ReleasePackageRecord, inspection: NpmArchiveIns
   for (const file of files) if (!['AGENTS.md', 'LICENSE', 'README.md', 'package.json'].includes(file) && !file.startsWith('dist/') && !/^docs\/agent\/[^/]+\.md$/.test(file) || FORBIDDEN_PATH.test(file) || /^dist\/(?:adapters?|internal)\//.test(file)) failures.push(`${record.name} forbidden package file: ${file}`);
   if (record.packageMetadata.main !== './dist/index.js' || record.packageMetadata.types !== './dist/index.d.ts') failures.push(`${record.name} main/types metadata mismatch`);
   if (!same(record.packageMetadata.files, ['AGENTS.md', 'dist', 'docs/agent'])) failures.push("di-bag package metadata files must equal ['dist', 'AGENTS.md', 'docs/agent']");
-  for (const name of ['index', 'node']) for (const extension of ['d.ts', 'js']) if (!files.includes(`dist/${name}.${extension}`)) failures.push(`di-bag missing public export file dist/${name}.${extension}`);
-  for (const name of ['sas-box', 'val-box']) if (files.some(file => file === `dist/${name}.js` || file === `dist/${name}.d.ts`)) failures.push(`di-bag contains removed package entry: ${name}`);
-  const expectedExports = { './node': { types: './dist/node.d.ts', default: './dist/node.js' }, '.': { types: './dist/index.d.ts', default: './dist/index.js' } };
+  for (const extension of ['d.ts', 'js']) if (!files.includes(`dist/index.${extension}`)) failures.push(`di-bag missing public export file dist/index.${extension}`);
+  for (const name of ['node', 'sas-box', 'val-box']) if (files.some(file => file === `dist/${name}.js` || file === `dist/${name}.d.ts`)) failures.push(`di-bag contains removed package entry: ${name}`);
+  const expectedExports = { '.': { types: './dist/index.d.ts', default: './dist/index.js' } };
   if (!same(record.packageMetadata.exports, expectedExports)) failures.push('di-bag public exports mismatch');
   for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`di-bag ${field} must be empty`);
   if (record.packageMetadata.bundledDependencies.length) failures.push('di-bag bundledDependencies must be empty');
@@ -207,7 +207,7 @@ async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string
     const corePath = resolve(consumer, `core.${mode === 'commonjs' ? 'cjs' : 'mjs'}`), load = mode === 'commonjs'
       ? `const Module=require('node:module');const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=require('di-bag');`
       : `import Module,{createRequire}from'node:module';const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=await import('di-bag');`;
-    writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.createBuilder().register({answer:DiBag.fromFactory(()=>42,{acquisitionMode:'raw'})}).build();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
+    writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.createBuilder().withServices({answer:DiBag.createProvider(()=>42,{factoryReturnKind:'uninspected'})}).buildContainer();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
     for (const executable of ['node', 'bun']) { const output = await runChecked([executable, corePath], consumer); if (output.trim() !== '42') throw new Error(`root ${mode} ${executable} output mismatch: ${JSON.stringify(output)}`); }
     const fullPath = resolve(consumer, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
     const checkout = manifest.packages.find(record => record.name === 'di-bag')!.checkout.path;

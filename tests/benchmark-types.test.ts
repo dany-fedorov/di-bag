@@ -7,6 +7,7 @@ import {
   scaleBoundaryLine,
   scalePath,
   scaleSource,
+  providerMethodScaleSource,
 } from './compiler';
 import type { ScaleCase, ScaleForm } from './compiler';
 import ts from 'typescript';
@@ -14,7 +15,7 @@ import { evaluateWorker, type MatrixCase, type WorkerEvidence } from '../scripts
 
 test('parent evaluator validates untrusted worker evidence and preserves requested identities', () => {
   const item: MatrixCase = { count: 100, form: 'bulk', scenario: 'missing' };
-  const diagnostic = { file: scalePath, line: 7, code: 2345, message: 'required service registrations are missing' };
+  const diagnostic = { file: scalePath, line: 7, code: 2345, message: 'required services are missing' };
   const result = { ...item, accepted: false, boundaryLine: 7, diagnostics: [diagnostic] };
   const evidence: WorkerEvidence = { status: 0, signal: null, stdout: JSON.stringify(result), stderr: '' };
   const good = evaluateWorker(item, evidence, scalePath);
@@ -45,6 +46,18 @@ test('parent evaluator validates untrusted worker evidence and preserves request
     { ...diagnostic, line: 8, message: 'same-file cascade' }] }) }, scalePath).accepted).toBe(true);
 });
 
+test('provider facade scale sources preserve names and parse both call shapes', () => {
+  const oldSource = providerMethodScaleSource('old');
+  const newSource = providerMethodScaleSource('new');
+  for (const source of [oldSource, newSource]) {
+    expect(ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022 }, reportDiagnostics: true }).diagnostics).toEqual([]);
+    expect([...source.matchAll(/\.withReplacedService\('svc(\d+)'/g)].map(match => Number(match[1]))).toEqual(Array.from({ length: 100 }, (_, index) => index));
+  }
+  expect([...oldSource.matchAll(/DiBag\.withLifetime\(/g)]).toHaveLength(100);
+  expect([...newSource.matchAll(/DiBag\.providerWithLifetime\(/g)]).toHaveLength(100);
+  expect([...newSource.matchAll(/DiBag\.providerWithDisposal\(/g)]).toHaveLength(100);
+});
+
 for (const args of [['--native', '--native'], ['--tokens', '--tokens'], ['--unknown'], ['--native', '--tokens', '--unknown']]) {
   test(`benchmark rejects unsupported flags: ${args.join(' ')}`, () => {
     const child = spawnSync('node', ['--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', resolve(__dirname, '../scripts/benchmark-types.ts'), ...args],
@@ -70,7 +83,7 @@ for (const form of forms) {
         return;
       }
 
-      const intended = scenario === 'missing' ? 'required service registrations are missing' : 'provided service does not satisfy its consumer dependency';
+      const intended = scenario === 'missing' ? 'required services are missing' : 'provided service does not satisfy its consumer dependency';
       expect(boundaryLine).toBeDefined();
       expect(errors.every(error => error.file === scalePath)).toBe(true);
       expect(errors.some(error => error.code === 2589)).toBe(false);

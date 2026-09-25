@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { isPromise } from 'node:util/types';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { BindingGraph, BagRuntime } from '../src/runtime';
-import type { AcquisitionContext } from '../src/acquisition-context';
+import type { FactoryContext } from '../src/acquisition-context';
 import { deferred } from './helpers';
 
 const context = { isNativePromise: isPromise };
@@ -10,11 +10,11 @@ const context = { isNativePromise: isPromise };
 test('selected service borrows parent configuration and ownership while child config is overridden', async () => {
   const disposed: string[] = [];
   const graph = new BindingGraph().withPublicRegistrations({
-    config: DiBag.withDisposal(() => ({ name: 'parent' }), value => { disposed.push(value.name); }),
-    service: DiBag.withDisposal(DiBag.withMetadata((deps: { config: { name: string } }) => ({ config: deps.config }), { static: { owner: 'service' } }), () => { disposed.push('service'); }),
+    config: DiBag.providerWithDisposal({ provider: () => ({ name: 'parent' }), disposeService: value => { disposed.push(value.name); } }),
+    service: DiBag.providerWithDisposal({ provider: DiBag.providerWithRegistrationMetadata({ provider: (deps: { config: { name: string } }) => ({ config: deps.config }), registrationMetadata: { owner: 'service' } }), disposeService: () => { disposed.push('service'); } }),
   });
   const parent = new BagRuntime(graph, context);
-  const overridden = graph.withPublicBinding('config', DiBag.withDisposal(() => ({ name: 'child' }), value => { disposed.push(value.name); }));
+  const overridden = graph.withPublicBinding('config', DiBag.providerWithDisposal({ provider: () => ({ name: 'child' }), disposeService: value => { disposed.push(value.name); } }));
   const child = parent.scope(overridden, [graph.publicBinding('service')]);
   expect(parent.inspect('service').acquisitions).toEqual([]);
   const service = child.resolve('service');
@@ -48,7 +48,7 @@ test('scoped sharing selects the immediate parent and must be selected again by 
 
 test('child-defined roots anchor their graph while inherited roots construct in the original graph', async () => {
   const disposed: string[] = [];
-  const root = (name: string) => DiBag.withLifetime(DiBag.withDisposal((deps: { config: string }) => ({ name, config: deps.config }), value => { disposed.push(value.name); }), 'root', { allowScopedDependencies: true });
+  const root = (name: string) => DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: (deps: { config: string }) => ({ name, config: deps.config }), disposeService: value => { disposed.push(value.name); } }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true });
   const graph = new BindingGraph().withPublicRegistrations({ config: () => 'parent', inherited: root('inherited'), replaced: root('old') });
   const parent = new BagRuntime(graph, context);
   const childGraph = graph.withPublicRegistrations({ config: () => 'child', replaced: root('new') });
@@ -95,39 +95,39 @@ test('shared pending promises deduplicate and failed acquisitions retry at the o
 
 test('closing a borrower leaves the pending owner context and finalizer intact', async () => {
   const gate = deferred<void>();
-  let ownerContext: AcquisitionContext | undefined;
+  let ownerContext: FactoryContext | undefined;
   let finalized = 0;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.withDisposal(DiBag.fromFactory(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { context: 'acquisition' }), () => { finalized++; }),
-    local: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
+    service: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { factoryReceivesContext: true }), disposeService: () => { finalized++; } }),
+    local: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
   });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('service')]);
   const pending = child.resolve('service');
-  const local = child.resolve('local') as AcquisitionContext;
+  const local = child.resolve('local') as FactoryContext;
   await child.close('child');
-  expect(local.signal.aborted).toBe(true);
-  expect(ownerContext?.signal.aborted).toBe(false);
+  expect(local.abortSignal.aborted).toBe(true);
+  expect(ownerContext?.abortSignal.aborted).toBe(false);
   expect(finalized).toBe(0);
   expect(parent.resolve('service')).toBe(pending);
   gate.resolve();
   expect(await pending).toBe(42);
   await parent.close('parent');
-  expect(ownerContext?.signal.reason).toBe('parent');
+  expect(ownerContext?.abortSignal.reason).toBe('parent');
   expect(finalized).toBe(1);
 });
 
 test('pending child sources discover shared parent dependencies during tree close', async () => {
   const gate = deferred<void>();
   const events: string[] = [];
-  let lateContext: AcquisitionContext | undefined;
+  let lateContext: FactoryContext | undefined;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { context: 'acquisition' }), () => { events.push('service'); }),
-    context: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
-    consumer: DiBag.withDisposal(async (deps: { service: number }) => { await gate.promise; return deps.service; }, () => { events.push('consumer'); }),
+    service: DiBag.providerWithDisposal({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { factoryReceivesContext: true }), disposeService: () => { events.push('service'); } }),
+    context: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
+    consumer: DiBag.providerWithDisposal({ provider: async (deps: { service: number }) => { await gate.promise; return deps.service; }, disposeService: () => { events.push('consumer'); } }),
   });
   const parent = new BagRuntime(graph, context);
-  const ownerContext = parent.resolve('context') as AcquisitionContext;
+  const ownerContext = parent.resolve('context') as FactoryContext;
   const child = parent.scope(graph, [graph.publicBinding('service')]);
   const pending = child.resolve('consumer');
   const closing = parent.close('tree');
@@ -136,8 +136,8 @@ test('pending child sources discover shared parent dependencies during tree clos
   gate.resolve();
   expect(await pending).toBe(42);
   await closing;
-  expect(lateContext?.signal).toBe(ownerContext.signal);
-  expect(lateContext?.signal.reason).toBe('tree');
+  expect(lateContext?.abortSignal).toBe(ownerContext.abortSignal);
+  expect(lateContext?.abortSignal.reason).toBe('tree');
   expect(events).toEqual(['consumer', 'service']);
 });
 
@@ -146,9 +146,9 @@ test('strict child roots reject shared scoped dependencies before reading a cach
   const graph = new BindingGraph().withPublicRegistrations({ service: () => ++calls, root: () => 0 });
   const parent = new BagRuntime(graph, context);
   parent.resolve('service');
-  const childGraph = graph.withPublicBinding('root', DiBag.withLifetime((deps: { service: number }) => deps.service, 'root'));
+  const childGraph = graph.withPublicBinding('root', DiBag.providerWithLifetime({ provider: (deps: { service: number }) => deps.service, lifetime: 'singleton:one-per-container-tree' }));
   const child = parent.scope(childGraph, [graph.publicBinding('service')]);
-  expect(() => child.resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => child.resolve('root')).toThrow('singleton lifetime cannot capture scoped dependency');
   expect(calls).toBe(1);
   await parent.close();
 });
@@ -211,11 +211,11 @@ for (const failed of [false, true]) {
     const gate = deferred<void>();
     const events: string[] = [];
     const graph = new BindingGraph().withPublicRegistrations({
-      owner: DiBag.withDisposal(() => 42, () => { events.push('owner'); }),
-      consumer: DiBag.transformService(DiBag.withDisposal(async (deps: { owner: number }) => { await gate.promise; return deps.owner; }, () => { events.push('consumer'); }), { mode: 'direct', transform: () => {
+      owner: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { events.push('owner'); } }),
+      consumer: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: async (deps: { owner: number }) => { await gate.promise; return deps.owner; }, disposeService: () => { events.push('consumer'); } }), transformService: () => {
         if (failed) throw new Error('projection');
         return 7;
-      } }),
+      }, callbackReceives: 'exposed-service' }),
     });
     const parent = new BagRuntime(graph, context);
     const child = parent.scope(graph, [graph.publicBinding('owner')]);
@@ -247,10 +247,10 @@ test('completed and retired child proxies cannot borrow another source closing p
   expect(() => child.resolve('retry')).toThrow('failed');
   child.resolve('retry');
   const closing = parent.close();
-  expect(read).toThrow('bag is closing');
-  expect(stale).toThrow('bag is closing');
+  expect(read).toThrow('container is closing');
+  expect(stale).toThrow('container is closing');
   expect(ownerCalls).toBe(0);
   gate.resolve(1);
   await closing;
-  expect(stale).toThrow('bag is closed');
+  expect(stale).toThrow('container is closed');
 });

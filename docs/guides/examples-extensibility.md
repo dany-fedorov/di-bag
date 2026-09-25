@@ -55,40 +55,34 @@ async function main() {
   ];
   const searchIndex = new Map<string, string>();
   const constructed: string[] = [];
-  const app = DiBag.createBuilder().register({
-    orderSummary: DiBag.withMetadata(
-      (): Command => {
+  const app = DiBag.createBuilder().withServices({
+    orderSummary: DiBag.providerWithRegistrationMetadata({ provider: (): Command => {
         constructed.push('orderSummary');
         return () => {
           const total = orders.reduce((sum, order) => sum + order.totalCents, 0);
           return `${orders.length} orders; USD ${total} cents`;
         };
-      },
-      { static: { 'app:command': {
+      }, registrationMetadata: { 'app:command': {
         title: 'Summarize orders', role: 'support', mutatesData: false,
-      } satisfies CommandPolicy } },
-    ),
-    rebuildSearch: DiBag.withMetadata(
-      (): Command => {
+      } satisfies CommandPolicy } }),
+    rebuildSearch: DiBag.providerWithRegistrationMetadata({ provider: (): Command => {
         constructed.push('rebuildSearch');
         return () => {
           searchIndex.clear();
           for (const order of orders) searchIndex.set(order.id, order.customer);
           return `Indexed ${searchIndex.size} orders`;
         };
-      },
-      { static: { 'app:command': {
+      }, registrationMetadata: { 'app:command': {
         title: 'Rebuild order search', role: 'operator', mutatesData: true,
-      } satisfies CommandPolicy } },
-    ),
-  }).build();
+      } satisfies CommandPolicy } }),
+  }).buildContainer();
 
   // The application explicitly selects the public commands in this console.
   const names: ('orderSummary' | 'rebuildSearch')[] = [
     'orderSummary', 'rebuildSearch',
   ];
   function dispatch(name: typeof names[number], role: Role): string {
-    const policy = app.inspect(name).registrationMetadata['app:command'];
+    const policy = app.serviceSnapshot(name).registrationMetadata['app:command'];
     if (role !== 'operator' && role !== policy.role) {
       throw new Error(`Role ${role} cannot run ${name}`);
     }
@@ -97,7 +91,7 @@ async function main() {
 
   try {
     const catalog = names.map(name => ({
-      name, ...app.inspect(name).registrationMetadata['app:command'],
+      name, ...app.serviceSnapshot(name).registrationMetadata['app:command'],
     }));
     assert.deepEqual(catalog.map(item => item.title), [
       'Summarize orders', 'Rebuild order search',
@@ -124,8 +118,8 @@ void main().catch(error => { console.error(error); process.exitCode = 1; });
 
 The output is `2 orders; USD 4200 cents`, followed by `Indexed 2 orders`. Static
 inspection runs no factories, so the console can display descriptions and apply
-its policy before acquiring a command. The dispatcher is application code: DI
-Bag does not authenticate callers, enforce roles, or implement a command router.
+its policy before acquiring a command. The dispatcher is application code:
+DI Bag does not authenticate callers, enforce roles, or implement a command router.
 An actual host must supply a trusted authenticated role. The explicit `names`
 list selects public bindings; inspection does not automatically publish private
 module helpers or enumerate their metadata.
@@ -174,43 +168,42 @@ async function main() {
     try { return await fetchRemote(); }
     catch { return cached; }
   }
-  const described = DiBag.withMetadata(loadPricing, {
-    static: { 'app:owner': 'checkout', 'app:purpose': 'shipping prices' },
-    dynamic: {
-      mode: 'awaited',
-      describe: loaded => ({ origin: loaded.origin, revision: loaded.revision }),
-    },
+  const described = DiBag.providerWithAcquisitionMetadata({
+    provider: DiBag.providerWithRegistrationMetadata({
+      provider: loadPricing,
+      registrationMetadata: { 'app:owner': 'checkout', 'app:purpose': 'shipping prices' },
+    }),
+    callbackReceives: 'fulfilled-value',
+    describeAcquisition: loaded => ({ origin: loaded.origin, revision: loaded.revision }),
   });
-  const pricing = DiBag.transformService(described, {
-    mode: 'awaited', transform: loaded => loaded.value,
-  });
-  const app = DiBag.createBuilder().register({
+  const pricing = DiBag.providerWithTransformedService({ provider: described, transformService: loaded => loaded.value, callbackReceives: 'fulfilled-value' });
+  const app = DiBag.createBuilder().withServices({
     pricing,
     quote: async ({ pricing }: { pricing: Promise<Pricing> }) => {
       const rates = await pricing;
       return (subtotalCents: number) => subtotalCents +
         (subtotalCents >= rates.freeShippingFromCents ? 0 : rates.shippingCents);
     },
-  }).build();
+  }).buildContainer();
 
   try {
-    const untouched = app.inspect('pricing');
+    const untouched = app.serviceSnapshot('pricing');
     assert.deepEqual(untouched.acquisitions, []);
     assert.equal(attempts, 0);
     const pending = app.resolve('pricing');
     assert.equal(app.resolve('pricing'), pending);
-    const loadingSnapshot = app.inspect('pricing');
+    const loadingSnapshot = app.serviceSnapshot('pricing');
     assert.equal(loadingSnapshot.acquisitions[0]?.state, 'pending');
     assert.deepEqual(loadingSnapshot.acquisitions[0]?.acquisitionMetadata, [
-      { present: false },
+      { isPresent: false },
     ]);
     loading.release();
     const rates = await pending;
     assert.deepEqual(rates, cached.value);
-    const ready = app.inspect('pricing');
+    const ready = app.serviceSnapshot('pricing');
     assert.equal(ready.acquisitions[0]?.state, 'ready');
     const provenance = ready.acquisitions[0]?.acquisitionMetadata[0];
-    assert.ok(provenance?.present);
+    assert.ok(provenance?.isPresent);
     assert.equal(provenance.value.origin, 'last-known-good');
     assert.equal(provenance.value.revision, 'pricing-2026-09-08');
     assert.equal(loadingSnapshot.acquisitions[0]?.state, 'pending');
@@ -225,8 +218,8 @@ async function main() {
     loading.release(); // Allow a pending acquisition to finish on assertion failure.
     await app.close();
   }
-  assert.deepEqual(app.inspect('pricing').acquisitions, []);
-  assert.equal(app.inspect('pricing').registrationMetadata['app:owner'], 'checkout');
+  assert.deepEqual(app.serviceSnapshot('pricing').acquisitions, []);
+  assert.equal(app.serviceSnapshot('pricing').registrationMetadata['app:owner'], 'checkout');
 }
 
 void main().catch(error => { console.error(error); process.exitCode = 1; });
@@ -235,13 +228,13 @@ void main().catch(error => { console.error(error); process.exitCode = 1; });
 The output is `last-known-good: pricing-2026-09-08`, followed by
 `2500-cent basket: 3000 cents delivered`. The metadata survives projection, and
 each inspection is a snapshot: taking another snapshot is how the operator sees
-the transition to ready. Inspection exposes no service values; `describe` chooses
+the transition to ready. Inspection exposes no service values; `describeAcquisition` chooses
 the facts to publish. These facts describe acquisition, not ongoing service health.
-Failed attempts are evicted and closed bags have empty acquisition lists, so use
+Failed attempts are evicted and closed containers have empty acquisition lists, so use
 observers or application storage for historical diagnostics. The fallback and its
 acceptance policy belong to this adapter; DI Bag does not choose configuration
 sources. Metadata records are shallow copies, and their callbacks must return
-synchronous plain records even in `awaited` mode.
+synchronous plain records with `callbackReceives: 'fulfilled-value'`.
 
 ## 3. Package a connection convention and configure telemetry per application
 
@@ -249,7 +242,7 @@ A reporting application wants every reporting connection to carry a metric name
 and an explicit closer. A reusable registration helper can attach that convention.
 Two configured observers then count acquisitions and export telemetry using the
 metadata, without adding logging calls to the connection implementation. A failed
-telemetry export must be observable while allowing application cleanup to finish.
+telemetry export must be observable while allowing application disposal to finish.
 
 ```ts
 import assert from 'node:assert/strict';
@@ -266,9 +259,7 @@ function reportingConnection(
   create: (deps: { options: ConnectionOptions }) => Promise<Reports>,
   metricName: string,
 ) {
-  return DiBag.withMetadata(DiBag.withDisposal(create, client => client.close()), {
-    static: { 'app:metric': metricName, 'app:owner': 'reporting' },
-  });
+  return DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: create, disposeService: client => client.close() }), registrationMetadata: { 'app:metric': metricName, 'app:owner': 'reporting' } });
 }
 function metricName(metadata: Readonly<object>): string | undefined {
   if ('app:metric' in metadata && typeof metadata['app:metric'] === 'string') {
@@ -287,25 +278,25 @@ async function main() {
   let exportFinished = false;
   let exportFinishedAtClose = false;
   let connectionsClosed = 0;
-  const metrics = DiBag.withConfiguration({ observers: [{
-    onEvent(event) {
+  const metrics = DiBag.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) {
       if (event.kind !== 'acquisition-ready') return;
       const name = metricName(event.registrationMetadata);
       if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
     },
-    onError(failure) { failures.push(failure); },
+    onObserverFailure(failure) { failures.push(failure); },
   }] });
   // This creates another facade and appends an observer to the metrics facade.
-  const reporting = metrics.withConfiguration({ observers: [{
-    async onEvent(event) {
-      if (event.kind === 'scope-closed') closeDelivered.release();
+  const reporting = metrics.withConfiguration({ lifecycleObservers: [{
+    async onLifecycleEvent(event) {
+      if (event.kind === 'container-closed') closeDelivered.release();
       if (event.kind !== 'acquisition-ready') return;
       if (metricName(event.registrationMetadata) !== 'reports.open') return;
       await exportAllowed.promise;
       exportFinished = true;
       throw unavailable; // Deterministic failed export, without a network call.
     },
-    onError(failure) {
+    onObserverFailure(failure) {
       failures.push(failure);
       failureDelivered.release();
     },
@@ -322,15 +313,15 @@ async function main() {
       close() { closed = true; connectionsClosed++; },
     };
   }, 'reports.open');
-  const app = reporting.createBuilder().register({
+  const app = reporting.createBuilder().withServices({
     options: () => ({ region: 'eu' }), reports,
-  }).alias('dashboard', 'reports').build();
+  }).withServiceAlias({ aliasKey: 'dashboard', targetServiceKey: 'reports' }).buildContainer();
 
   try {
     const client = await app.resolve('dashboard');
     assert.equal(client.countOpenOrders(), 2);
     assert.equal(await app.resolve('reports'), client);
-    assert.equal(app.inspect('reports').registrationMetadata['app:owner'], 'reporting');
+    assert.equal(app.serviceSnapshot('reports').registrationMetadata['app:owner'], 'reporting');
   } finally {
     try {
       await app.close();
@@ -366,9 +357,9 @@ observers to a new facade; existing facades and builders keep their configuratio
 
 Observers are asynchronous telemetry hooks, not middleware that can veto a service
 or enforce a policy. They can report internal module acquisitions, but that does
-not make private bindings available to public `inspect` or `resolve` calls.
+not make private bindings available to public `serviceSnapshot` or `resolve` calls.
 Event metadata is heterogeneous, hence the small runtime check for `app:metric`.
 Callbacks should stay small; a producer that continuously outruns its exporter
-needs an application-defined buffering or dropping policy. `withDisposal` supplies
-the ownership here; metadata alone does not close resources, and cleanup still
+needs an application-defined buffering or dropping policy. `DiBag.providerWithDisposal` supplies
+the ownership here; metadata alone does not close resources, and disposal still
 depends on a cooperative closer.

@@ -4,9 +4,9 @@
 
 # Class: DiBagCloseCancelledError
 
-Defined in: [errors.ts:198](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L198)
+Defined in: [errors.ts:212](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L212)
 
-A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup keeps running.
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before disposal finished; disposal keeps running.
 `code` is `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the signal.
 
 ## Example
@@ -14,11 +14,11 @@ A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup k
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 try {
-  await bag.close({ timeoutMs: 5_000 });
+  await container.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
-  if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending);
+  if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
   throw error;
 }
 ```
@@ -32,10 +32,10 @@ try {
 ### Constructor
 
 ```ts
-new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>, progress: CloseProgress, timeoutMs?: number): DiBagCloseCancelledError;
+new (reason: "aborted" | "timeout", cause: unknown, disposalPromise: Promise<void>, progress: CloseProgress, waitTimeoutMs?: number): DiBagCloseCancelledError;
 ```
 
-Defined in: [errors.ts:208](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L208)
+Defined in: [errors.ts:222](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L222)
 
 #### Parameters
 
@@ -43,9 +43,9 @@ Defined in: [errors.ts:208](https://github.com/dany-fedorov/di-bag/blob/main/src
 | ------ | ------ |
 | `reason` | Whether an external abort or the close deadline stopped the wait. |
 | `cause` | The abort reason, or a `TimeoutError` DOMException for the deadline. |
-| `cleanupPromise` | The bag's shared shutdown promise; it settles when cleanup eventually finishes. |
+| `disposalPromise` | The container's shared shutdown promise; it settles when disposal eventually finishes. |
 | `progress` | Labels still in progress when the wait stopped. |
-| `timeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
+| `waitTimeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
 
 #### Overrides
 
@@ -55,25 +55,13 @@ Error.constructor
 
 ## Properties
 
-### cleanupPromise
-
-```ts
-readonly cleanupPromise: Promise<void>;
-```
-
-Defined in: [errors.ts:211](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L211)
-
-The bag's shared shutdown promise; it settles when cleanup eventually finishes.
-
-***
-
 ### code
 
 ```ts
 declare readonly code: 'DI_BAG_CLOSE_TIMEOUT' | 'DI_BAG_CLOSE_ABORTED';
 ```
 
-Defined in: [errors.ts:199](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L199)
+Defined in: [errors.ts:213](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L213)
 
 ***
 
@@ -83,11 +71,23 @@ Defined in: [errors.ts:199](https://github.com/dany-fedorov/di-bag/blob/main/src
 declare readonly details: Readonly<{
     operation: 'close';
     reason: 'aborted' | 'timeout';
-    timeoutMs?: number;
+    waitTimeoutMs?: number;
 } & CloseProgress>;
 ```
 
-Defined in: [errors.ts:200](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L200)
+Defined in: [errors.ts:214](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L214)
+
+***
+
+### disposalPromise
+
+```ts
+readonly disposalPromise: Promise<void>;
+```
+
+Defined in: [errors.ts:225](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L225)
+
+The container's shared shutdown promise; it settles when disposal eventually finishes.
 
 ***
 
@@ -97,6 +97,6 @@ Defined in: [errors.ts:200](https://github.com/dany-fedorov/di-bag/blob/main/src
 readonly reason: 'aborted' | 'timeout';
 ```
 
-Defined in: [errors.ts:209](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L209)
+Defined in: [errors.ts:223](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L223)
 
 Whether an external abort or the close deadline stopped the wait.

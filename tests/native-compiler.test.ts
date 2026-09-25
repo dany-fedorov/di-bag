@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { compileNative, matchDiagnosticMarkers, parseNativeDiagnostics, resolveNative } from '../scripts/native-compiler.ts';
 import { compileGeneratedNative, nativeScale } from '../scripts/native-scale.ts';
 import { controlScaleSource } from './compiler';
+import { matchNativeDiagnosticMarkers, nativeDiagnosticGapMessages } from './native-diagnostic-markers.ts';
 
 test('parser retains real native multiline diagnostics, positions and metrics', () => {
   const output = "invalid.ts(3,7): error TS2322: Type '{ read(): { value: string; }; }' is not assignable to type 'Needs'.\r\n  The types returned by 'read().value' are incompatible between these types.\r\n    Type 'string' is not assignable to type 'number'.\r\nFiles: 64\r\nMemory used: 61602K\r\nTotal time: 0.209s\r\n";
@@ -20,8 +21,8 @@ test('parser exposes configuration errors, TS2589 and unknown output', () => {
   expect(parseNativeDiagnostics('unknown output\n', '/tmp').unparsed).toEqual(['unknown output']);
 });
 test('source marker gate rejects wrong file, region, message, TS2589 and unmatched cascades', () => {
-  const source = '// diagnostic: required service registrations are missing\ncall();\n// diagnostic: consumer dependency\ncall();';
-  const good = [{ file: '/tmp/source.ts', line: 2, code: 2345, message: 'required service registrations are missing' },
+  const source = '// diagnostic: required services are missing\ncall();\n// diagnostic: consumer dependency\ncall();';
+  const good = [{ file: '/tmp/source.ts', line: 2, code: 2345, message: 'required services are missing' },
     { file: '/tmp/source.ts', line: 4, code: 2345, message: 'consumer dependency' }];
   expect(matchDiagnosticMarkers(source, '/tmp/source.ts', good)).toMatchObject({ expected: 2, matched: 2, unexpected: [], missing: [] });
   for (const change of [{ file: '/tmp/config.json' }, { line: 4 }, { message: 'other' }, { code: 2589 }]) {
@@ -47,6 +48,56 @@ test('verified native executable checks real nonempty valid and invalid projects
     expect(configuration.diagnostics).toMatchObject([{ file: join(directory, 'tsconfig.native.json'), code: 6046 }]);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 }, 15000);
+
+test('native provider facade diagnostics retain two exact reviewed quality gaps', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'di-bag-native-provider-facades-'));
+  try {
+    const compiler = await resolveNative(process.cwd());
+    const fixtureRoot = resolve(process.cwd(), 'tests/types');
+    const cases = [
+      { file: 'negative/provider-facades.ts', primaryExpected: 17, primaryMatched: 15, knownNativeRejections: 2 },
+      { file: 'negative/provider-facade-lifetime-controls.ts', primaryExpected: 6, primaryMatched: 6, knownNativeRejections: 0 },
+      { file: 'negative/provider-facade-modes.ts', primaryExpected: 2, primaryMatched: 2, knownNativeRejections: 0 },
+      { file: 'provider-facades.ts', primaryExpected: 0, primaryMatched: 0, knownNativeRejections: 0 },
+    ] as const;
+    for (const item of cases) {
+      const file = resolve(fixtureRoot, item.file);
+      const result = await compileNative(compiler, directory, [file], { skipLibCheck: true, noErrorTruncation: true });
+      expect(result.checked, item.file).toBe(true);
+      const markers = matchNativeDiagnosticMarkers(readFileSync(file, 'utf8'), file, result.diagnostics);
+      expect(markers, item.file).toMatchObject({
+        accepted: true,
+        primaryExpected: item.primaryExpected,
+        primaryMatched: item.primaryMatched,
+        knownNativeRejections: item.knownNativeRejections,
+        unexpected: [],
+        unresolved: [],
+        declarationErrors: [],
+      });
+      if (item.file !== 'negative/provider-facades.ts') {
+        expect(markers.gaps, item.file).toEqual([]);
+      } else {
+        expect(result.diagnostics).toHaveLength(17);
+        expect(markers.status).toBe('accepted-with-diagnostic-gaps');
+        expect(markers.gaps.map(gap => ({
+          id: gap.id,
+          line: gap.diagnostic.line,
+          column: gap.diagnostic.column,
+          code: gap.diagnostic.code,
+        }))).toEqual([
+          { id: 'last-provider-acquisition-mode', line: 26, column: 51, code: 2769 },
+          { id: 'last-provider-transform-fulfilled-mode', line: 31, column: 50, code: 2769 },
+        ]);
+        expect(markers.gaps.map(gap => gap.diagnostic.message)).toEqual(markers.gaps.map(gap => nativeDiagnosticGapMessages[gap.id]!));
+        const source = readFileSync(file, 'utf8');
+        expect(markers.gaps.map(gap => source.split('\n')[gap.diagnostic.line! - 1]!.slice(gap.diagnostic.column! - 1))).toEqual([
+          "callbackReceives: 'later', describeAcquisition: value => ({ value }) });",
+          "callbackReceives: 'fulfilled-value', transformService: value => value, transformReturnKind: 'sync-value' });",
+        ]);
+      }
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+}, 65000);
 
 for (const item of [
   { count: 100, form: 'bulk', scenario: 'valid' },

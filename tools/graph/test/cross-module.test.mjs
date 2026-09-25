@@ -74,3 +74,71 @@ test('loadTypeScript uses the project compiler only when it has the compiler API
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test('literal requirement renames satisfy static cross-module edges', () => {
+  for (const name of ['renamedRequirement', 'repeatedRequirement', 'exportFirstRequirement', 'requirementFirstExport', 'nestedRequirementHost']) {
+    const id = idOf('app.ts', `export const ${name} =`);
+    const unit = graph.units.find(candidate => candidate.id === id);
+    assert(unit, `missing extracted host ${name}`);
+    assert.deepEqual(unit.installs, [name === 'nestedRequirementHost'
+      ? idOf('app.ts', 'const nestedRequirementModule =')
+      : idOf('billing.ts', 'export const billingModule')], name);
+    assert.deepEqual(issuesOf(id), [], name);
+  }
+});
+
+test('dynamic requirement names and bags remain opaque', () => {
+  for (const name of ['dynamicRequirement', 'dynamicRequirementBag']) {
+    const id = idOf('app.ts', `export const ${name} =`);
+    const unit = graph.units.find(candidate => candidate.id === id);
+    assert(unit, `missing extracted host ${name}`);
+    assert(unit.installs.some(value => value.includes('withRenamedRequirement')), name);
+    assert.deepEqual(issuesOf(id), [], name);
+  }
+});
+
+test('module requirements expose names at each installation boundary', () => {
+  const cases = [
+    ['billing.ts', 'export const billingModule', ['shipping']],
+    ['app.ts', 'const nestedRequirementModule =', ['delivery']],
+    ['app.ts', 'const repeatedRequirementModule =', ['transport']],
+    ['app.ts', 'const nestedTransportModule =', ['transport']],
+    ['app.ts', 'const emptyRequirementModule =', ['']],
+  ];
+  for (const [file, declaration, requirements] of cases) {
+    const id = idOf(file, declaration);
+    const unit = graph.units.find(candidate => candidate.id === id);
+    assert(unit, declaration);
+    assert.deepEqual(unit.requirements, requirements, declaration);
+  }
+  for (const name of ['repeatedModuleHost', 'nestedTransportHost', 'emptyRequirementHost']) {
+    assert.deepEqual(issuesOf(idOf('app.ts', `export const ${name} =`)), [], name);
+  }
+});
+
+test('a missing renamed host keeps the factory dependency name and labeled consumer', () => {
+  for (const [name, consumer] of [
+    ['missingRenamedRequirement', 'billingModule/ledger'],
+    ['missingNestedRequirement', 'nestedRequirementModule/billingModule/ledger'],
+  ]) {
+    const id = idOf('app.ts', `export const ${name} =`);
+    assert.deepEqual(issuesOf(id), [
+      { kind: 'unresolved', unit: id, consumer, dependency: 'shipping' },
+    ], name);
+  }
+});
+
+test('an opaque nested installation publishes no requirements or issues', () => {
+  const module = graph.units.find(unit => unit.id === idOf('app.ts', 'const opaqueRequirementModule ='));
+  assert.deepEqual(module.requirements, []);
+  assert.deepEqual(issuesOf(idOf('app.ts', 'export const opaqueNestedRequirement =')), []);
+});
+
+test('mixed export and requirement views supply invoice to consumers', () => {
+  for (const name of ['exportFirstRequirement', 'requirementFirstExport']) {
+    const id = idOf('app.ts', `export const ${name} =`);
+    const unit = graph.units.find(candidate => candidate.id === id);
+    assert.deepEqual(unit.edges.filter(edge => edge.from === 'invoiceReport'), [{ from: 'invoiceReport', to: 'invoice' }], name);
+    assert.deepEqual(issuesOf(id), [], name);
+  }
+});

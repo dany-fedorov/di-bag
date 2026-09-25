@@ -20,9 +20,9 @@ type SealedConstraints<C extends NeedConstraint, R extends Registrations, P exte
 } ? TokenConstraint<K, T, R, P, true> : C;
 ```
 
-Defined in: [module-types.ts:181](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L181)
+Defined in: [module-types.ts:210](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L210)
 
-Re-scope every constraint a builder retained from installed modules and
+Nest every constraint a builder retained from installed modules and
 contributions when that builder seals into a module with exports `P`.
 Needs on an export stay checkable by the host; needs satisfied privately are
 final and drop; unsatisfied needs remain external requirements of the module.

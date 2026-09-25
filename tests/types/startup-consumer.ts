@@ -14,9 +14,9 @@ export async function consume() {
   const bag = await started;
   const named = bag.resolve('contextual');
   const value = bag.resolve(selectedToken);
-  const owner = bag.inspect('contextual').registrationMetadata.owner;
+  const owner = bag.serviceSnapshot('contextual').registrationMetadata.owner;
   const label: 'exact' = named.read();
   const exact: 42 = value.value;
   const exactOwner: 'startup' = owner;
-  return { label, exact, exactOwner, child: bag.createScope() };
+  return { label, exact, exactOwner, child: bag.createChildContainer() };
 }

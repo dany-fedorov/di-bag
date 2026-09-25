@@ -1,16 +1,18 @@
 import type {
   Factory,
-  FactoryWithDisposal,
-  Registration,
+  ProviderOrFactory,
   Registrations,
 } from './registration';
 import type { ProviderContext, ProviderNamedDependencies, ProviderOutput, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens } from './provider';
-import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToken, TokenDependencyContract, WrongToken } from './token-types';
+import type { BindingOutput, InvalidGraphs, MissingTokens, SelectionKey, TokenBinding, TokenMember, TokenDependencyContract, TokenValue, ValidToken, WrongToken } from './token-types';
+import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
+import type { CollectionMember } from './contribution-types';
+import type { BoundToken } from './provider';
 
-export type Needs<R extends Registration> = ProviderNamedDependencies<R>;
+export type Needs<R extends ProviderOrFactory> = ProviderNamedDependencies<R>;
 
 /**
- * Map registrations to the exact service values they expose.
+ * Map providers to the exact service values they expose.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export type ServicesOf<R extends Registrations> = {
@@ -18,13 +20,13 @@ export type ServicesOf<R extends Registrations> = {
 };
 
 // Keep builder history flat; reconstruct a map only at graph-check boundaries.
-export type Entry = { key: string | symbol; registration: Registration };
+export type Entry = { key: string | symbol; registration: ProviderOrFactory };
 
 // Compare distinct keys before the registration types retained by an entry union.
-type RegistrationEntry<K extends string | symbol, V extends Registration> = { key: K; registration: V };
+type RegistrationEntry<K extends string | symbol, V extends ProviderOrFactory> = { key: K; registration: V };
 
 /**
- * Convert a registration map to the union of entries retained by a builder.
+ * Convert a provider map to the union of entries retained by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export type RegistrationEntries<R extends Registrations> = {
@@ -32,7 +34,7 @@ export type RegistrationEntries<R extends Registrations> = {
 }[keyof R & (string | symbol)];
 
 /**
- * Reconstruct a registration map from a builder's retained entry union.
+ * Reconstruct a provider map from a builder's retained entry union.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export type RegistrationsFromEntries<E extends Entry> = {
@@ -40,8 +42,8 @@ export type RegistrationsFromEntries<E extends Entry> = {
 };
 
 /**
- * Replace overlapping registrations in `F` with registrations from `N`.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * Replace overlapping providers in `F` with providers from `N`.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type OverrideRegistrations<F extends Registrations, N extends Registrations> = Omit<
   F,
@@ -63,11 +65,11 @@ export type StructuralThenable<O> = StructuralThenablesAllowed extends true ? fa
     // Infer through an intersection first: a NoInfer wrapper otherwise defers the check in adapter signatures.
     : O extends infer T & {} ? T extends Promise<unknown> ? false : T extends { then(...args: never[]): unknown } ? true : false : false;
 type ThenableOutputs<R extends Registrations> = {
-  [K in keyof R]: R[K] extends Factory | FactoryWithDisposal<Factory> ? true extends StructuralThenable<ProviderOutput<R[K]>> ? K : never : never;
+  [K in keyof R]: R[K] extends Factory ? true extends StructuralThenable<ProviderOutput<R[K]>> ? K : never : never;
 }[keyof R];
-/** Reject plain or disposable factories whose declared output auto acquisition would reject at runtime. */
+/** Reject plain factories whose declared output auto acquisition would reject at runtime. */
 export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
-  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, { tokens: ThenableOutputs<R> }>;
+  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'${SeeErrors<'structural-thenable'>}`, { tokens: ThenableOutputs<R> }>;
 
 /**
  * Render dependency names inside diagnostic messages; typed tokens have no printable name.
@@ -79,13 +81,13 @@ export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'ty
 export type ErrorsPage = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';
 /** Message suffix naming the errors-page section of a compile-time message family. */
 export type SeeErrors<Family extends string> = `; see ${ErrorsPage}#${Family}`;
-// Per-call wrong-shape sites stay unnamed for compiler cost; that section tells the reader to call verifyGraph().
+// Per-call wrong-shape sites stay unnamed for compiler cost; that section tells the reader to call verifyGraphAtCompileTime().
 export type WrongShapeMessage = `provided service does not satisfy its consumer dependency${SeeErrors<'wrong-shape'>}`;
 declare const diBagTypeError: unique symbol;
 export type Unsatisfied<Message extends string, Details> = {
   readonly [diBagTypeError]: Message;
 } & Details;
-// verifyGraph() prints the details a wrong-shape report points to, so its report names the unsatisfied-consumer section instead.
+// verifyGraphAtCompileTime() prints the details a wrong-shape report points to, so its report names the unsatisfied-consumer section instead.
 export type ConsumerReport<Check> = Check extends { readonly [diBagTypeError]: WrongShapeMessage }
   ? Unsatisfied<`provided service does not satisfy its consumer dependency${SeeErrors<'unsatisfied-consumer'>}`, Omit<Check, typeof diBagTypeError>>
   : Check;
@@ -153,7 +155,7 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : [NonFiniteKeys<R> | Extract<keyof R, number>] extends [never]
     ? Unsatisfied<'factory dependencies must be finite string-keyed objects', { tokens: InvalidNeeds<R> }>
-    : Unsatisfied<'registration keys must be finite string or unique-symbol keys', { keys: NonFiniteKeys<R> | Extract<keyof R, number> }>;
+    : Unsatisfied<'service keys must be finite string or unique-symbol keys', { keys: NonFiniteKeys<R> | Extract<keyof R, number> }>;
 
 // Builder history has already passed CheckDependencyCompatibility, so only relationships crossing
 // the accepted-history/incoming-registration boundary need validating again.
@@ -193,7 +195,7 @@ export type IncrementalChecked<E extends Entry, N extends Registrations> = unkno
   : CheckDependencyCompatibility<N>;
 
 export type NamedAdmission<R> = [NonFiniteKeys<R> | Exclude<keyof R, string>] extends [never] ? unknown
-  : Unsatisfied<'register requires finite string-keyed registration objects', { keys: NonFiniteKeys<R> | Exclude<keyof R, string> }>;
+  : Unsatisfied<'withServices requires finite string-keyed provider objects', { keys: NonFiniteKeys<R> | Exclude<keyof R, string> }>;
 
 type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
@@ -213,7 +215,7 @@ export type CheckDependencyCompleteness<R extends Registrations> = [
   ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
-      `required service registrations are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}${SeeErrors<'missing-service'>}`,
+      `required services are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}${SeeErrors<'missing-service'>}`,
       { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>; relationships: MissingRelationships<R> }
     >;
 
@@ -222,29 +224,34 @@ type BadOverrides<F extends Registrations, O extends Registrations> = {
 }[keyof O & keyof F];
 
 /**
- * Admit overrides only for existing keys whose service values remain assignable.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * Admit replacements only for existing keys whose service values remain assignable.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
-export type Overrides<F extends Registrations, O extends Registrations> = [
-  Exclude<keyof O, keyof F>,
-] extends [never]
-  ? [BadOverrides<F, O>] extends [never]
-    ? unknown
+export type Overrides<
+  F extends Registrations,
+  O extends Registrations,
+  K extends readonly unknown[] = readonly [],
+  Operation extends string = 'createIndependentContainer',
+> = unknown extends CollectionOverrideAdmission<K, O>
+  ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never]
+    ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never]
+      ? unknown
+      : Unsatisfied<
+          `replacement value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`,
+          { tokens: BadOverrides<SelectionRegistrations<F, K>, O> }
+        >
     : Unsatisfied<
-        `override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}${SeeErrors<'wrong-override'>}`,
-        { tokens: BadOverrides<F, O> }
+        `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof SelectionRegistrations<F, K>>>}${SeeErrors<'unknown-key'>}`,
+        { extra: Exclude<keyof O, keyof SelectionRegistrations<F, K>> }
       >
-  : Unsatisfied<
-      `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}${SeeErrors<'unknown-key'>}`,
-      { extra: Exclude<keyof O, keyof F> }
-    >;
+  : CollectionOverrideAdmission<K, O>;
 
 export type Introduces<F extends Registrations, N extends Registrations> = [
   keyof F & keyof N,
 ] extends [never]
   ? unknown
   : Unsatisfied<
-      'register introduces new names or typed tokens only',
+      'withServices and withTokenService introduce new names or typed tokens only',
       { duplicates: keyof F & keyof N }
     >;
 
@@ -254,7 +261,7 @@ export type EntryKeys<E extends Entry> = string extends E['key'] ? keyof Registr
 
 // Duplicate admission needs keys, independently of registration values.
 export type IntroducesKeys<Known extends PropertyKey, New extends PropertyKey> = [Known & New] extends [never]
- ? unknown : Unsatisfied<'register introduces new names or typed tokens only', { duplicates: Known & New }>;
+ ? unknown : Unsatisfied<'withServices and withTokenService introduce new names or typed tokens only', { duplicates: Known & New }>;
 
 export type Singleton<K> = [K] extends [never]
   ? false
@@ -270,15 +277,15 @@ export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
       ? unknown
-      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
-    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
+      : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
+    : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
 
 export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
   Singleton<K> extends true
     ? K extends Keys
       ? unknown
-      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
-    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
+      : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
+    : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
 
 // Context needs one compatible output per surviving consumer. Intersect their
 // callback parameters, not their value unions: string | number in one consumer
@@ -303,27 +310,30 @@ export type ReplacementOutput<R extends Registrations, K extends PropertyKey, C 
 
 // Validate each tuple element, not K[number]: a multi-key tuple is valid even
 // though the union of all of its elements is not itself a singleton.
-type InvalidElements<K extends readonly unknown[]> = {
+type InvalidSelectionElements<K extends readonly unknown[]> = {
   [I in keyof K]-?: Singleton<K[I]> extends true ? never : ValidToken<K[I]> extends true ? never : I;
 }[number];
-type InvalidMembers<R extends Registrations, T> = T extends string ? never : unknown extends TokenMember<R, T> ? never : T;
+type InvalidSelectionMembers<R extends Registrations, C, T> = T extends string ? never
+  : T extends CollectionTokenBase ? unknown extends CollectionMember<T, C> ? never : T
+  : unknown extends TokenMember<R, T> ? never : T;
+type MissingSelectionKeys<R extends Registrations, T> = T extends CollectionTokenBase ? never : Exclude<SelectionKey<T>, keyof R>;
 
 /**
  * Validate a finite tuple of existing singleton names or genuine typed tokens.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
-export type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> =
+export type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'createIndependentContainer'> =
   true extends IsUnion<K>
     ? InvalidSelection<Operation>
     : number extends K['length']
       ? InvalidSelection<Operation>
       : K extends Required<K>
-        ? [InvalidElements<K>] extends [never]
-          ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never]
+        ? [InvalidSelectionElements<K>] extends [never]
+          ? [MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>] extends [never]
             ? unknown
             : Unsatisfied<
-                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}${SeeErrors<'unknown-key'>}`,
-                { extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]> }
+                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>>}${SeeErrors<'unknown-key'>}`,
+                { extra: MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]> }
               >
           : InvalidSelection<Operation>
         : InvalidSelection<Operation>;
@@ -334,38 +344,65 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
 >;
 
 /**
- * Select registration-valued own fields corresponding to a checked key tuple.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * Select provider-valued own fields corresponding to a checked key tuple.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type SelectedRegistrations<K extends readonly unknown[], O> = {
-  [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
+  [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], ProviderOrFactory>;
 };
+type CollectionSelectionMember<V> = V extends CollectionTokenBase ? Record<TokenKey<V>, () => TokenValue<V>> : never;
+export type CollectionSelection<K extends readonly unknown[]> = [Extract<K[number], CollectionTokenBase>] extends [never] ? {}
+  : Intersect<CollectionSelectionMember<K[number]>> extends infer Exact extends object
+    ? { [P in keyof Exact]: Extract<Exact[P], ProviderOrFactory> }
+    : never;
+export type SelectionRegistrations<R extends Registrations, K extends readonly unknown[]> =
+  Extract<Omit<R, keyof CollectionSelection<K>> & CollectionSelection<K>, Registrations>;
+type SelectedTokenForKey<K extends readonly unknown[], P extends PropertyKey> = K[number] extends infer V ? V extends TokenBase ? TokenKey<V> extends P ? V : never : never : never;
+type OverrideOutput<Base extends Registrations, K extends readonly unknown[], P extends keyof Base> =
+  P extends TokenKey<Extract<K[number], CollectionTokenBase>>
+    ? unknown
+    : ServicesOf<Base>[P];
+type CollectionOverrideMember<O, T> = T extends CollectionTokenBase
+  ? TokenKey<T> extends keyof O ? BindingOutput<T, Extract<O[TokenKey<T>], ProviderOrFactory>> : unknown
+  : unknown;
+export type CollectionOverrideAdmission<K extends readonly unknown[], O> = Intersect<
+  K[number] extends infer T ? CollectionOverrideMember<O, T> : never
+>;
+/** Rebind selected symbol-keyed replacements to their original typed-token contracts. */
+export type ReboundProviders<R extends Registrations, K extends readonly unknown[], O extends Registrations> = {
+  [P in keyof O]: P extends symbol ? SelectedTokenForKey<K, P> extends infer T extends TokenBase
+    ? [T] extends [never] ? P extends keyof R ? TokenBinding<BoundToken<R[P]>, O[P]> : O[P]
+      : TokenBinding<T, O[P]> : never : O[P];
+};
+/** Preserve named replacements while rebinding selected symbol-keyed providers. */
+export type ReboundSelection<R extends Registrations, K extends readonly unknown[], O extends Registrations> =
+  [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, K, O>;
+export type ReboundSelected<R extends Registrations, K extends readonly unknown[], O> = ReboundSelection<
+  SelectionRegistrations<R, K>, K, SelectedRegistrations<K, O>
+>;
+export type AppliedSelection<R extends Registrations, K extends readonly unknown[], O> = OverrideRegistrations<
+  SelectionRegistrations<R, K>, ReboundSelected<R, K, O>
+>;
 
 // A graph-compatible bound gives context-sensitive factories a usable first
 // inference pass, while requiring every selected key in explicit type arguments.
 /**
- * Contextual override shape used to infer a selected fork or child-scope graph.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * Contextual replacement shape used to infer a selected independent- or child-container graph.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type OverrideFactoryContext<
   R extends Registrations,
   K extends readonly unknown[],
   O,
 > = {
-  [P in Extract<SelectionKey<K[number]>, keyof R>]:
+  [P in Extract<SelectionKey<K[number]>, keyof SelectionRegistrations<R, K>>]:
     | ((
         this: void,
-        deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
-      ) => ServicesOf<R>[P])
-    | FactoryWithDisposal<
-        (
-          this: void,
-          deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
-        ) => ServicesOf<R>[P]
-      >
+        dependencies: ServicesOf<AppliedSelection<R, K, O>>,
+      ) => OverrideOutput<SelectionRegistrations<R, K>, K, P>)
     | ProviderContext<
-        (this: void, deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P],
-        P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract
+        (this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>,
+        P extends keyof O ? ProviderGraphContract<Extract<O[P], ProviderOrFactory>> : TokenDependencyContract
       >;
 };
 
@@ -378,7 +415,7 @@ export type Intersect<U> = (U extends unknown ? (value: U) => void : never) exte
 // Declaration emit cannot serialize an expanded property named by a unique symbol, so symbol keys
 // stay `Record` references, which print by name and carry only the key and service types.
 type SymbolExports<S, K> = Extract<Intersect<K extends symbol ? Record<K, S[K & keyof S]> : never>, object>;
-/** The services a sealed module exports, printed without the registrations they came from. */
+/** The services a sealed module exports, printed without the providers they came from. */
 // Single-kind selections skip the intersection: installs compare this type on every call.
 export type ExportedServices<S, K extends keyof S> = [Extract<K, symbol>] extends [never] ? Resolved<Pick<S, K>>
   : [Extract<K, string>] extends [never] ? SymbolExports<S, K>

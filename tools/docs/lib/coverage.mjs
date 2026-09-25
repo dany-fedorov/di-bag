@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 
-const entryPoints = ['index', 'node'];
+const entryPoints = ['index'];
 
 function target(reflection) {
   return reflection.tryGetTargetReflection?.() ?? reflection;
@@ -18,6 +18,8 @@ function signatures(reflection) {
   return 0;
 }
 
+const isInternal = declaration => ts.getJSDocTags(declaration).some(tag => tag.tagName.text === 'internal');
+
 /** Compare generated public declarations with the compiler's real export view. */
 export function verifyApiCoverage(project, root, output) {
   const config = ts.getParsedCommandLineOfConfigFile(join(root, 'tsconfig.build.json'), {}, {
@@ -29,7 +31,10 @@ export function verifyApiCoverage(project, root, output) {
   const report = { entryPoints: {}, callableOverloads: {} };
   for (const name of entryPoints) {
     const source = program.getSourceFile(join(root, `src/${name}.ts`));
-    const symbols = checker.getExportsOfModule(checker.getSymbolAtLocation(source));
+    const symbols = checker.getExportsOfModule(checker.getSymbolAtLocation(source)).filter(symbol => {
+      const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+      return !(resolved.declarations ?? []).some(isInternal);
+    });
     const module = project.children.find(child => child.name === name);
     assert(module, `Missing reference entry point ${name}`);
     const actual = module.children.map(child => child.name).sort();
@@ -37,7 +42,8 @@ export function verifyApiCoverage(project, root, output) {
     assert.deepEqual(actual, expected, `${name}: generated exports differ from TypeScript exports`);
     const markdown = readFileSync(join(output, name, 'index.md'), 'utf8');
     for (const symbol of symbols) {
-      assert(markdown.includes(`[${symbol.name}](`), `${name}: missing Markdown link for ${symbol.name}`);
+      assert(markdown.includes(`[${symbol.name}](`) || markdown.includes(`[~~${symbol.name}~~](`),
+        `${name}: missing Markdown link for ${symbol.name}`);
       const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
       const declaration = resolved.declarations?.[0];
       const reflection = target(module.children.find(child => child.name === symbol.name));
@@ -70,6 +76,7 @@ export function verifyApiCoverage(project, root, output) {
         if (!decl || !decl.getSourceFile().fileName.startsWith(join(root, 'src/'))) continue;
         const flags = ts.getCombinedModifierFlags(decl);
         if (flags & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected)) continue;
+        if (isInternal(decl)) continue;
         if (member.name.startsWith('__@') || member.name.startsWith('#')) continue;
         const documented = reflection.children?.find(child => child.name === member.name);
         assert(documented, `${name}.${symbol.name}: missing member ${member.name}`);

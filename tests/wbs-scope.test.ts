@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src/node';
+import { DiBag, DiBagDisposalError } from '../src';
 import {
   Collector,
   Source,
@@ -73,7 +73,7 @@ test('an explicitly shared WBS service keeps its original stores and broadcaster
     source.stores('batch'),
     () => new Collector('batch', lifecycle),
   );
-  const shared = batch.fork(['workItems'], { workItems: () => root.resolve('workItems') });
+  const shared = batch.createIndependentContainer(['workItems'], { workItems: () => root.resolve('workItems') });
   try {
     expect(shared.resolve('workItems')).toBe(root.resolve('workItems'));
     expect(shared.resolve('stores').scope).toBe('batch');
@@ -138,14 +138,11 @@ test('startup still closes later bags and its source when multiple disposers fai
   const first = new Error('first cleanup failed');
   const second = new Error('second cleanup failed');
   const failing = (scope: string, error: Error) =>
-    root.fork(['broadcast'], {
-      broadcast: DiBag.withDisposal(
-        () => new Collector(scope, lifecycle),
-        (collector) => {
+    root.createIndependentContainer(['broadcast'], {
+      broadcast: DiBag.providerWithDisposal({ provider: () => new Collector(scope, lifecycle), disposeService: (collector) => {
           collector.close();
           throw error;
-        },
-      ),
+        } }),
     });
   const a = failing('a', first);
   const b = failing('b', second);
@@ -160,8 +157,8 @@ test('startup still closes later bags and its source when multiple disposers fai
   const acquisitionIds: symbol[] = [];
   for (const [index, cause] of [first, second].entries()) {
     const scopeFailure: unknown = error.errors[index];
-    expect(scopeFailure).toBeInstanceOf(DiBagCleanupError);
-    if (!(scopeFailure instanceof DiBagCleanupError)) throw new Error('missing scope aggregate');
+    expect(scopeFailure).toBeInstanceOf(DiBagDisposalError);
+    if (!(scopeFailure instanceof DiBagDisposalError)) throw new Error('missing scope aggregate');
     expect(scopeFailure.errors).toEqual([cause]);
     expect(scopeFailure.failures[0]!.error).toBe(cause);
     acquisitionIds.push(scopeFailure.failures[0]!.acquisitionId);

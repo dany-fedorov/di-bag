@@ -1,0 +1,6 @@
+[
+  {
+    "line": 5,
+    "reason": "these options are not an object literal; where they are built, rename signal to abortSignal, timeoutMs to totalTimeoutMs, and replace startupOrder with maxConcurrentServiceKeys"
+  }
+]

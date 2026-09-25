@@ -1,59 +1,59 @@
-import { DiBag, type Provider } from '../../../src';
-type Registration = Parameters<typeof DiBag.withMetadata>[0];
-const provider = DiBag.withMetadata(({ clock }: { clock: number }) => clock, { static: { owner: 'team' } });
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ provider }).build();
+import { DiBag, type Provider, type ProviderOrFactory } from '../../../src';
+type Registration = ProviderOrFactory;
+const provider = DiBag.providerWithRegistrationMetadata({ provider: ({ clock }: { clock: number }) => clock, registrationMetadata: { owner: 'team' } });
+// diagnostic: required services are missing
+DiBag.createBuilder().withServices({ provider }).buildContainer();
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({ provider, clock: () => 'wrong' });
+DiBag.createBuilder().withServices({ provider, clock: () => 'wrong' });
 // diagnostic: duplicate metadata
-DiBag.withMetadata(provider, { static: { owner: 'duplicate' } });
+DiBag.providerWithRegistrationMetadata({ provider: provider, registrationMetadata: { owner: 'duplicate' } });
 const key = Symbol('owner');
-const symbolProvider = DiBag.withMetadata(() => 1, { static: { [key]: 'team' } });
+const symbolProvider = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { [key]: 'team' } });
 // diagnostic: duplicate metadata
-DiBag.withMetadata(symbolProvider, { static: { [key]: 'duplicate' } });
+DiBag.providerWithRegistrationMetadata({ provider: symbolProvider, registrationMetadata: { [key]: 'duplicate' } });
 // diagnostic: finite string or unique-symbol
-DiBag.withMetadata(() => 1, { static: { 42: 'numeric' } });
+DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { 42: 'numeric' } });
 const indexed: Record<string, number> = {};
 // diagnostic: finite string or unique-symbol
-DiBag.withMetadata(() => 1, { static: indexed });
+DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: indexed });
 const symbolIndexed: Record<symbol, number> = {};
 // diagnostic: finite string or unique-symbol
-DiBag.withMetadata(() => 1, { static: symbolIndexed });
+DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: symbolIndexed });
 const templateIndexed: Record<`app:${string}`, number> = {};
 // diagnostic: finite string or unique-symbol
-DiBag.withMetadata(() => 1, { static: templateIndexed });
+DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: templateIndexed });
 // diagnostic: not assignable
-DiBag.withMetadata(function (this: { value: number }) { return this.value; }, { static: {} });
+DiBag.providerWithRegistrationMetadata({ provider: function (this: { value: number }) { return this.value; }, registrationMetadata: {} });
 // diagnostic: not assignable
-DiBag.createBuilder().register({ provider: { ...provider } });
+DiBag.createBuilder().withServices({ provider: { ...provider } });
 // diagnostic: not assignable
-DiBag.withMetadata({ ...provider }, { static: {} });
+DiBag.providerWithRegistrationMetadata({ provider: { ...provider }, registrationMetadata: {} });
 // diagnostic: not assignable
 const erasedMetadata: Provider<({ clock }: { clock: number }) => number, {}, readonly []> = provider;
 // diagnostic: not assignable
 const erasedFactory: Provider<() => number, { readonly owner: string }, readonly []> = provider;
 declare const erased: Registration;
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ erased }).build();
+// diagnostic-also: TS2684 required services are missing
+DiBag.createBuilder().withServices({ erased }).buildContainer();
 // diagnostic: factory dependencies must be finite
-DiBag.createBuilder().register({ value: () => 1 }).replace('value', erased).build();
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', erased).buildContainer();
 // diagnostic: factory dependencies must be finite
-DiBag.createBuilder().register({ erased }).buildModule(['erased']);
-const bag = DiBag.createBuilder().register({ provider, clock: () => 1 }).build();
+DiBag.createBuilder().withServices({ erased }).buildModule({ exportedServiceKeys: ['erased'] });
+const bag = DiBag.createBuilder().withServices({ provider, clock: () => 1 }).buildContainer();
 // diagnostic: does not exist
-bag.inspect('provider').registrationMetadata.other;
+bag.serviceSnapshot('provider').registrationMetadata.other;
 // diagnostic: does not exist
-bag.inspect('provider').acquisitions[0]!.value;
+bag.serviceSnapshot('provider').acquisitions[0]!.value;
 // diagnostic: read-only
-bag.inspect('provider').registrationMetadata.owner = 'other';
+bag.serviceSnapshot('provider').registrationMetadata.owner = 'other';
 // diagnostic: does not exist
-bag.inspect('provider').acquisitions.push({});
+bag.serviceSnapshot('provider').acquisitions.push({});
 // diagnostic: read-only
-bag.inspect('provider').acquisitions[0]!.state = 'failed';
+bag.serviceSnapshot('provider').acquisitions[0]!.state = 'failed';
 // diagnostic: not assignable
-bag.inspect('unknown');
+bag.serviceSnapshot('unknown');
 // diagnostic: not assignable
-bag.fork(['clock'], { clock: DiBag.withMetadata(() => 'wrong', { static: {} }) });
+bag.createIndependentContainer(['clock'], { clock: DiBag.providerWithRegistrationMetadata({ provider: () => 'wrong', registrationMetadata: {} }) });
 // diagnostic: Property 'missing' is missing
-bag.fork(['clock'], { clock: DiBag.withMetadata(({ missing }: { missing: number }) => missing, { static: {} }) });
+bag.createIndependentContainer(['clock'], { clock: DiBag.providerWithRegistrationMetadata({ provider: ({ missing }: { missing: number }) => missing, registrationMetadata: {} }) });

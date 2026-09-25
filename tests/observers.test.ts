@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 import { DiBag, type LifecycleEvent, type ObserverFailure } from '../src';
-import { DiBag as NodeDiBag } from '../src/node';
+import { DiBag as NodeDiBag } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
 function recording() {
   const events: LifecycleEvent[] = [];
   const failures: ObserverFailure[] = [];
-  const observed = DiBag.withConfiguration({ observers: [{ onEvent(event) { events.push(event); }, onError(failure) { failures.push(failure); } }] });
+  const observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(event); }, onObserverFailure(failure) { failures.push(failure); } }] });
   return { events, failures, observed };
 }
 const flush = () => new Promise<void>(resolve => queueMicrotask(resolve));
@@ -15,19 +15,18 @@ test('observers preserve raw identity and explicit ownership', async () => {
   const { events, failures, observed } = recording();
   const value = Promise.resolve({ id: 1 });
   let disposed = 0;
-  const bag = observed.createBuilder().register({
-    value: observed.withDisposal(observed.fromFactory(() => value, { acquisitionMode: 'raw' }),
-      acquired => { expect(acquired).toBe(value); disposed++; }),
-  }).alias('copy', 'value').build();
+  const bag = observed.createBuilder().withServices({
+    value: observed.providerWithDisposal({ provider: observed.createProvider(() => value, { factoryReturnKind: 'uninspected' }), disposeService: acquired => { expect(acquired).toBe(value); disposed++; } }),
+  }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
-  const inspection = bag.inspect('value');
+  const inspection = bag.serviceSnapshot('value');
   expect(events).toEqual([]);
   await bag.close();
   await flush();
   expect(disposed).toBe(1);
   expect(failures).toEqual([]);
-  expect(events.map(event => event.kind)).toEqual(['scope-opened', 'acquisition-started', 'acquisition-ready', 'scope-closing', 'cleanup-started', 'cleanup-completed', 'scope-closed']);
+  expect(events.map(event => event.kind)).toEqual(['container-opened', 'acquisition-started', 'acquisition-ready', 'container-closing', 'disposal-started', 'disposal-completed', 'container-closed']);
   const attempts = events.filter(event => event.kind === 'acquisition-started');
   expect(attempts).toHaveLength(1);
   expect(attempts[0]!.bindingId).toBe(inspection.bindingId);
@@ -41,7 +40,7 @@ test('ready follows the final native stage while retaining exposed identity', as
   let finalReady!: (value: number) => void;
   const source = new Promise<number>(resolve => { sourceReady = resolve; });
   const final = new Promise<number>(resolve => { finalReady = resolve; });
-  const bag = observed.createBuilder().register({ value: observed.transformService(observed.fromFactory(() => source, { acquisitionMode: 'nativePromise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'nativePromise' } }) }).build();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => final, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(final);
   sourceReady(1);
   await flush();
@@ -56,44 +55,44 @@ test('ready follows the final native stage while retaining exposed identity', as
 test('observer failure monitoring handles throws, rejection and throwing then without gating shutdown', async () => {
   const errors = [new Error('throw'), new Error('reject'), new Error('then')];
   const failures: ObserverFailure[] = [];
-  const observed = errors.reduce((facade, error, index) => facade.withConfiguration({ observers: [{
-    onEvent(event) {
-      if (event.kind !== 'scope-opened') return;
+  const observed = errors.reduce((facade, error, index) => facade.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) {
+      if (event.kind !== 'container-opened') return;
       if (index === 0) throw error;
       if (index === 1) return Promise.reject(error);
       return { get then() { throw error; } };
     },
-    onError(failure) { failures.push(failure); if (index === 0) throw new Error('sink'); return Promise.reject(new Error('sink')); },
-  }] }), DiBag).withConfiguration({ observers: [{ onEvent: () => new Promise(() => {}), onError: () => {} }] });
-  const bag = observed.createBuilder().build();
+    onObserverFailure(failure) { failures.push(failure); if (index === 0) throw new Error('sink'); return Promise.reject(new Error('sink')); },
+  }] }), DiBag).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: () => new Promise(() => {}), onObserverFailure: () => {} }] });
+  const bag = observed.createBuilder().buildContainer();
   await bag.close();
   await flush();
   expect(failures).toHaveLength(3);
   for (const error of errors) expect(failures.some(failure => failure.error === error)).toBe(true);
   expect(failures.every(Object.isFrozen)).toBe(true);
-  expect(failures.every(failure => failure.event.kind === 'scope-opened')).toBe(true);
+  expect(failures.every(failure => failure.event.kind === 'container-opened')).toBe(true);
 });
 
 test('configuration snapshots callbacks, appends in order and retains classification', async () => {
   const seen: string[] = [];
   const callback = function(this: void) { expect(this).toBeUndefined(); seen.push('first'); };
-  const options = { onEvent: callback, onError() {} };
-  const base = NodeDiBag.withConfiguration({ observers: [options] });
+  const options = { onLifecycleEvent: callback, onObserverFailure() {} };
+  const base = NodeDiBag.withConfiguration({ lifecycleObservers: [options] });
   const builder = base.createBuilder();
-  options.onEvent = () => { throw new Error('mutated'); };
-  const appended = base.withConfiguration({ observers: [{ onEvent() { seen.push('second'); }, onError() {} }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
-  const a = builder.register({ value: () => 1 }).build();
-  const b = appended.createBuilder().register({ value: () => Promise.resolve(2) }).build();
+  options.onLifecycleEvent = () => { throw new Error('mutated'); };
+  const appended = base.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() { seen.push('second'); }, onObserverFailure() {} }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
+  const a = builder.withServices({ value: () => 1 }).buildContainer();
+  const b = appended.createBuilder().withServices({ value: () => Promise.resolve(2) }).buildContainer();
   expect(a.resolve('value')).toBe(1);
   expect(await b.resolve('value')).toBe(2);
   await Promise.all([a.close(), b.close()]);
   expect(seen.slice(0, 5)).toEqual(['first', 'first', 'second', 'first', 'first']);
   expect(Object.isFrozen(base)).toBe(true);
-  expect(() => DiBag.withConfiguration({ observers: [{ onEvent() {} } as never] })).toThrow();
-  expect(() => DiBag.withConfiguration({ observers: [{ onEvent: 1, onError() {} } as never] })).toThrow();
-  expect(() => DiBag.withConfiguration({ observers: [null as never] })).toThrow();
+  expect(() => DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() {} } as never] })).toThrow();
+  expect(() => DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: 1, onObserverFailure() {} } as never] })).toThrow();
+  expect(() => DiBag.withConfiguration({ lifecycleObservers: [null as never] })).toThrow();
   const { observed, events } = recording();
-  expect(() => withoutBuiltinModule(() => observed.createBuilder().register({ value: () => 1 }).build())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => observed.createBuilder().withServices({ value: () => 1 }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   await flush();
   expect(events).toEqual([]);
 });
@@ -102,13 +101,13 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
   let bag!: ReturnType<typeof makeBag>;
   const failures: ObserverFailure[] = [];
   let calls = 0;
-  const observed = NodeDiBag.withConfiguration({ observers: [{
-    onEvent(event) {
+  const observed = NodeDiBag.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) {
       if (event.kind === 'acquisition-started' && calls === 0) { calls++; expect(bag.resolve('value')).toBe(1); }
-      if (event.kind === 'scope-closing') expect(() => bag.resolve('value')).toThrow('closing');
-    }, onError(failure) { failures.push(failure); },
+      if (event.kind === 'container-closing') expect(() => bag.resolve('value')).toThrow('closing');
+    }, onObserverFailure(failure) { failures.push(failure); },
   }] });
-  function makeBag() { return observed.createBuilder().register({ value: () => 1 }).build(); }
+  function makeBag() { return observed.createBuilder().withServices({ value: () => 1 }).buildContainer(); }
   bag = makeBag();
   bag.resolve('value');
   await flush();
@@ -119,59 +118,59 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
 
 test('canonical owners distinguish shared roots, independent forks, contributions and transients', async () => {
   const { events, observed } = recording();
-  const raw = observed.fromFactory(() => ({}), { acquisitionMode: 'raw' });
-  const key = Symbol('collection'); const token = observed.token(key).of<object>();
-  const bag = observed.createBuilder().register({ root: observed.withLifetime(raw, 'root'), shared: raw, fresh: observed.withLifetime(raw, 'transient') }).alias('copy', 'shared').contribute(token, raw).contribute(token, raw).build();
-  const child = bag.createScope({ share: ['copy'] });
-  const fork = bag.fork();
+  const raw = observed.createProvider(() => ({}), { factoryReturnKind: 'uninspected' });
+  const key = Symbol('collection'); const token = observed.createToken(key).forCollectionOf<object>();
+  const bag = observed.createBuilder().withServices({ root: observed.providerWithLifetime({ provider: raw, lifetime: 'singleton:one-per-container-tree' }), shared: raw, fresh: observed.providerWithLifetime({ provider: raw, lifetime: 'transient:one-per-resolve' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'shared' }).withCollectionContribution({ collectionToken: token, provider: raw }).withCollectionContribution({ collectionToken: token, provider: raw }).buildContainer();
+  const child = bag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
+  const fork = bag.createIndependentContainer();
   child.resolve('root'); child.resolve('copy'); child.resolve('fresh'); child.resolve('fresh');
-  child.resolveAll(token);
+  child.resolveCollection(token);
   fork.resolve('root');
-  const rootInspection = bag.inspect('root'); const sharedInspection = bag.inspect('shared');
-  const contributionIds = child.inspectAll(token).map(item => item.acquisitions[0]!.acquisitionId);
+  const rootInspection = bag.serviceSnapshot('root'); const sharedInspection = bag.serviceSnapshot('shared');
+  const contributionIds = child.serviceSnapshot(token).map(item => item.acquisitions[0]!.acquisitionId);
   await flush();
-  const opened = events.filter(event => event.kind === 'scope-opened');
+  const opened = events.filter(event => event.kind === 'container-opened');
   const started = events.filter(event => event.kind === 'acquisition-started');
   expect(opened).toHaveLength(3);
-  expect(opened[1]!.parentScopeId).toBe(opened[0]!.scopeId);
-  expect('parentScopeId' in opened[0]!).toBe(false);
-  expect('parentScopeId' in opened[2]!).toBe(false);
+  expect(opened[1]!.parentContainerId).toBe(opened[0]!.containerId);
+  expect('parentContainerId' in opened[0]!).toBe(false);
+  expect('parentContainerId' in opened[2]!).toBe(false);
   for (const inspection of [rootInspection, sharedInspection]) {
     const event = started.find(event => event.acquisitionId === inspection.acquisitions[0]!.acquisitionId)!;
-    expect(event.scopeId).toBe(opened[0]!.scopeId);
+    expect(event.containerId).toBe(opened[0]!.containerId);
     expect(event.bindingId).toBe(inspection.bindingId);
   }
-  expect(started.filter(event => event.label === 'fresh')).toHaveLength(2);
+  expect(started.filter(event => event.bindingLabel === 'fresh')).toHaveLength(2);
   expect(new Set(started.map(event => event.acquisitionId)).size).toBe(7);
-  for (const id of contributionIds) expect(started.find(event => event.acquisitionId === id)!.scopeId).toBe(opened[1]!.scopeId);
+  for (const id of contributionIds) expect(started.find(event => event.acquisitionId === id)!.containerId).toBe(opened[1]!.containerId);
   await Promise.all([bag.close(), fork.close()]);
-  expect(events.some(event => event.kind === 'cleanup-started')).toBe(false);
+  expect(events.some(event => event.kind === 'disposal-started')).toBe(false);
 });
 
 test('failed final projections retire accepted ownership once and preserve cleanup errors', async () => {
   const { events, observed } = recording();
   const acquisitionError = new Error('projection'); const cleanupError = new Error('dispose');
   const disposed: string[] = [];
-  const source = observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => { disposed.push('first'); throw cleanupError; });
-  const second = observed.withDisposal(source, () => { disposed.push('second'); });
-  const bag = observed.createBuilder().register({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'raw' } }) }).build();
+  const source = observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => { disposed.push('first'); throw cleanupError; } });
+  const second = observed.providerWithDisposal({ provider: source, disposeService: () => { disposed.push('second'); } });
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: second, transformService: () => { throw acquisitionError; }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }) }).buildContainer();
   expect(() => bag.resolve('value')).toThrow(acquisitionError);
   let closeError: unknown;
   try { await bag.close(); } catch (error) { closeError = error; }
   await flush();
   expect(disposed).toEqual(['second', 'first']);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([acquisitionError]);
-  expect(events.filter(event => event.kind === 'cleanup-started')).toHaveLength(1);
-  expect(events.filter(event => event.kind === 'cleanup-completed').map(event => event.outcome)).toEqual(['failure']);
-  const failure = events.find(event => event.kind === 'cleanup-failed')!;
+  expect(events.filter(event => event.kind === 'disposal-started')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'disposal-completed').map(event => event.outcome)).toEqual(['failure']);
+  const failure = events.find(event => event.kind === 'disposal-failed')!;
   expect(failure.error).toBe(cleanupError); expect(failure.disposalSequence).toBe(1);
-  expect(events.find(event => event.kind === 'scope-close-failed')!.error).toBe(closeError);
+  expect(events.find(event => event.kind === 'container-close-failed')!.error).toBe(closeError);
 });
 
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
   const { events, observed } = recording();
   const source = Promise.reject(new Error('bypassed'));
-  const bag = observed.createBuilder().register({ value: observed.transformService(observed.fromFactory(() => source, { acquisitionMode: 'nativePromise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'raw' } }) }).build();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => 42, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(42);
   await bag.close();
   expect(events.filter(event => event.kind === 'acquisition-ready')).toHaveLength(1);
@@ -181,16 +180,16 @@ test('intermediate native failure bypassed by raw projection is not final failur
 test('private module frames are immutable snapshots without freezing application metadata', async () => {
   const { events, observed } = recording();
   const payload = { owner: 'application' };
-  const wrapped = observed.withMetadata(observed.withMetadata(observed.fromFactory(() => 7, { acquisitionMode: 'raw' }), { static: { payload } }), { dynamic: { mode: 'direct', describe: () => ({ payload }) } });
-  const feature = observed.createBuilder().register({ secret: wrapped, publicValue: observed.fromFactory(({ secret }: { secret: number }) => secret, { acquisitionMode: 'raw' }) }).buildModule(['publicValue']);
-  const bag = observed.createBuilder().installModule(feature).build();
+  const wrapped = observed.providerWithAcquisitionMetadata({ provider: observed.providerWithRegistrationMetadata({ provider: observed.createProvider(() => 7, { factoryReturnKind: 'uninspected' }), registrationMetadata: { payload } }), describeAcquisition: () => ({ payload }), callbackReceives: 'exposed-service' });
+  const feature = observed.createBuilder().withServices({ secret: wrapped, publicValue: observed.createProvider(({ secret }: { secret: number }) => secret, { factoryReturnKind: 'uninspected' }) }).buildModule({ exportedServiceKeys: ['publicValue'] });
+  const bag = observed.createBuilder().withInstalledModules([feature]).buildContainer();
   expect(bag.resolve('publicValue')).toBe(7);
   await flush();
   const started = events.find(event => event.kind === 'acquisition-started' && event.acquisitionMetadata.length)!;
   const ready = events.find(event => event.kind === 'acquisition-ready' && event.acquisitionMetadata.length)!;
   if (!('acquisitionMetadata' in started) || !('acquisitionMetadata' in ready)) throw new Error('missing framed events');
-  expect(started.acquisitionMetadata).toEqual([{ present: false }]);
-  expect(ready.acquisitionMetadata).toEqual([{ present: true, value: { payload } }]);
+  expect(started.acquisitionMetadata).toEqual([{ isPresent: false }]);
+  expect(ready.acquisitionMetadata).toEqual([{ isPresent: true, value: { payload } }]);
   expect(Object.isFrozen(ready.acquisitionMetadata)).toBe(true);
   expect(Object.isFrozen(ready.acquisitionMetadata[0])).toBe(true);
   expect(Object.isFrozen(ready.registrationMetadata)).toBe(true);
@@ -198,23 +197,23 @@ test('private module frames are immutable snapshots without freezing application
   expect(Object.isFrozen(payload)).toBe(false);
   await bag.close();
   expect(ready.acquisitionMetadata).toHaveLength(1);
-  expect(started.acquisitionMetadata).toEqual([{ present: false }]);
+  expect(started.acquisitionMetadata).toEqual([{ isPresent: false }]);
 });
 
 test('startup rollback observes accepted cleanup while preserving the startup cause', async () => {
   const { events, observed } = recording();
   const failure = new Error('startup');
-  const builder = observed.createBuilder().register({
-    good: observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => {}),
-    bad: observed.fromFactory(() => Promise.reject(failure), { acquisitionMode: 'nativePromise' }),
+  const builder = observed.createBuilder().withServices({
+    good: observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => {} }),
+    bad: observed.createProvider(() => Promise.reject(failure), { factoryReturnKind: 'native-promise' }),
   });
   let error: unknown;
-  try { await builder.buildAndStart(['good', 'bad']); } catch (caught) { error = caught; }
+  try { await builder.buildContainer().ensureServicesReady(['good', 'bad']); } catch (caught) { error = caught; }
   await flush();
   expect((error as Error).cause).toBe(failure);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
-  expect(events.filter(event => event.kind === 'cleanup-completed').map(event => event.outcome)).toEqual(['success']);
-  expect(events.filter(event => event.kind === 'scope-closed')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'disposal-completed').map(event => event.outcome)).toEqual(['success']);
+  expect(events.filter(event => event.kind === 'container-closed')).toHaveLength(1);
 });
 
 test('cancellation observes late accepted resources and final failure without awaiting telemetry', async () => {
@@ -224,31 +223,31 @@ test('cancellation observes late accepted resources and final failure without aw
   let acquired!: (value: number) => void;
   const pending = new Promise<number>(resolve => { acquired = resolve; });
   let disposed = 0;
-  const builder = observed.createBuilder().register({
-    good: observed.withDisposal(observed.fromFactory(() => pending, { acquisitionMode: 'nativePromise' }), () => { disposed++; }),
-    bad: observed.fromFactory((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
-      context.signal.addEventListener('abort', () => reject(failure), { once: true });
-    }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
+  const builder = observed.createBuilder().withServices({
+    good: observed.providerWithDisposal({ provider: observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: () => { disposed++; } }),
+    bad: observed.createProvider((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
+      context.abortSignal.addEventListener('abort', () => reject(failure), { once: true });
+    }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
   });
-  const startup = builder.buildAndStart(['good', 'bad'], { signal: abort.signal });
+  const startup = builder.buildContainer().ensureServicesReady(['good', 'bad'], { abortSignal: abort.signal });
   abort.abort(failure);
-  let cancelled!: import('../src').DiBagStartupCancelledError;
+  let cancelled!: import('../src').DiBagServiceReadinessCancelledError;
   try { await startup; } catch (error) { cancelled = error as typeof cancelled; }
   acquired(1);
-  await cancelled.cleanupPromise;
+  await cancelled.disposalPromise;
   await flush();
   expect(disposed).toBe(1);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
-  expect(events.filter(event => event.kind === 'cleanup-started')).toHaveLength(1);
-  expect(events.filter(event => event.kind === 'scope-closing')).toHaveLength(1);
-  expect(events.filter(event => event.kind === 'scope-closed')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'disposal-started')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'container-closing')).toHaveLength(1);
+  expect(events.filter(event => event.kind === 'container-closed')).toHaveLength(1);
 });
 
 test('throwing-then error sink results are consumed and appending duplicates keeps every callback', async () => {
   const error = new Error('event'); const sinkError = new Error('sink');
   let seen = 0; let reported = 0;
-  const options = { onEvent() { seen++; throw error; }, onError(failure: ObserverFailure) { reported++; expect(failure.error).toBe(error); return { get then() { throw sinkError; } }; } };
-  const bag = DiBag.withConfiguration({ observers: [options] }).withConfiguration({ observers: [options] }).createBuilder().build();
+  const options = { onLifecycleEvent() { seen++; throw error; }, onObserverFailure(failure: ObserverFailure) { reported++; expect(failure.error).toBe(error); return { get then() { throw sinkError; } }; } };
+  const bag = DiBag.withConfiguration({ lifecycleObservers: [options] }).withConfiguration({ lifecycleObservers: [options] }).createBuilder().buildContainer();
   await bag.close();
   await flush();
   expect(seen).toBe(6); expect(reported).toBe(6);
@@ -256,12 +255,12 @@ test('throwing-then error sink results are consumed and appending duplicates kee
 
 test('delivery keeps emission order across immutable appended facade configurations', async () => {
   const seen: LifecycleEvent[] = [];
-  const base = DiBag.withConfiguration({ observers: [{ onEvent(event) { seen.push(event); }, onError() {} }] });
-  const appended = base.withConfiguration({ observers: [{ onEvent() {}, onError() {} }] });
-  const a = base.createBuilder().register({ value: base.fromFactory(() => 1, { acquisitionMode: 'raw' }) }).build();
-  const b = appended.createBuilder().build();
+  const base = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { seen.push(event); }, onObserverFailure() {} }] });
+  const appended = base.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() {}, onObserverFailure() {} }] });
+  const a = base.createBuilder().withServices({ value: base.createProvider(() => 1, { factoryReturnKind: 'uninspected' }) }).buildContainer();
+  const b = appended.createBuilder().buildContainer();
   a.resolve('value');
   await flush();
-  expect(seen.map(event => event.kind)).toEqual(['scope-opened', 'scope-opened', 'acquisition-started', 'acquisition-ready']);
+  expect(seen.map(event => event.kind)).toEqual(['container-opened', 'container-opened', 'acquisition-started', 'acquisition-ready']);
   await Promise.all([a.close(), b.close()]);
 });

@@ -23,19 +23,20 @@ function emitDeclaration(): string {
   return emitted = declaration!;
 }
 
-// Private keys may survive only as quoted values (`consumer`, `root`, `export`, `reach.key`) that give host
+// Private keys may survive only as quoted values (`consumer`, `singleton`, `export`, `reach.key`) that give host
 // diagnostics their provenance; never as a type name, identifier, or property key.
 test('a sealed module declaration names private registrations only inside quoted constraint values', () => {
   const declaration = emitDeclaration();
   const unquoted = declaration.replace(/"[^"\n]*"|'[^'\n]*'/g, '""');
   for (const name of ['privateCache', 'privateHelper', 'PrivateCacheShape']) expect(unquoted).not.toContain(name);
   expect(declaration).toContain('"privateHelper"');
-  expect(declaration).toMatch(/readonly root: "privateHelper"/);
+  expect(declaration).toMatch(/readonly singleton: "privateHelper"/);
 });
 
 test('a sealed module declaration is compact', () => {
   const declaration = emitDeclaration();
   console.log(`module-erasure feature.d.ts: ${declaration.length} bytes`);
+  expect(declaration).not.toContain('readonly collections: readonly [];');
   expect(declaration.length).toBeLessThan(2_500);
 });
 

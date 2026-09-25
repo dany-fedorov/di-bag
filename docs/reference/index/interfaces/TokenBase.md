@@ -4,10 +4,10 @@
 
 # Interface: TokenBase
 
-Defined in: [tokens.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L10)
+Defined in: [tokens.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L12)
 
 The common type-only base for genuine typed-token handles.
-Create tokens through `DiBag.token`; fabricated structural values are not authenticated.
+Create tokens through `DiBag.createToken`; fabricated structural values are not authenticated.
 
 ## See
 
@@ -15,4 +15,5 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-
 
 ## Extended by
 
+- [`CollectionTokenBase`](CollectionTokenBase.md)
 - [`Token`](Token.md)

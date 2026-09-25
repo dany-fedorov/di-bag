@@ -1,12 +1,12 @@
 import { DiBag } from '../../../src';
 // diagnostic: Type '() => { now(): string; }' is not assignable to type
-DiBag.createBuilder().register({
+DiBag.createBuilder().withServices({
     clock: () => ({
       now() {
         return 42;
       },
     }),
-  }).build().fork(['clock'], {
+  }).buildContainer().createIndependentContainer(['clock'], {
     clock: () => ({
       now() {
         return 'wrong';

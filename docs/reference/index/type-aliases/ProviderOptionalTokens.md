@@ -8,9 +8,9 @@
 type ProviderOptionalTokens<R> = OptionalTokens<ProviderGraphContract<R>>;
 ```
 
-Defined in: [provider.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L121)
+Defined in: [provider.ts:138](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L138)
 
-Extract optional typed-token requirements from a registration.
+Extract optional typed-token requirements from a provider.
 
 ## Type Parameters
 

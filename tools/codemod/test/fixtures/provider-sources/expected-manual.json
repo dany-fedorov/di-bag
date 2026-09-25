@@ -1,0 +1,6 @@
+[
+  { "line": 19, "reason": "fromFactory options are not an object literal; rewrite them to createProvider options with factoryReturnKind and factoryReceivesContext by hand" },
+  { "line": 20, "reason": "fromFunction options are not an object literal; rewrite them to createProviderFromFunction options with factoryReturnKind by hand" },
+  { "line": 21, "reason": "fromPlugin options contain a spread; rewrite them to createProviderFromPlugin with explicit factoryReturnKind and isValidPluginOutput by hand" },
+  { "line": 24, "reason": "PluginOptions has a nonliteral or unsupported generic argument 0; rewrite it to CreateProviderFromPluginOptions by hand" }
+]

@@ -8,7 +8,7 @@
 type ProviderGraphContract<R> = ProviderBase extends R ? OpaqueGraph : R extends infer T & {} ? GraphOf<T> : OpaqueGraph;
 ```
 
-Defined in: [provider.ts:104](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L104)
+Defined in: [provider.ts:118](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L118)
 
 Extract the retained typed-token and lifetime graph contract.
 

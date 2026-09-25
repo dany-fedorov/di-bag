@@ -13,18 +13,16 @@ export type PortableContractResult = {
   readonly transientDistinct: true;
 };
 
-type PortableToken<T> = { readonly key: symbol; readonly __service?: T };
+type PortableToken<T> = { readonly symbol: symbol; readonly __service?: T };
 
 /** The smallest structural slice of the public root API used by this fixture. */
 export type PortableDiBag = {
   createBuilder(): any;
-  fromFactory(factory: (...dependencies: any[]) => unknown, options: { acquisitionMode: 'raw' }): any;
-  fromSyncFactory(factory: (...dependencies: any[]) => unknown): any;
-  fromAsyncFactory(factory: (...dependencies: any[]) => Promise<unknown>): any;
-  token(key: symbol): { of<T>(): PortableToken<T> };
-  withDisposal(factory: any, dispose: (value: any) => void | Promise<void>): any;
-  withLifetime(factory: any, lifetime: 'root' | 'scoped' | 'transient'): any;
-  withMetadata(factory: any, metadata: Readonly<Record<string, unknown>>): any;
+  createProvider(factory: (...dependencies: any[]) => unknown, options: { factoryReturnKind: 'uninspected' | 'sync-value' | 'native-promise' }): any;
+  createToken(key: symbol): { forService<T>(): PortableToken<T> };
+  providerWithDisposal(options: { provider: any; disposeService: (value: any) => void | Promise<void> }): any;
+  providerWithLifetime(options: { provider: any; lifetime: 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve'; allowsScopedDependencies?: boolean }): any;
+  providerWithRegistrationMetadata(options: { provider: any; registrationMetadata: Readonly<Record<string, unknown>> }): any;
 };
 
 export function validatePortableInspection(inspection: unknown): {
@@ -59,7 +57,7 @@ export function validatePortableInspection(inspection: unknown): {
  */
 export function automaticAcquisition(DiBag: PortableDiBag): Promise<'resolved' | string> {
   let bag: any;
-  try { bag = DiBag.createBuilder().register({ answer: async () => 42 }).build(); }
+  try { bag = DiBag.createBuilder().withServices({ answer: async () => 42 }).buildContainer(); }
   catch (error) { return Promise.resolve(String((error as { code?: unknown }).code)); }
   return Promise.resolve(bag.resolve('answer')).then(async (value: unknown) => {
     await bag.close();
@@ -70,8 +68,8 @@ export function automaticAcquisition(DiBag: PortableDiBag): Promise<'resolved' |
 export async function portableContract(DiBag: PortableDiBag): Promise<PortableContractResult> {
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
-  const exported = DiBag.token(Symbol('portable-export')).of<typeof privateHelper>();
-  const feature = DiBag.createBuilder().register({ helper: DiBag.fromSyncFactory(() => privateHelper) }).register(exported, DiBag.fromSyncFactory(({ helper }: { helper: typeof privateHelper }) => helper)).buildModule([exported]);
+  const exported = DiBag.createToken(Symbol('portable-export')).forService<typeof privateHelper>();
+  const feature = DiBag.createBuilder().withServices({ helper: DiBag.createProvider(() => privateHelper, { factoryReturnKind: 'sync-value' }) }).withTokenService(exported, DiBag.createProvider(({ helper }: { helper: typeof privateHelper }) => helper, { factoryReturnKind: 'sync-value' })).buildModule({ exportedServiceKeys: [exported] });
 
   let rootCalls = 0;
   let scopedCalls = 0;
@@ -79,30 +77,15 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const rawPromise = Promise.resolve({ value: 'raw' });
   let rawDisposed: unknown;
   let asyncDisposed: { value: string } | undefined;
-  const root = DiBag.createBuilder().installModule(feature).register({
-    root: DiBag.withMetadata(DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.fromSyncFactory(() => ({ id: ++rootCalls })),
-      () => { cleanupLog.push('root'); },
-    ), 'root'), { static: { portable: true } }),
-    scoped: DiBag.withDisposal(
-      DiBag.fromSyncFactory(() => ({ id: ++scopedCalls })),
-      () => { cleanupLog.push('scoped'); },
-    ),
-    transient: DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.fromSyncFactory(() => ({ id: ++transientCalls })),
-      value => { cleanupLog.push(`transient-${value.id}`); },
-    ), 'transient'),
+  const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
+    root: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => ({ id: ++rootCalls }), { factoryReturnKind: 'sync-value' }), disposeService: () => { cleanupLog.push('root'); },  }), lifetime: 'singleton:one-per-container-tree' }), registrationMetadata: { portable: true } }),
+    scoped: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => ({ id: ++scopedCalls }), { factoryReturnKind: 'sync-value' }), disposeService: () => { cleanupLog.push('scoped'); },  }),
+    transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => ({ id: ++transientCalls }), { factoryReturnKind: 'sync-value' }), disposeService: value => { cleanupLog.push(`transient-${value.id}`); },  }), lifetime: 'transient:one-per-resolve' }),
     // The Promise object itself is the service: the explicit raw form stays the way to say so.
-    raw: DiBag.withDisposal(
-      DiBag.fromFactory(() => rawPromise, { acquisitionMode: 'raw' }),
-      value => { rawDisposed = value; },
-    ),
-    pending: DiBag.withDisposal(
-      DiBag.fromAsyncFactory(async () => ({ value: 'async' })),
-      (value: { value: string }) => { asyncDisposed = value; },
-    ),
-  }).alias('rootAlias', 'root').build();
-  const child = root.createScope();
+    raw: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }), disposeService: value => { rawDisposed = value; },  }),
+    pending: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async () => ({ value: 'async' }), { factoryReturnKind: 'native-promise' }), disposeService: (value: { value: string }) => { asyncDisposed = value; },  }),
+  }).withServiceAlias({ aliasKey: 'rootAlias', targetServiceKey: 'root' }).buildContainer();
+  const child = root.createChildContainer();
 
   const rootValue = child.resolve('root');
   const aliasCanonical = child.resolve('rootAlias') === rootValue
@@ -117,7 +100,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const pending2 = child.resolve('pending');
   const asyncPromiseIdentity = pending1 === pending2 && pending1 instanceof Promise;
   const asyncFulfilled = (await pending1).value === 'async';
-  const inspection = child.inspect('root');
+  const inspection = child.serviceSnapshot('root');
   const inspectionProof = validatePortableInspection(inspection);
 
   await child.close();

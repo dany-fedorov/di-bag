@@ -2,8 +2,13 @@
 import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 
-const TERMINALS = new Set(['build', 'buildAndStart', 'buildModule']);
-const WRAPPERS = new Set(['withLifetime', 'withDisposal', 'withMetadata', 'transformService']);
+const TERMINALS = new Set(['buildContainer', 'buildModule']);
+const PROVIDER_FACADES = new Set(['providerWithDisposal', 'providerWithLifetime', 'providerWithRegistrationMetadata', 'providerWithAcquisitionMetadata', 'providerWithTransformedService']);
+const LIFETIMES = new Map([
+  ['singleton:one-per-container-tree', 'singleton:one-per-container-tree'],
+  ['scoped:one-per-container', 'scoped:one-per-container'],
+  ['transient:one-per-resolve', 'transient:one-per-resolve'],
+]);
 
 // Set per extraction: the consumer's compiler or the bundled one.
 let ts;
@@ -51,7 +56,7 @@ function loadProgram({ project, files, root }) {
   });
 }
 
-/** The property-access method name of a call such as `x.register(...)`, or undefined. */
+/** The property-access method name of a call such as `x.withServices(...)`, or undefined. */
 function methodName(call) {
   return ts.isPropertyAccessExpression(call.expression) ? call.expression.name.text : undefined;
 }
@@ -60,6 +65,45 @@ function methodName(call) {
 function skipOuter(expression) {
   while (ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)) expression = expression.expression;
   return expression;
+}
+
+function literalLifetime(expression) {
+  const inner = expression && skipOuter(expression);
+  return inner && ts.isStringLiteralLike(inner) ? LIFETIMES.get(inner.text) : undefined;
+}
+
+function diBagDeclarationOwners(sourceFile, checker) {
+  const owners = new Set();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    const specifier = statement.moduleSpecifier.text;
+    if (specifier !== 'di-bag') continue;
+    let moduleSymbol = checker.getSymbolAtLocation(statement.moduleSpecifier);
+    if (moduleSymbol?.flags & ts.SymbolFlags.Alias) moduleSymbol = checker.getAliasedSymbol(moduleSymbol);
+    for (const exported of moduleSymbol ? checker.getExportsOfModule(moduleSymbol) : []) {
+      const symbol = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+      if (symbol.name !== 'Provider' && symbol.name !== 'DiBagApi') continue;
+      if ((symbol.declarations ?? []).some(declaration =>
+        (ts.isClassDeclaration(declaration) || ts.isInterfaceDeclaration(declaration))
+        && declaration.name?.text === symbol.name)) owners.add(symbol);
+    }
+  }
+  return owners;
+}
+
+function declarationOwner(nameNode, checker, declarationOwners) {
+  let symbol = checker.getSymbolAtLocation(nameNode);
+  if (symbol?.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
+  for (const declaration of symbol?.declarations ?? []) {
+    for (let node = declaration.parent; node; node = node.parent) {
+      if (!(ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node)) || !node.name) continue;
+      let owner = checker.getSymbolAtLocation(node.name);
+      if (owner?.flags & ts.SymbolFlags.Alias) owner = checker.getAliasedSymbol(owner);
+      if (owner && declarationOwners.has(owner)) return node.name.text;
+      break;
+    }
+  }
+  return undefined;
 }
 
 /** The variable initializer an identifier names, following imports. */
@@ -94,16 +138,51 @@ function isChainStart(calls) {
   return calls.length > 0 && methodName(calls[0]) === 'createBuilder';
 }
 
-/** Unwrap DiBag decorators around a registration expression, reading lifetime and ownership on the way. */
-function unwrap(expression) {
-  let lifetime = 'scoped', owned = false, inner = expression;
-  while (ts.isCallExpression(inner) && WRAPPERS.has(methodName(inner) ?? '') && inner.arguments.length > 0) {
-    const name = methodName(inner);
-    if (name === 'withLifetime' && inner.arguments[1] && ts.isStringLiteral(inner.arguments[1])) lifetime = inner.arguments[1].text;
-    if (name === 'withDisposal') owned = true;
-    inner = inner.arguments[0];
+function ownBagValue(call, name, checker) {
+  const bag = call.arguments[0];
+  if (!bag || !ts.isObjectLiteralExpression(skipOuter(bag))) return undefined;
+  const literal = skipOuter(bag);
+  const item = literal.properties.find(property => (ts.isPropertyAssignment(property)
+    && !ts.isComputedPropertyName(property.name) && keyText(property.name) === name)
+    || (ts.isShorthandPropertyAssignment(property) && property.name.text === name));
+  if (!item) return undefined;
+  if (ts.isPropertyAssignment(item)) return item.initializer;
+  if (!ts.isShorthandPropertyAssignment(item)) return undefined;
+  const declaration = checker.getShorthandAssignmentValueSymbol(item)?.valueDeclaration;
+  return declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
+}
+
+/** Unwrap authenticated provider modifiers, reading lifetime and ownership on the way. */
+function unwrap(expression, checker, declarationOwners) {
+  let lifetime = 'scoped:one-per-container', lifetimeSelected = false, isOwnedByContainer = false, opaque = false;
+  let inner = skipOuter(expression);
+  const seen = new Set();
+  while (inner) {
+    if (ts.isIdentifier(inner)) {
+      const initializer = initializerOf(inner, checker);
+      if (!initializer || seen.has(initializer)) break;
+      seen.add(initializer);
+      inner = skipOuter(initializer);
+      continue;
+    }
+    if (!ts.isCallExpression(inner) || !ts.isPropertyAccessExpression(inner.expression)) break;
+    const name = inner.expression.name.text;
+    const owner = declarationOwner(inner.expression.name, checker, declarationOwners);
+    if (owner === 'DiBagApi' && PROVIDER_FACADES.has(name)) {
+      if (name === 'providerWithDisposal') isOwnedByContainer = true;
+      if (name === 'providerWithLifetime' && !lifetimeSelected) {
+        const selected = literalLifetime(ownBagValue(inner, 'lifetime', checker));
+        if (selected === undefined) opaque = true; else lifetime = selected;
+        lifetimeSelected = true;
+      }
+      const provider = ownBagValue(inner, 'provider', checker);
+      if (provider === undefined) { opaque = true; break; }
+      inner = skipOuter(provider);
+      continue;
+    }
+    break;
   }
-  return { inner, lifetime, owned };
+  return { inner, lifetime: opaque ? 'dynamic' : lifetime, isOwnedByContainer };
 }
 
 /** Declared named dependencies and async-ness of a factory expression, through the checker. */
@@ -112,7 +191,7 @@ function describeFactory(expression, checker) {
   let signature = type.getCallSignatures()[0];
   const isReference = (type.getFlags() & ts.TypeFlags.Object) !== 0 && (type.objectFlags & ts.ObjectFlags.Reference) !== 0;
   if (!signature && isReference) {
-    // Provider<F, ...> and FactoryWithDisposal<F> both carry the factory as their first type argument.
+    // Current Provider<F, ...> descriptions carry the factory as their first type argument.
     const [first] = checker.getTypeArguments(type);
     signature = first?.getCallSignatures()[0];
   }
@@ -130,35 +209,108 @@ function keyText(expression) {
   return expression.getText();
 }
 
-function readUnit(terminal, sourceFile, checker, root) {
+function bagProperty(literal, name) {
+  for (const property of literal.properties) {
+    if (ts.isPropertyAssignment(property) && keyText(property.name) === name) return property.initializer;
+    if (ts.isShorthandPropertyAssignment(property) && property.name.text === name) return property.name;
+  }
+  return undefined;
+}
+
+function optionsBag(call) {
+  return call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0]) ? call.arguments[0] : undefined;
+}
+
+function literalString(expression) {
+  const inner = skipOuter(expression);
+  return ts.isStringLiteralLike(inner) ? inner.text : undefined;
+}
+
+/** A closed literal view bag, or undefined when applying any part would be a guess. */
+function literalBagPair(call, currentName, newName) {
+  const bag = optionsBag(call);
+  if (!bag || bag.properties.length !== 2) return undefined;
+  const values = new Map();
+  for (const property of bag.properties) {
+    if (!ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name)
+        || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) return undefined;
+    const name = property.name.text;
+    if (![currentName, newName].includes(name) || values.has(name)) return undefined;
+    const value = literalString(property.initializer);
+    if (value === undefined) return undefined;
+    values.set(name, value);
+  }
+  const current = values.get(currentName), next = values.get(newName);
+  if (current === undefined || next === undefined) return undefined;
+  return current === next ? [] : [current, next];
+}
+
+function moduleView(expression) {
+  const exportRenames = [], requirementRenames = [];
+  let current = skipOuter(expression);
+  while (ts.isCallExpression(current) && ts.isPropertyAccessExpression(current.expression)) {
+    const name = methodName(current);
+    if (name === 'withRenamedExport') {
+      const pair = literalBagPair(current, 'currentExportKey', 'newExportKey');
+      if (!pair) break;
+      if (pair.length > 0) exportRenames.unshift(pair);
+    } else if (name === 'withRenamedRequirement') {
+      const pair = literalBagPair(current, 'currentRequirementKey', 'newRequirementKey');
+      if (!pair) break;
+      if (pair.length > 0) requirementRenames.unshift(pair);
+    } else break;
+    current = skipOuter(current.expression.expression);
+  }
+  return { expression: current, exportRenames, requirementRenames };
+}
+
+function listedModules(argument, checker) {
+  let expression = skipOuter(argument);
+  if (ts.isIdentifier(expression)) {
+    const initializer = initializerOf(expression, checker);
+    if (initializer && ts.isArrayLiteralExpression(skipOuter(initializer))) expression = skipOuter(initializer);
+  }
+  return ts.isArrayLiteralExpression(expression) ? [...expression.elements] : [argument];
+}
+
+function readUnit(terminal, sourceFile, checker, declarationOwners, root) {
   const calls = chainCalls(terminal, checker);
   const nodes = [], installs = [], aliases = [];
   let exports = [], label;
   for (const call of calls) {
     const name = methodName(call);
-    if ((name === 'register' || name === 'replace') && call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0])) {
-      for (const property of call.arguments[0].properties) {
-        if (!ts.isPropertyAssignment(property)) continue;
-        const { inner, lifetime, owned } = unwrap(property.initializer);
-        const { dependencies, async } = describeFactory(inner, checker);
-        const { line } = sourceFile.getLineAndCharacterOfPosition(property.getStart(sourceFile));
-        nodes.push({ key: keyText(property.name), line: line + 1, dependencies, async, lifetime, owned });
-      }
-    } else if ((name === 'register' || name === 'replace') && call.arguments.length === 2) {
-      const { inner, lifetime, owned } = unwrap(call.arguments[1]);
+    const bag = optionsBag(call);
+    const pushNode = (keyExpression, providerExpression) => {
+      const { inner, lifetime, isOwnedByContainer } = unwrap(providerExpression, checker, declarationOwners);
       const { dependencies, async } = describeFactory(inner, checker);
       const { line } = sourceFile.getLineAndCharacterOfPosition(call.getStart(sourceFile));
-      nodes.push({ key: keyText(call.arguments[0]), line: line + 1, dependencies, async, lifetime, owned });
-    } else if (name === 'alias' && call.arguments.length === 2) {
-      aliases.push({ from: keyText(call.arguments[0]), to: keyText(call.arguments[1]) });
-    } else if (name === 'installModule' && call.arguments.length === 1) {
-      installs.push(call.arguments[0]);
-    } else if (name === 'buildModule' && call.arguments[0] && ts.isArrayLiteralExpression(call.arguments[0])) {
-      exports = call.arguments[0].elements.map(keyText);
-      const options = call.arguments[1];
-      const property = options && ts.isObjectLiteralExpression(options)
-        ? options.properties.find(candidate => ts.isPropertyAssignment(candidate) && keyText(candidate.name) === 'label') : undefined;
-      if (property && ts.isStringLiteralLike(property.initializer)) label = property.initializer.text;
+      nodes.push({ key: keyText(keyExpression), line: line + 1, dependencies, async, lifetime, isOwnedByContainer });
+    };
+    if (name === 'withServiceAlias' && bag) {
+      const from = bagProperty(bag, 'aliasKey'), to = bagProperty(bag, 'targetServiceKey');
+      if (from && to) aliases.push({ from: keyText(from), to: keyText(to) });
+    } else if (name === 'withInstalledModules' && call.arguments.length === 1) {
+      installs.push(...listedModules(call.arguments[0], checker));
+    } else if (name === 'buildModule' && bag && !ts.isArrayLiteralExpression(call.arguments[0])) {
+      const keys = bagProperty(bag, 'exportedServiceKeys');
+      if (keys && ts.isArrayLiteralExpression(skipOuter(keys))) exports = skipOuter(keys).elements.map(keyText);
+      const moduleLabel = bagProperty(bag, 'moduleLabel');
+      if (moduleLabel && ts.isStringLiteralLike(moduleLabel)) label = moduleLabel.text;
+    } else if (name === 'withServices' && call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0])) {
+      for (const property of call.arguments[0].properties) {
+        if (!ts.isPropertyAssignment(property) && !ts.isShorthandPropertyAssignment(property)) continue;
+        let provider = ts.isPropertyAssignment(property) ? property.initializer : property.name;
+        if (ts.isShorthandPropertyAssignment(property)) {
+          const value = checker.getShorthandAssignmentValueSymbol(property)?.valueDeclaration;
+          if (value && ts.isVariableDeclaration(value) && value.initializer) provider = value.initializer;
+        }
+        const { inner, lifetime, isOwnedByContainer } = unwrap(provider, checker, declarationOwners);
+        const { dependencies, async } = describeFactory(inner, checker);
+        const { line } = sourceFile.getLineAndCharacterOfPosition(property.getStart(sourceFile));
+        nodes.push({ key: keyText(property.name), line: line + 1, dependencies, async, lifetime, isOwnedByContainer });
+      }
+    } else if (['withTokenService', 'withReplacedService'].includes(name) && call.arguments.length === 2) {
+      pushNode(call.arguments[0], call.arguments[1]);
     }
   }
   const { line } = sourceFile.getLineAndCharacterOfPosition(calls[0].getStart(sourceFile));
@@ -167,21 +319,20 @@ function readUnit(terminal, sourceFile, checker, root) {
   return { id: `${file}:${line + 1}`, kind, file, line: line + 1, ...(label === undefined ? {} : { label }), exports, installs, nodes, aliases, terminal };
 }
 
-/** Map each install argument to the module unit it names, with its label and export renames. */
+/** Map each install argument to its module and ordered literal view renames. */
 function resolveInstalls(units, checker) {
   const byTerminal = new Map(units.map(unit => [unit.terminal, unit]));
   for (const unit of units) {
     unit.installRefs = unit.installs.map(argument => {
-      const renames = [];
-      let expression = skipOuter(argument);
-      while (ts.isCallExpression(expression) && methodName(expression) === 'renameExport' && ts.isPropertyAccessExpression(expression.expression)) {
-        const [from, to] = expression.arguments;
-        if (from && to) renames.unshift([keyText(from), keyText(to)]);
-        expression = skipOuter(expression.expression.expression);
-      }
-      const initializer = ts.isIdentifier(expression) ? initializerOf(expression, checker) : expression;
+      const view = moduleView(argument);
+      const initializer = ts.isIdentifier(view.expression) ? initializerOf(view.expression, checker) : view.expression;
       const target = initializer && byTerminal.get(skipOuter(initializer));
-      return { unit: target?.kind === 'module' ? target : undefined, label: expression.getText(), renames };
+      return {
+        unit: target?.kind === 'module' ? target : undefined,
+        label: view.expression.getText(),
+        exportRenames: view.exportRenames,
+        requirementRenames: view.requirementRenames,
+      };
     });
     unit.installs = unit.installRefs.map((ref, index) => ref.unit?.id ?? unit.installs[index].getText());
   }
@@ -201,10 +352,17 @@ function instantiate(unit, prefix, outer, graph, active) {
   for (const ref of unit.installRefs) {
     if (!ref.unit || active.has(ref.unit)) { opaque = true; continue; }
     const exported = new Map(ref.unit.exports.map(key => [key, key]));
-    for (const [from, to] of ref.renames) if (exported.has(from)) { exported.set(to, exported.get(from)); exported.delete(from); }
+    for (const [from, to] of ref.exportRenames) {
+      if (exported.has(from)) { exported.set(to, exported.get(from)); exported.delete(from); }
+    }
+    const requirements = new Map();
+    for (const [from, to] of ref.requirementRenames) {
+      const original = [...requirements].find(([, current]) => current === from)?.[0] ?? from;
+      requirements.set(original, to);
+    }
     active.add(ref.unit);
     // The module's own label matches runtime messages; the install expression names unlabeled modules.
-    const own = instantiate(ref.unit, `${prefix}${ref.unit.label ?? ref.label}/`, name => lookup(name), graph, active);
+    const own = instantiate(ref.unit, `${prefix}${ref.unit.label ?? ref.label}/`, name => lookup(requirements.get(name) ?? name), graph, active);
     active.delete(ref.unit);
     installed.push({ exported, own });
   }
@@ -217,8 +375,10 @@ function instantiate(unit, prefix, outer, graph, active) {
   };
   const lookup = name => {
     const found = own(name);
-    if (found?.id || !outer) return found;
-    return outer(name) ?? found;
+    if (found?.id !== undefined) return found;
+    const supplied = outer?.(name);
+    if (supplied?.id !== undefined || supplied?.opaque) return supplied;
+    return found ?? supplied ?? { requirement: name };
   };
   // Resolved after every install exists: a requirement may name a module installed later.
   const top = prefix ? prefix.split('/')[0] : '';
@@ -250,9 +410,11 @@ function findIssues(units) {
       stack.pop(); state.set(id, 'done');
     };
     for (const id of graph.keys()) if (!state.has(id)) visit(id);
-    const unmet = [...graph].flatMap(([id, node]) => node.dependencies.filter(dependency => !dependency.target).map(({ name }) => ({ id, name })));
+    const unmet = [...graph].flatMap(([id, node]) => node.dependencies
+      .filter(dependency => dependency.target.requirement !== undefined)
+      .map(({ name, target }) => ({ id, name, requirement: target.requirement })));
     // A module's unmet names are requirements the host supplies; only a bag reports them as issues.
-    if (unit.kind === 'module') unit.requirements = [...new Set(unmet.map(({ name }) => name))].sort();
+    if (unit.kind === 'module') unit.requirements = [...new Set(unmet.map(({ requirement }) => requirement))].sort();
     else for (const { id, name } of unmet) issues.push({ kind: 'unresolved', unit: unit.id, consumer: id, dependency: name });
     unit.edges = unit.nodes.flatMap(node => node.dependencies.map(dependency => ({ from: node.key, to: dependency })))
       .sort((left, right) => left.from.localeCompare(right.from) || left.to.localeCompare(right.to));
@@ -274,9 +436,10 @@ export function extractDependencyGraph({ project, files, root = process.cwd(), t
   const units = [];
   for (const sourceFile of program.getSourceFiles()) {
     if (sourceFile.isDeclarationFile || sourceFile.fileName.includes('/node_modules/')) continue;
+    const declarationOwners = diBagDeclarationOwners(sourceFile, checker);
     const visit = node => {
       if (ts.isCallExpression(node) && TERMINALS.has(methodName(node) ?? '') && isChainStart(chainCalls(node, checker))) {
-        units.push(readUnit(node, sourceFile, checker, root));
+        units.push(readUnit(node, sourceFile, checker, declarationOwners, root));
         return;
       }
       ts.forEachChild(node, visit);

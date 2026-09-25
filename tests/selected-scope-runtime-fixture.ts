@@ -4,23 +4,23 @@ export const selectedScopeRuntimeAssertions = `
     const assertSelected = (condition, message) => { if (!condition) throw new Error(message); };
     const selectedLog = [];
     const selectedKey = Symbol('selected');
-    const selectedToken = DiBag.token(selectedKey).of();
+    const selectedToken = DiBag.createToken(selectedKey).forService();
     let settleSelected;
     const selectedPromise = new Promise(resolve => { settleSelected = resolve; });
-    const selectedFeature = DiBag.createBuilder().register({
-      privateResource: DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('private'); }),
-      publicResource: DiBag.withDisposal(({ privateResource }) => ({ privateResource }), () => { selectedLog.push('export'); }),
-    }).buildModule(['publicResource']).renameExport('publicResource', 'shared');
-    const selectedRoot = DiBag.createBuilder().installModule(selectedFeature).register(selectedToken, () => ({ id: 'parent' })).register({
+    const selectedFeature = DiBag.createBuilder().withServices({
+      privateResource: DiBag.providerWithDisposal({ provider: ({ config }) => ({ id: config.id }), disposeService: () => { selectedLog.push('private'); } }),
+      publicResource: DiBag.providerWithDisposal({ provider: ({ privateResource }) => ({ privateResource }), disposeService: () => { selectedLog.push('export'); } }),
+    }).buildModule({ exportedServiceKeys: ['publicResource'] }).withRenamedExport({ currentExportKey: 'publicResource', newExportKey: 'shared' });
+    const selectedRoot = DiBag.createBuilder().withInstalledModules([selectedFeature]).withTokenService(selectedToken, () => ({ id: 'parent' })).withServices({
       config: () => ({ id: 'parent' }),
-      pending: DiBag.withDisposal(() => selectedPromise, () => { selectedLog.push('pending'); }),
-      raw: DiBag.fromFactory(() => selectedPromise, { acquisitionMode: 'raw' }),
-      rooted: DiBag.withLifetime(DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('root'); }), 'root', { allowScopedDependencies: true }),
-    }).build();
-    const selectedChild = selectedRoot.createScope(['config', selectedToken], {
+      pending: DiBag.providerWithDisposal({ provider: () => selectedPromise, disposeService: () => { selectedLog.push('pending'); } }),
+      raw: DiBag.createProvider(() => selectedPromise, { factoryReturnKind: 'uninspected' }),
+      rooted: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }) => ({ id: config.id }), disposeService: () => { selectedLog.push('root'); } }), lifetime: 'scoped:one-per-container' }),
+    }).buildContainer();
+    const selectedChild = selectedRoot.createChildContainer(['config', selectedToken], {
       config: () => ({ id: 'child' }), [selectedKey]: () => ({ id: 'child' }),
-    }, { share: ['shared', 'pending', 'raw'] });
-    const selectedGrandchild = selectedChild.createScope({ share: ['shared', selectedToken] });
+    }, { sharedParentServiceKeys: ['shared', 'pending', 'raw', 'rooted'] });
+    const selectedGrandchild = selectedChild.createChildContainer({ sharedParentServiceKeys: ['shared', selectedToken] });
     assertSelected(selectedChild.resolve('config').id === 'child', 'child override missing');
     assertSelected(selectedGrandchild.resolve(selectedToken).id === 'child', 'token share lost override');
     assertSelected(selectedChild.resolve('shared').privateResource.id === 'parent', 'shared private dependency used child graph');
@@ -28,10 +28,10 @@ export const selectedScopeRuntimeAssertions = `
     assertSelected(selectedChild.resolve('pending') === selectedPromise && selectedRoot.resolve('pending') === selectedPromise, 'shared pending identity lost');
     assertSelected(selectedChild.resolve('raw') === selectedPromise, 'raw identity lost');
     assertSelected(selectedChild.resolve('rooted').id === 'parent', 'inherited root used child context');
-    const anchored = selectedChild.createScope(['rooted'], {
-      rooted: DiBag.withLifetime(DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('anchored'); }), 'root', { allowScopedDependencies: true }),
+    const anchored = selectedChild.createChildContainer(['rooted'], {
+      rooted: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }) => ({ id: config.id }), disposeService: () => { selectedLog.push('anchored'); } }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true }),
     });
-    const anchoredGrandchild = anchored.createScope(['config'], { config: () => ({ id: 'grandchild' }) });
+    const anchoredGrandchild = anchored.createChildContainer(['config'], { config: () => ({ id: 'grandchild' }) });
     assertSelected(anchoredGrandchild.resolve('rooted').id === 'child', 'child root anchor lost');
     assertSelected(anchoredGrandchild.resolve('rooted') === anchored.resolve('rooted'), 'child root identity lost');
     settleSelected(42);

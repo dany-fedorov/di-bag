@@ -5,6 +5,20 @@ import ts from 'typescript';
 import { diagnostics, diagnosticsByFile, describeDiagnostic, options } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('provider sources retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/provider-sources.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('provider facade bags retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/provider-facades-consumer.ts')).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('provider source declarations retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/provider-sources-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('observers retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/observers-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -22,6 +36,11 @@ test('final adversarial integration retains exact inferred cross-file contracts'
 
 test('contributions retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/contributions-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('collection tokens retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/collection-tokens.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
@@ -45,6 +64,11 @@ test('selected scopes retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('container derivation retains exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/container-derivation-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('startup and contextual providers retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/startup-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -55,7 +79,17 @@ test('lifetime declarations retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+test('child singleton replacement source contract type-checks', () => {
+  expect(diagnostics(resolve(__dirname, 'types/child-singleton-replacement.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('requirement-renaming retains exact cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/requirement-renaming-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+for (const fixture of ['lifetimes', 'child-singleton-replacement', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'provider-sources', 'provider-facades', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');
@@ -170,6 +204,16 @@ test('consolidated API preserves exact mode-dependent contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('the 0.5.0 builder shapes infer the same contracts as the 0.4.0 forms', () => {
+  expect(diagnostics(resolve(__dirname, 'types/builder-renames.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('0.5.0 builder shapes retain declaration contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/builder-renames-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('native acquisition metadata preserves exact outputs, requirements and frames', () => {
   expect(diagnostics(resolve(__dirname, 'types/acquisition-metadata.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -236,6 +280,37 @@ const negativeFixtures = readdirSync(negativeDirectory)
 // One program for every independent rejection fixture; each test reads its own file's diagnostics.
 const negativeDiagnostics = diagnosticsByFile(negativeFixtures);
 
+test('child singleton replacement diagnostics start on the provider argument', () => {
+  const file = resolve(__dirname, 'types/negative/child-singleton-replacement.ts');
+  const source = readFileSync(file, 'utf8');
+  const errors = negativeDiagnostics.get(file)!;
+  const matched = matchDiagnosticMarkers(source, file, errors.map(describeDiagnostic));
+  expect(matched.unexpected).toEqual([]);
+  expect(matched.missing).toEqual([]);
+  const replacements = errors.filter(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n')
+      .includes('createChildContainer cannot replace singleton service'),
+  );
+  expect(replacements).toHaveLength(3);
+  expect(replacements.map(error => source.slice(error.start!, error.start! + error.length!))).toEqual([
+    '{ singleton: () => 3 }',
+    '{ [token.symbol]: () => 2 }',
+    '{ alias: () => 2 }',
+  ]);
+});
+
+test('requirement-renaming wrong-shape details name the remapped relationship', () => {
+  const path = resolve(negativeDirectory, 'requirement-renaming.ts');
+  const wrongShape = negativeDiagnostics.get(path)!.filter(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n').includes('provided service does not satisfy its consumer dependency'));
+  expect(wrongShape).toHaveLength(1);
+  const message = ts.flattenDiagnosticMessageText(wrongShape[0]!.messageText, '\n');
+  expect(message).toContain('consumer: "service"');
+  expect(message).toContain('dependency: "featureConfig"');
+  expect(message).toContain('expected: Config');
+  expect(message).toContain('provided: { value: string; }');
+});
+
 for (const path of negativeFixtures) {
   test(`type rejection: ${basename(path)}`, () => {
     const source = readFileSync(path, 'utf8');
@@ -248,3 +323,80 @@ for (const path of negativeFixtures) {
     expect(matched.missing).toEqual([]); expect(matched.unexpected).toEqual([]);
   });
 }
+
+test('provider facade rejections remain property-located diagnostics', () => {
+  const path = resolve(negativeDirectory, 'provider-facades.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(17);
+  expect(errors).toHaveLength(17);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  const anchors = errors.map(error => {
+    const span = source.slice(error.start!, error.start! + error.length!);
+    return span.startsWith('{') ? '{' : span;
+  });
+  expect(anchors).toEqual([
+    'lifetime', 'lifetime', 'lifetime',
+    'allowsScopedDependencies', 'allowsScopedDependencies',
+    'allowsScopedDependencies', 'allowsScopedDependencies', 'extra',
+    'callbackReceives', 'describeAcquisition',
+    'transformReturnKind', 'transformReturnKind', 'transformReturnKind',
+    'transformService', '{', 'registrationMetadata', 'dependent',
+  ]);
+});
+
+test('provider facade lifetime option controls remain independently rejected', () => {
+  const path = resolve(negativeDirectory, 'provider-facade-lifetime-controls.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(6);
+  expect(errors).toHaveLength(6);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  expect(errors.map(error => source.slice(error.start!, error.start! + error.length!))).toEqual([
+    'unknownOptions',
+    'undefinedOptions',
+    'lifetime',
+    'optionalScopedOptions',
+    'indexedOptions',
+    '[extraSymbol]',
+  ]);
+});
+
+test('provider facade raw thenables remain rejected at their normalization boundary', () => {
+  const path = resolve(negativeDirectory, 'provider-facade-thenables.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(14);
+  expect(errors).toHaveLength(14);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  expect(errors.slice(0, 12).map(error => source.slice(error.start!, error.start! + error.length!))).toEqual([
+    'provider', 'provider', 'provider', 'provider', 'provider', 'provider',
+    'provider', 'provider', 'exposedAcquisitionOptions', 'provider', 'provider',
+    'fulfilledTransformOptions',
+  ]);
+  expect(errors.slice(12).every(error => source.slice(error.start!, error.start! + error.length!).includes('QueryBuilder'))).toBe(true);
+});
+
+test('provider replacement self admission preserves useful malformed-dependency diagnostics', () => {
+  const path = resolve(negativeDirectory, 'provider-replacement-self-admission.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(6);
+  expect(errors).toHaveLength(6);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  expect(errors.slice(0, 3).every(error => ts.flattenDiagnosticMessageText(error.messageText, '\n').includes("not assignable to parameter of type 'never'"))).toBe(true);
+  expect(errors.slice(3, 5).every(error => ts.flattenDiagnosticMessageText(error.messageText, '\n').includes('factory dependencies must be finite'))).toBe(true);
+  expect(ts.flattenDiagnosticMessageText(errors[5]!.messageText, '\n')).toContain('No overload matches');
+});

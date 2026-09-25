@@ -1,0 +1,81 @@
+import { DiBag } from '../../../src';
+
+type Clock = { now(): number };
+const clockKey = Symbol('clock');
+const clock = DiBag.createToken(clockKey).forService<Clock>();
+const toolKey = Symbol('tool');
+const toolsKey = Symbol('tools');
+const tool = DiBag.createToken(toolKey).forService<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
+
+DiBag.createBuilder().withTokenService(
+  clock,
+  // diagnostic: token binding output is not assignable to its service
+  () => ({ now: () => 'late' }),
+);
+
+DiBag.createBuilder().withTokenService(clock, (): Clock => ({ now: () => 1 })).withTokenService(
+  // diagnostic: withServices and withTokenService introduce new names or typed tokens only
+  clock,
+  (): Clock => ({ now: () => 2 }),
+);
+
+DiBag.createBuilder().withTokenService(
+  // diagnostic: withTokenService requires a single-service token
+  tools,
+  () => ['wrong channel'],
+);
+
+DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
+  aliasKey: 'b',
+  // diagnostic: withServiceAlias requires an existing named target
+  targetServiceKey: 'missing',
+});
+
+DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
+  // diagnostic: withServices and withTokenService introduce new names or typed tokens only
+  aliasKey: 'a',
+  targetServiceKey: 'a',
+});
+
+DiBag.createBuilder().withServices({ a: (): readonly string[] => [] }).withServiceAlias({
+  // diagnostic: withServiceAlias destination requires a single-service token
+  aliasKey: tools,
+  targetServiceKey: 'a',
+});
+
+DiBag.createBuilder().withCollectionContribution({
+  // diagnostic: withCollectionContribution requires a collection token
+  collectionToken: tool,
+  provider: () => 'search',
+});
+
+DiBag.createBuilder().withCollectionContribution({
+  collectionToken: tools,
+  // diagnostic: collection contribution output is not assignable to its item
+  provider: () => 42,
+});
+
+// Zero-dependency fast path: the diagnostic must land on serviceKey.
+DiBag.createBuilder().withServices({ a: () => 1 }).withReplacedService(
+  // diagnostic: withReplacedService requires one existing singleton string-literal key
+  'missing',
+  () => 2,
+);
+
+// General replacement path: a dependency-bearing provider cannot use the zero-dependency overload.
+DiBag.createBuilder().withServices({ a: () => 1, b: () => 2, consumer: ({ a }: { a: number }) => a }).withReplacedService(
+  'a',
+  // diagnostic: consumer dependency
+  ({ b }: { b: number }) => 'text',
+);
+
+// Two overloads while the 0.4.0 form exists: one line each for now. Task 12 spreads these two over several lines.
+// diagnostic: buildModule accepts existing names or typed tokens only
+DiBag.createBuilder().withServices({ a: () => 1 }).buildModule({ exportedServiceKeys: ['missing'] });
+// diagnostic: is not assignable to type 'string'
+DiBag.createBuilder().withServices({ a: () => 1 }).buildModule({ exportedServiceKeys: ['a'], moduleLabel: 1 });
+
+const moduleBuilder = DiBag.createBuilder().withServices({ value: () => 1 });
+// diagnostic: Object literal may only specify known properties
+moduleBuilder.buildModule({ exportedServiceKeys: ['value'], label: 'old' });

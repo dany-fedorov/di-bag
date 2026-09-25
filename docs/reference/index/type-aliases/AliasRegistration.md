@@ -5,12 +5,12 @@
 # Type Alias: AliasRegistration\<R *extends* `Registrations`, D, T\>
 
 ```ts
-type AliasRegistration<R extends Registrations, D, T> = Provider<(this: void, deps: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>, Readonly<object>, readonly unknown[], TokenDependencyContract<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
+type AliasRegistration<R extends Registrations, D, T> = Provider<(this: void, dependencies: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>, Readonly<object>, readonly unknown[], T extends CollectionTokenBase ? TokenDependencyContract<readonly [], D extends TokenBase ? D : never, readonly [], readonly [T]> : TokenDependencyContract<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
     readonly alias: SelectionKey<T>;
 }, unknown>;
 ```
 
-Defined in: [alias-types.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L28)
+Defined in: [alias-types.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L31)
 
 A provider contract that forwards a destination to a canonical target acquisition.
 

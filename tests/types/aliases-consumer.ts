@@ -4,30 +4,29 @@ import type { Assert, Equal } from './assert';
 const copy = bag.resolve('copy'); const token = bag.resolve(destination); const declared = complete.resolve('forward'); const promise = promiseBag.resolve('promise');
 export type Exact = [Assert<Equal<typeof copy, { id: number; extra: boolean }>>, Assert<Equal<typeof token, { id: number; extra: boolean }>>,
   Assert<Equal<typeof declared, { id: number }>>, Assert<Equal<typeof promise, Promise<number>>>];
-forward.register(target, () => ({ id: 1 })).build(); host.register(target, () => ({ id: 1 })).build(); emptyHost.register(target, () => ({ id: 1 })).build();
+forward.withTokenService(target, () => ({ id: 1 })).buildContainer(); host.withTokenService(target, () => ({ id: 1 })).buildContainer(); emptyHost.withTokenService(target, () => ({ id: 1 })).buildContainer();
 // @ts-expect-error emitted alias builder retains missing token requirement
-forward.build();
+forward.buildContainer();
 // @ts-expect-error emitted module public view retains external token requirement
-host.build();
+host.buildContainer();
 // @ts-expect-error emitted exportless module retains external token requirement
-emptyHost.build();
-const wrong = DiBag.token(key).of<string>();
+emptyHost.buildContainer();
+const wrong = DiBag.createToken(key).forService<string>();
 // @ts-expect-error emitted alias retains nominal target service
-forward.register(wrong, () => 'bad');
+forward.withTokenService(wrong, () => 'bad');
 // @ts-expect-error named alias consumers retain their promised output after replacement
-named.replace('value', () => ({ id: 1 }));
+named.withReplacedService('value', () => ({ id: 1 }));
 // @ts-expect-error exported target rename retains alias shape obligations
-publicTargetHost.replace('renamed', () => 'wrong');
-DiBag.createBuilder().installModule(privateRoot).register({ root: DiBag.withLifetime(({ renamed }: { renamed: { id: number } }) => renamed, 'root') }).build();
-import { rootShared, scopedShared, sharedRootConsumer } from './aliases';
-rootShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { share: ['copy'] });
-scopedShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
-scopedShared.fork(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+publicTargetHost.withReplacedService('renamed', () => 'wrong');
+DiBag.createBuilder().withInstalledModules([privateRoot]).withServices({ root: DiBag.providerWithLifetime({ provider: ({ renamed }: { renamed: { id: number } }) => renamed, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
+import { rootShared, scopedShared, scopedTarget, sharedRootConsumer } from './aliases';
+rootShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
+scopedShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
+scopedShared.createIndependentContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
 // @ts-expect-error inferred selected alias retains the effective parent scoped policy
-scopedShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { share: ['copy'] });
-// @ts-expect-error fresh scope discards alias sharing and returns to scoped child target
-rootShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
-// @ts-expect-error independent fork discards alias sharing and returns to scoped child target
-rootShared.fork(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
-// @ts-expect-error retained parent root cannot justify the fork's own captive graph
-sharedRootConsumer.fork();
+scopedShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
+// @ts-expect-error fresh child cannot capture the scoped alias target
+scopedTarget.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
+// @ts-expect-error independent fork cannot capture the scoped alias target
+scopedTarget.createIndependentContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
+sharedRootConsumer.createIndependentContainer();

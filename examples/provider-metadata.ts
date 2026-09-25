@@ -15,49 +15,35 @@ const connection = {
   },
 };
 
-const locatedConnection = DiBag.withDisposal(
-  (): Located<typeof connection> => ({
-    value: { present: true, value: connection },
+const locatedConnection = DiBag.providerWithDisposal({ provider: (): Located<typeof connection> => ({
+    value: { isPresent: true, value: connection },
     origin: 'DATABASE_URL',
-  }),
-  (result) => {
-    if (result.value.present) result.value.value.close();
-  },
-);
+  }), disposeService: (result) => {
+    if (result.value.isPresent) result.value.value.close();
+  } });
 
-const connectionPresence = DiBag.transformService(
-  DiBag.withMetadata(locatedConnection, {
-    dynamic: { mode: 'direct', describe: (result) => ({ origin: result.origin }) },
-  }),
-  { mode: 'direct', transform: (result) => result.value },
-);
+const connectionPresence = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: locatedConnection, describeAcquisition: (result) => ({ origin: result.origin }), callbackReceives: 'exposed-service' }), transformService: (result) => result.value, callbackReceives: 'exposed-service' });
 
-const remoteFlag = DiBag.transformService(
-  DiBag.withMetadata(
-    async (): Promise<Located<boolean | undefined>> => ({
-      value: { present: true, value: undefined },
+const remoteFlag = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: async (): Promise<Located<boolean | undefined>> => ({
+      value: { isPresent: true, value: undefined },
       origin: 'feature-service',
-    }),
-    { dynamic: { mode: 'awaited', describe: (result) => ({ origin: result.origin }) } },
-  ),
-  { mode: 'awaited', transform: (result) => result.value },
-);
+    }), describeAcquisition: (result) => ({ origin: result.origin }), callbackReceives: 'fulfilled-value' }), transformService: (result) => result.value, callbackReceives: 'fulfilled-value' });
 
 async function main() {
-  const bag = DiBag.createBuilder().register({ connectionPresence, remoteFlag }).build();
+  const bag = DiBag.createBuilder().withServices({ connectionPresence, remoteFlag }).buildContainer();
   try {
     const acquired = bag.resolve('connectionPresence');
-    if (acquired.present) console.log('answer:', acquired.value.read());
+    if (acquired.isPresent) console.log('answer:', acquired.value.read());
 
     const flag = await bag.resolve('remoteFlag');
-    console.log('flag present:', flag.present);
+    console.log('flag present:', flag.isPresent);
     console.log(
       'connection frame:',
-      bag.inspect('connectionPresence').acquisitions[0]!.acquisitionMetadata[0],
+      bag.serviceSnapshot('connectionPresence').acquisitions[0]!.acquisitionMetadata[0],
     );
     console.log(
       'flag frame:',
-      bag.inspect('remoteFlag').acquisitions[0]!.acquisitionMetadata[0],
+      bag.serviceSnapshot('remoteFlag').acquisitions[0]!.acquisitionMetadata[0],
     );
   } finally {
     await bag.close();

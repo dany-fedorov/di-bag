@@ -8,13 +8,13 @@ async function main() {
     deliveredClose = resolve;
   });
   const observed = DiBag.withConfiguration({
-    observers: [
+    lifecycleObservers: [
       {
-        onEvent(event) {
+        onLifecycleEvent(event) {
           events.push(event);
-          if (event.kind === 'scope-closed') deliveredClose();
+          if (event.kind === 'container-closed') deliveredClose();
         },
-        onError(failure) {
+        onObserverFailure(failure) {
           observerFailures.push(failure);
         },
       },
@@ -23,19 +23,13 @@ async function main() {
   let disposals = 0;
   const bag = observed
     .createBuilder()
-    .register({
-      connection: observed.withMetadata(
-        observed.withDisposal(
-          observed.fromFactory(() => ({ name: 'reporting' }), { acquisitionMode: 'raw' }),
-          () => {
+    .withServices({
+      connection: observed.providerWithRegistrationMetadata({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => ({ name: 'reporting' }), { factoryReturnKind: 'uninspected' }), disposeService: () => {
             disposals++;
-          },
-        ),
-        { static: { 'app:owner': { team: 'platform' } } },
-      ),
+          } }), registrationMetadata: { 'app:owner': { team: 'platform' } } }),
     })
-    .alias('reports', 'connection')
-    .build();
+    .withServiceAlias({ aliasKey: 'reports', targetServiceKey: 'connection' })
+    .buildContainer();
 
   try {
     if (bag.resolve('reports') !== bag.resolve('connection')) {

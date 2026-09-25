@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagStartupError, type CloseOptions } from '../../src';
+import { DiBag, DiBagDisposalError, DiBagServiceReadinessError, type CloseOptions } from '../../src';
 import { RuntimeOwner, type OwnerFailure } from '../../examples/react/runtime-owner';
 import { deferred } from '../helpers';
 
@@ -24,33 +24,30 @@ type Fakes = {
   readonly lock?: Set<string>;
 };
 
-/** A real bag per startup: buildAndStart supplies cancellation and rollback; only the factories are fake. */
+/** A real bag per startup: ensureServicesReady supplies cancellation and rollback; only the factories are fake. */
 function fakeStart(fakes: Fakes) {
   return async (identity: string, signal: AbortSignal): Promise<FakeRuntime> => {
     fakes.log.push(`start:${identity}`);
-    const bag = await DiBag.createBuilder().register({
-      resource: DiBag.withDisposal(
-        DiBag.fromFactory(async () => {
+    const bag = await DiBag.createBuilder().withServices({
+      resource: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async () => {
           if (fakes.lock?.has(identity)) throw new Error(`${identity} is held`);
           fakes.lock?.add(identity);
           fakes.log.push(`acquire:${identity}`);
           await fakes.readyGate?.(identity);
           return identity;
-        }, { acquisitionMode: 'nativePromise' }),
-        async value => {
+        }, { factoryReturnKind: 'native-promise' }), disposeService: async value => {
           fakes.log.push(`dispose:${value}`);
           await fakes.disposeGate?.(value);
           fakes.lock?.delete(value);
           if (fakes.disposeFailing?.includes(value)) throw new Error(`${value} dispose failed`);
-        },
-      ),
+        } }),
       // Fails after `resource` is owned, so a failed startup has something to roll back.
-      checkpoint: DiBag.fromFactory(async ({ resource }: { resource: Promise<string> }) => {
+      checkpoint: DiBag.createProvider(async ({ resource }: { resource: Promise<string> }) => {
         await resource;
         if (fakes.failing?.includes(identity)) throw new Error(`${identity} failed`);
         return true;
-      }, { acquisitionMode: 'nativePromise' }),
-    }).buildAndStart(['resource', 'checkpoint'], { signal });
+      }, { factoryReturnKind: 'native-promise' }),
+    }).buildContainer().ensureServicesReady(['resource', 'checkpoint'], { abortSignal: signal });
     fakes.log.push(`ready:${identity}`);
     return { identity, close: options => bag.close(options) };
   };
@@ -162,14 +159,14 @@ test('a start that ignores its signal delays the replacement only until the boun
   expect(log).toEqual(['close:a', 'close:b']);
 });
 
-test('a failed startup publishes the error after buildAndStart released what it acquired', async () => {
+test('a failed startup publishes the error after ensureServicesReady released what it acquired', async () => {
   const fakes: Fakes = { log: [], failing: ['a'] };
   const { owner } = createOwner(fakes);
   owner.select('a');
   await settle();
   const status = owner.getSnapshot();
   expect(status).toMatchObject({ state: 'failed', identity: 'a', generation: 1 });
-  expect((status as { error: unknown }).error).toBeInstanceOf(DiBagStartupError);
+  expect((status as { error: unknown }).error).toBeInstanceOf(DiBagServiceReadinessError);
   expect(fakes.log).toEqual(['start:a', 'acquire:a', 'dispose:a']);
   owner.retry();
   await settle();
@@ -203,7 +200,7 @@ test('a rejecting disposer reaches the sink and the replacement still starts', a
   await settle();
   expect(failures).toHaveLength(1);
   expect(failures[0]).toMatchObject({ phase: 'close-failed', identity: 'a', generation: 1 });
-  expect((failures[0] as { error: unknown }).error).toBeInstanceOf(DiBagCleanupError);
+  expect((failures[0] as { error: unknown }).error).toBeInstanceOf(DiBagDisposalError);
   expect(owner.getSnapshot()).toMatchObject({ state: 'ready', identity: 'b', generation: 2 });
   expect(fakes.log).toEqual(['start:a', 'acquire:a', 'ready:a', 'dispose:a', 'start:b', 'acquire:b', 'ready:b']);
   await owner.close();
@@ -241,7 +238,7 @@ test('an expired bounded wait is reported, the replacement proceeds, and the lat
   // The documented overlap policy: the replacement started while 'a' was still held, so its startup failed visibly.
   const status = owner.getSnapshot();
   expect(status).toMatchObject({ state: 'failed', identity: 'a', generation: 2 });
-  expect((((status as { error: unknown }).error as DiBagStartupError).cause as Error).message).toBe('a is held');
+  expect((((status as { error: unknown }).error as DiBagServiceReadinessError).cause as Error).message).toBe('a is held');
   expect(fakes.log).toEqual(['start:a', 'acquire:a', 'ready:a', 'dispose:a', 'start:a']);
   disposing.resolve();
   await settle();

@@ -2,15 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ProviderNamedDependencies
 
-# Type Alias: ProviderNamedDependencies\<R *extends* [`Registration`](Registration.md)\>
+# Type Alias: ProviderNamedDependencies\<R *extends* [`ProviderOrFactory`](ProviderOrFactory.md)\>
 
 ```ts
-type ProviderNamedDependencies<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never> : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
+type ProviderNamedDependencies<R extends ProviderOrFactory> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never> : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
 ```
 
-Defined in: [provider.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L82)
+Defined in: [provider.ts:96](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L96)
 
-Extract the registration's named dependency object.
+Extract the provider's named dependency object.
 
 ## Type Parameters
 

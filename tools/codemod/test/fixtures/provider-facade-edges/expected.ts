@@ -1,0 +1,18 @@
+import { DiBag, type Provider } from 'di-bag';
+const p = DiBag.createProvider(() => 1);
+const describe = (value: number) => ({ value });
+export const staticOnly = DiBag.providerWithRegistrationMetadata({ provider: p, registrationMetadata: { owner: 'team' } });
+export const dynamicOnly = DiBag.providerWithAcquisitionMetadata({ provider: p, describeAcquisition: describe, callbackReceives: 'exposed-service' });
+declare const condition: boolean;
+export const conditional = DiBag.providerWithDisposal({ provider: (condition ? p : p), disposeService: /* keep */ () => {} });
+declare const wrapped: Provider<() => number>;
+export const wrappedOwned = DiBag.providerWithLifetime({ provider: wrapped, lifetime: 'transient:one-per-resolve' });
+declare const opaqueAny: any;
+export const manualAny = DiBag.withDisposal(opaqueAny, () => {});
+declare const opaqueUnknown: unknown;
+export const manualUnknown = DiBag.withDisposal(opaqueUnknown, () => {});
+export const unsafeSpread = DiBag.withMetadata(p, { static: {}, ...({} as object) });
+export const duplicate = DiBag.transformService(p, { mode: 'direct', mode: 'awaited', transform: value => value });
+export const commentedBag = DiBag.transformService(p, { mode: 'direct', /* preserve */ transform: value => value });
+const allowScopedDependencies = true;
+export const shorthandLifetime = DiBag.providerWithLifetime({ provider: p, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: allowScopedDependencies });

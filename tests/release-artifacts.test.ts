@@ -28,7 +28,13 @@ const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), '
 };
 
 const packageNames = ['di-bag'] as const;
+const releasePackages = (libraryVersion: string) => [
+  { name: 'di-bag-graph', version: '0.2.0', archive: '/tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz' },
+  { name: 'di-bag-codemod', version: '0.1.0', archive: '/tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz' },
+  { name: 'di-bag', version: libraryVersion, archive: `/tmp/di-bag-release-candidate/di-bag-${libraryVersion}.tgz` },
+] as const;
 const authorizationHeading = '## DO NOT RUN without fresh explicit authorization';
+const scratchUserconfig = '--userconfig "$release_scratch/publish.npmrc"';
 const adversarialReleaseFiles = [
   'tests/final-adversarial-integration.test.ts',
   'tests/package.test.ts',
@@ -49,13 +55,20 @@ function validateAdversarialReleaseCommands(document: string): readonly string[]
   return failures;
 }
 
-function onlineCommands(version: string): readonly string[] {
+function authorizedReleaseCommands(version: string): readonly string[] {
+  const packages = releasePackages(version);
   return [
-    ...packageNames.map(name =>
-      `npm view ${name}@${version} version --registry=https://registry.npmjs.org`),
-    'npm login --registry=https://registry.npmjs.org',
-    `npm publish /tmp/di-bag-release-candidate/di-bag-${version}.tgz --access public --provenance`,
-    `npm dist-tag add di-bag@${version} latest --registry=https://registry.npmjs.org`,
+    'release_scratch="$(mktemp -d)"',
+    'chmod 700 "$release_scratch"',
+    'trap \'rm -f "$release_scratch/publish.npmrc"; rmdir "$release_scratch"\' EXIT',
+    `npm login --registry=https://registry.npmjs.org ${scratchUserconfig}`,
+    `npm whoami --registry=https://registry.npmjs.org ${scratchUserconfig}`,
+    ...packages.map(({ name, version: packageVersion }) =>
+      `npm view ${name}@${packageVersion} version --registry=https://registry.npmjs.org ${scratchUserconfig}`),
+    ...packages.map(({ archive }) =>
+      `npm publish ${archive} --access public ${scratchUserconfig}`),
+    ...packages.map(({ name, version: packageVersion }) =>
+      `npm dist-tag add ${name}@${packageVersion} latest --registry=https://registry.npmjs.org ${scratchUserconfig}`),
   ];
 }
 
@@ -72,7 +85,11 @@ function validatePublishingDocument(document: string, version: string): string[]
     'npm token', 'npm config', 'npm audit', 'git tag', 'git push',
     '--provenance', '.npmrc', '_authToken',
   ]) if (beforeAppendix.includes(token)) failures.push(`online token precedes authorization heading: ${token}`);
-  for (const command of onlineCommands(version)) {
+  if (appendix.includes('--provenance')) failures.push('provenance publication is forbidden');
+  if (/[<>]/.test(appendix)) failures.push('authorization appendix contains an angle-bracket placeholder');
+  if (appendix.includes('_authToken') || appendix.includes('npm config') || appendix.includes('printf '))
+    failures.push('authorization appendix must not put token material in commands');
+  for (const command of authorizedReleaseCommands(version)) {
     const count = document.split(command).length - 1;
     if (count !== 1) failures.push(`expected command exactly once: ${command}`);
     if (beforeAppendix.includes(command)) failures.push(`online command precedes authorization heading: ${command}`);
@@ -83,6 +100,8 @@ function validatePublishingDocument(document: string, version: string): string[]
     'npm install --offline --ignore-scripts --no-audit --no-fund --no-package-lock',
     'Registry version/owner/access/tag/provenance status is unavailable',
     'npm versions are immutable',
+    'scratch `--userconfig`',
+    'omit provenance attestation',
   ]) if (!beforeAppendix.includes(required)) failures.push(`missing local workflow fact: ${required}`);
   return failures;
 }
@@ -111,16 +130,55 @@ describe('release documentation contract', () => {
   test('release documents match the frozen package and gate every online command', () => {
     const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.4.0' });
+    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.5.0' });
     expect(changelog.match(new RegExp(`^## ${packageManifest.version}$`, 'gm'))).toHaveLength(1);
     expect(changelog).not.toContain('## Unreleased');
+    expect(releasePackages(packageManifest.version)).toEqual([
+      { name: 'di-bag-graph', version: '0.2.0', archive: '/tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz' },
+      { name: 'di-bag-codemod', version: '0.1.0', archive: '/tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz' },
+      { name: 'di-bag', version: '0.5.0', archive: '/tmp/di-bag-release-candidate/di-bag-0.5.0.tgz' },
+    ]);
     expect(validatePublishingDocument(publishing, packageManifest.version)).toEqual([]);
-    expect(appendixCommands(publishing)).toEqual(onlineCommands(packageManifest.version));
+    expect(appendixCommands(publishing)).toEqual(authorizedReleaseCommands(packageManifest.version));
+    for (const command of appendixCommands(publishing).filter(command => command.startsWith('npm ')))
+      expect(command).toContain(scratchUserconfig);
+  });
+
+  test('the 0.5 release notes state the accepted migration contract', () => {
+    const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
+    const readme = readFileSync(resolve(root, 'README.md'), 'utf8');
+    const release = changelog.slice(changelog.indexOf('## 0.5.0'), changelog.indexOf('## 0.4.0'));
+
+    expect(release).toMatch(/it changes three\s+behaviors/);
+    expect(release).toContain("The default remains `'scoped:one-per-container'`");
+    expect(release).toContain('container.resolveCollection(collectionToken)');
+    expect(release).toContain('container.serviceSnapshot(collectionToken)');
+    for (const providerCall of [
+      'DiBag.providerWithDisposal',
+      'DiBag.providerWithLifetime',
+      'DiBag.providerWithRegistrationMetadata',
+      'DiBag.providerWithAcquisitionMetadata',
+      'DiBag.providerWithTransformedService',
+    ]) expect(release).toContain(providerCall);
+    expect(release).toContain('builder.buildContainer().ensureServicesReady(serviceKeys, options)');
+    expect(release).toContain('close({ abortSignal, waitTimeoutMs })');
+    expect(release).toContain('Readiness options are\n  `{ abortSignal, totalTimeoutMs, maxConcurrentServiceKeys }`');
+    expect(release).toContain('withReplacedService(serviceKey, provider)');
+    expect(release).toContain('`withInstalledModules` (a list)');
+    expect(release).toContain('module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })');
+    expect(release).toContain('String requirements can be renamed; typed tokens retain their global identity');
+    expect(release).toContain('32 codes replace the 42 of 0.4.0');
+    expect(release).toContain('callable names only');
+    expect(release).not.toContain('### Measured');
+    expect(release).not.toMatch(/\[\+?N%?\]|\[N\]/);
+    expect(release).not.toContain('Decorators are methods of the provider');
+    expect(readme).toMatch(/Run the 0\.4-to-0\.5 codemod\s+before upgrading/);
   });
 
   test('the publication boundary rejects stale, missing, duplicated, and misplaced commands', () => {
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    const command = onlineCommands(packageManifest.version)[0]!;
+    const command = authorizedReleaseCommands(packageManifest.version)
+      .find(command => command.startsWith(`npm view di-bag@${packageManifest.version} `))!;
     expect(validatePublishingDocument(publishing.replaceAll(packageManifest.version, '9.9.9'), packageManifest.version)).toContain(`expected command exactly once: ${command}`);
     expect(validatePublishingDocument(publishing.replace(command, ''), packageManifest.version)).toContain(`expected command exactly once: ${command}`);
     expect(validatePublishingDocument(`${command}\n${publishing}`, packageManifest.version)).toContain(`online command precedes authorization heading: ${command}`);
@@ -128,6 +186,10 @@ describe('release documentation contract', () => {
     expect(validatePublishingDocument(publishing.replace(authorizationHeading, ''), packageManifest.version)).toContain('missing authorization heading');
     expect(validatePublishingDocument(publishing.replace(authorizationHeading, `${authorizationHeading}\n${authorizationHeading}`), packageManifest.version)).toContain('authorization heading must occur exactly once');
     expect(validatePublishingDocument(publishing.replaceAll('/tmp/di-bag-release-candidate', '/tmp/other'), packageManifest.version)).toContain('missing local workflow fact: /tmp/di-bag-release-candidate');
+    expect(validatePublishingDocument(publishing.replace(scratchUserconfig, '--provenance'), packageManifest.version)).toContain('provenance publication is forbidden');
+    expect(validatePublishingDocument(publishing.replace(scratchUserconfig, '--userconfig <scratchpad>/publish.npmrc'), packageManifest.version)).toContain('authorization appendix contains an angle-bracket placeholder');
+    expect(validatePublishingDocument(publishing.replace(`npm login --registry=https://registry.npmjs.org ${scratchUserconfig}`, 'npm login --registry=https://registry.npmjs.org'), packageManifest.version)).toContain(`expected command exactly once: npm login --registry=https://registry.npmjs.org ${scratchUserconfig}`);
+    expect(validatePublishingDocument(publishing.replace(authorizationHeading, `${authorizationHeading}\nnpm config set //registry.npmjs.org/:_authToken secret`), packageManifest.version)).toContain('authorization appendix must not put token material in commands');
     for (const [prohibited, token] of [
       ['npm whoami --registry=https://registry.npmjs.org', 'npm whoami'],
       ['npm token list', 'npm token'],
@@ -149,25 +211,24 @@ describe('release documentation contract', () => {
 
     expect(readme).not.toContain('The package publishes');
     expect(packageManifest.exports).toEqual({
-      './node': { types: './dist/node.d.ts', default: './dist/node.js' },
       '.': { types: './dist/index.d.ts', default: './dist/index.js' },
     });
     expect(packageManifest.dependencies ?? {}).toEqual({});
     expect(packageManifest.peerDependencies ?? {}).toEqual({});
     expect(packageManifest.optionalDependencies ?? {}).toEqual({});
     expect(packageManifest.bundledDependencies ?? []).toEqual([]);
-    for (const entry of ['di-bag', 'di-bag/node'])
+    for (const entry of ['di-bag'])
       expect(readme).toContain(`\`${entry}\``);
     // The landing page links to the detailed contracts and verification evidence.
     expect(readme).toContain('(docs/guides/api-reference.md)');
     expect(readme).toContain('(docs/guides/tutorial.md)');
     expect(reference).toContain('../reference/index/interfaces/DiBagApi.md');
     expect(readme).toContain('(docs/guides/development.md)');
-    for (const fact of ['provider metadata', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
+    for (const fact of ['provider metadata', 'uninspected', 'native', 'selected child containers', 'non-blocking observers', 'original acquired value'])
       expect(`${tutorial}\n${development}`).toContain(fact);
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
-    expect(development).toContain('one reviewed gap: native 7.0.2 rejects a contextual');
+    expect(development).toContain('nine reviewed gaps. One is that native 7.0.2 rejects a');
     expect(development).toContain('applications at 1,000 providers');
     expect(development).toContain('groups of 50');
     for (const text of [readme, reference, tutorial, development])
@@ -353,10 +414,17 @@ describe('native gap inventory', () => {
   test('freezes the exact current reviewed-gap source authority', () => {
     expect(Object.isFrozen(nativeDiagnosticGapMessages)).toBe(true);
     const gaps = collectReviewedNativeGaps(reviewedRoot);
-    // Two reviewed gaps: native 7.0.2 rejects the contextual fromFactory thenable and the contextual
-    // fromSyncFactory Promise through their last overload's arity error.
+    // Seven reviewed contextual createProvider gaps and two reviewed provider
+    // facade mode gaps: native 7.0.2 selects a less useful last-overload diagnostic.
     expect(gaps.map(gap => [gap.fixture, gap.id, gap.code])).toEqual([
       ['negative/portable-factories.ts', 'last-contextual-sync-factory-promise', 2769],
+      ['negative/portable-factories.ts', 'last-contextual-native-factory-number', 2769],
+      ['negative/provider-facades.ts', 'last-provider-acquisition-mode', 2769],
+      ['negative/provider-facades.ts', 'last-provider-transform-fulfilled-mode', 2769],
+      ['negative/provider-sources.ts', 'last-provider-context-shape', 2769],
+      ['negative/provider-sources.ts', 'last-provider-contextual-native-number', 2769],
+      ['negative/provider-sources.ts', 'last-provider-contextual-sync-promise', 2769],
+      ['negative/provider-sources.ts', 'last-provider-contextual-thenable', 2769],
       ['negative/structural-thenable.ts', 'last-contextual-factory-thenable', 2769],
     ]);
     expect(Object.isFrozen(gaps)).toBe(true);
@@ -649,8 +717,13 @@ describe('archive verifier', () => {
   });
   test('rejects missing public export pairs and removed adapter entries from archive bytes', () => {
     { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/AGENTS.md')); adoptArchive(value, 'di-bag', bytes, 'missing-agents'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing AGENTS.md'))).toBe(true); }
-    { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/node.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-node-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
-    for (const name of ['sas-box', 'val-box']) { const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries('di-bag'), { path: `package/dist/${name}.js`, content: 'export{}' }]); adoptArchive(value, 'di-bag', bytes, `${name}-extra`); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('removed package entry'))).toBe(true); }
+    { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/index.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-index-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
+    for (const name of ['node', 'sas-box', 'val-box']) for (const extension of ['js', 'd.ts']) {
+      const value: any = structuredClone(manifest);
+      const bytes = archiveOf([...archiveEntries('di-bag'), { path: `package/dist/${name}.${extension}`, content: 'export{}' }]);
+      adoptArchive(value, 'di-bag', bytes, `${name}-${extension}-extra`);
+      expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('removed package entry'))).toBe(true);
+    }
   });
   test('requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes', () => {
     for (const bytes of ['', '{}\n', `${serializeStable(createPublicReleaseEvidence(manifest))} `, serializeStable({ ...createPublicReleaseEvidence(manifest) as any, extra: true })]) {

@@ -9,59 +9,59 @@ on those. Its message has the form
 where the fragment is the code lower-cased with `_` replaced by `-`. Errors
 thrown by your factories and disposers keep their identity.
 
-A private binding of a module built with `buildModule(keys, { label })` appears
+A private binding of a module built with `buildModule({ exportedServiceKeys: keys, moduleLabel })` appears
 as `<label>/<key>` in messages and `details` paths (`outer/inner/key` when
 nested), which names the module directory to open.
 
 A compile-time rejection is an assignability error whose type reads
 `Unsatisfied<"message", details>`. The message ends with
 `; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<family>`, one of
-the sections below. Put `builder.verifyGraph() satisfies void;` on its own line
+the sections below. Put `builder.verifyGraphAtCompileTime() satisfies void;` on its own line
 to report it there, and set `"noErrorTruncation": true` to print the details.
 
 ## Compile-time messages {#compile-time}
 
 ### Missing service {#missing-service}
 
-**When:** `build()`, `verifyGraph()`, or `check.ts` reports
-`required service registrations are missing: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
+**When:** `buildContainer()`, `verifyGraphAtCompileTime()`, or `check.ts` reports
+`required services are missing: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
 
-**Cause:** a factory declares a dependency that no registration, installed
+**Cause:** a factory declares a dependency that no provider, installed
 module, or host supplies. A module's unmet dependencies become requirements of
 the builder that installs it.
 
-**Fix:** register each listed key in the host, or a typed fixture in `check.ts`
+**Fix:** add each listed key in the host with `withServices`, or add a typed fixture in `check.ts`
 and tests.
 
 ```ts
-// expect-error: required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
+// expect-error: required services are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({ greeter: ({ config }: { config: { greeting: string } }) => config.greeting })
-  .verifyGraph() satisfies void;
+  .withServices({ greeter: ({ config }: { config: { greeting: string } }) => config.greeting })
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ greeting: 'Hello' }),
     greeter: ({ config }: { config: { greeting: string } }) => config.greeting,
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
 ### Unsatisfied consumer {#unsatisfied-consumer}
 
-**When:** `verifyGraph()` reports
+**When:** `verifyGraphAtCompileTime()` reports
 `provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`,
-with details `{ consumer, dependency, expected, provided }`, or any registering
-call (`contribute`, `installModule`, `register`, `replace`, `fork`,
-`createScope`) and `verifyGraph()` report
+with details `{ consumer, dependency, expected, provided }`, or any builder composition
+call (`withCollectionContribution`, `withInstalledModules`, `withServices`, `withReplacedService`,
+`createIndependentContainer`, `createChildContainer`) and `verifyGraphAtCompileTime()` report
 `contribution service is incompatible with its consumer dependency contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`,
 with details `{ failures: { consumer, diagnostic } }` where `diagnostic` carries
 the same four fields for the contributed service.
@@ -77,62 +77,64 @@ agree; the details name both keys and both types.
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     port: () => 'eighty',
     server: ({ port }: { port: number }) => port + 1,
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 **Recipe:** [review a merge](recipes.md#review-merge).
 
-### Root capture {#root-capture}
+### Singleton captures scoped {#singleton-captures-scoped}
 
-**When:** `root lifetime cannot capture scoped dependency: <root> -> <scoped>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture`.
+**When:** `singleton lifetime cannot capture scoped dependency: <singleton> -> <scoped>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped`.
 
-**Cause:** a `root` service would keep one scope's instance of a `scoped` (the
-default) dependency for the whole application.
+**Cause:** a singleton service would keep one child container's scoped dependency
+for the whole container tree. Providers are scoped per container by default.
 
-**Fix:** make the dependency `root` as well, or leave the consumer scoped. Use
-`{ allowScopedDependencies: true }` only for a deliberate capture of the root
-bag's instance.
+**Fix:** mark the consumer with `DiBag.providerWithLifetime({ provider, lifetime:
+'scoped:one-per-container' })`, make the dependency singleton as well, or use
+`DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tree',
+allowsScopedDependencies: true })` only for a deliberate capture of the root
+container's instance.
 
 ```ts
-// expect-error: root lifetime cannot capture scoped dependency: client -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+// expect-error: singleton lifetime cannot capture scoped dependency: client -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#singleton-captures-scoped
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ url: 'memory:' }),
-    client: DiBag.withLifetime(({ config }: { config: { url: string } }) => config.url, 'root'),
+    client: DiBag.providerWithLifetime({ provider: ({ config }: { config: { url: string } }) => config.url, lifetime: 'singleton:one-per-container-tree' }),
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
-    config: DiBag.withLifetime(() => ({ url: 'memory:' }), 'root'),
-    client: DiBag.withLifetime(({ config }: { config: { url: string } }) => config.url, 'root'),
+  .withServices({
+    config: DiBag.providerWithLifetime({ provider: () => ({ url: 'memory:' }), lifetime: 'singleton:one-per-container-tree' }),
+    client: DiBag.providerWithLifetime({ provider: ({ config }: { config: { url: string } }) => config.url, lifetime: 'singleton:one-per-container-tree' }),
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
 ### Unknown key {#unknown-key}
 
-**When:** `fork accepts existing names or typed tokens only: unknown <key>`, the
-same message for `createScope` and `buildAndStart`,
-`replace requires one existing singleton string-literal key: <key>`, or, on
-`resolve`, `inspect`, or `replace`,
+**When:** `createIndependentContainer accepts existing names or typed tokens only: unknown <key>`, the
+same message for `createChildContainer` and `ensureServicesReady`,
+`withReplacedService requires one existing singleton string-literal key: <key>`, or, on
+`resolve`, `serviceSnapshot`, or `withReplacedService`,
 `token must be an individually known genuine handle` or
 `token must match an existing binding contract`, or
 `<op> requires a finite tuple of singleton string-literal names or typed tokens`
-when the selection is a `string[]`, a union, or a widened array (`fork`,
-`createScope`, `createScope` share, `buildModule`, `buildAndStart`), each
+when the selection is a `string[]`, a union, or a widened array (`createIndependentContainer`,
+`createChildContainer`, `createChildContainer` sharing, `buildModule`, `ensureServicesReady`), each
 followed by `; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key`.
 
 **Cause:** the selected or resolved key is not registered in this graph, or is
@@ -144,35 +146,35 @@ when the key is new. Pass the selection as a literal tuple
 (`['a', 'b'] as const`, or a `const` type parameter), not a `string[]`.
 
 ```ts
-// expect-error: fork accepts existing names or typed tokens only: unknown host; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
+// expect-error: createIndependentContainer accepts existing names or typed tokens only: unknown host; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 }).build();
-app.fork(['host'], { host: () => 'localhost' });
+const app = DiBag.createBuilder().withServices({ port: () => 80 }).buildContainer();
+app.createIndependentContainer(['host'], { host: () => 'localhost' });
 ```
 
-**Recipe:** [write a fixture test with `fork`](recipes.md#fixture-test).
+**Recipe:** [write a fixture test with an independent container](recipes.md#fixture-test).
 
 ### Structural thenable {#structural-thenable}
 
-**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
-or on `DiBag.fromFactory`, `fromFunction`, and `fromClass`
-`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`.
+**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
+or at a provider construction site:
+`factory output is a structural thenable; return a native Promise or select factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`.
 
 **Cause:** a factory returns an object with a `then` method that is not a native
 Promise, such as a query builder. Automatic acquisition cannot tell whether to
 await it.
 
 **Fix:** convert it to a native Promise, or keep the object as the service with
-`acquisitionMode: 'raw'`.
+`factoryReturnKind: 'uninspected'`.
 
 ```ts
-// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
+// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
 import { DiBag } from 'di-bag';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
 const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
-DiBag.createBuilder().register({ query: select }).build();
+DiBag.createBuilder().withServices({ query: select }).buildContainer();
 ```
 
 ```ts
@@ -181,201 +183,147 @@ import { DiBag } from 'di-bag';
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
 const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
 DiBag.createBuilder()
-  .register({
+  .withServices({
     rows: () => new Promise<string[]>(resolve => select().then(resolve)),
-    query: DiBag.fromFactory(select, { acquisitionMode: 'raw' }),
+    query: DiBag.createProvider(select, { factoryReturnKind: 'uninspected' }),
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
 ### Portable factory output {#portable-factory-output}
 
-**When:** `fromSyncFactory output must not be a Promise or thenable; use fromAsyncFactory for a Promise, or fromFactory with acquisitionMode raw to make the Promise object the service; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`,
-or `fromAsyncFactory requires a Promise output; use fromSyncFactory for a synchronous value; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`.
+**When:** `sync-value output must not be a Promise or thenable; use factoryReturnKind 'native-promise' for a Promise, or 'uninspected' to make the Promise object the service; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`,
+or `native-promise factory return kind requires a Promise output; use 'sync-value' for a synchronous value; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`.
 
-**Cause:** the helper fixes the acquisition mode from its name, so the factory's
-declared output must agree with it. `fromSyncFactory` is a `raw` stage that never
+**Cause:** the explicit return kind must agree with the factory's declared output.
+`'sync-value'` never
 reads `then`: an `async` function, a `Promise`-returning function, a union with a
 Promise member, or a thenable such as a query builder cannot be its service.
-`fromAsyncFactory` is a `nativePromise` stage: a plain value, a union, or a
+`'native-promise'` requires a native Promise: a plain value, a union, or a
 `PromiseLike` cannot be its service.
 
-**Fix:** pick the helper that matches the output. When the Promise object itself
-is the service, use `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
+**Fix:** pick the return kind that matches the output. When the Promise object itself
+is the service, use `DiBag.createProvider(create, { factoryReturnKind: 'uninspected' })`.
 
 ```ts
-// expect-error: fromSyncFactory output must not be a Promise or thenable
+// expect-error: sync-value output must not be a Promise or thenable
 import { DiBag } from 'di-bag';
 
-const config = DiBag.fromSyncFactory(async () => ({ url: 'memory:' }));
+const config = DiBag.createProvider(async () => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const config = DiBag.fromAsyncFactory(async () => ({ url: 'memory:' }));
-const ownedPromise = DiBag.fromFactory(() => Promise.resolve({ url: 'memory:' }), { acquisitionMode: 'raw' });
+const config = DiBag.createProvider(async () => ({ url: 'memory:' }), { factoryReturnKind: 'native-promise' });
+const ownedPromise = DiBag.createProvider(() => Promise.resolve({ url: 'memory:' }), { factoryReturnKind: 'uninspected' });
 ```
 
 **Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
 
 ### Wrong shape at a call {#wrong-shape}
 
-**When:** `register`, `installModule`, or `replace` reports
+**When:** `withServices`, `withInstalledModules`, or `withReplacedService` reports
 `provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape`.
 
 **Cause:** the same mismatch as an [unsatisfied consumer](#unsatisfied-consumer).
 These call sites keep a short message because naming the keys there costs
 compile time on every valid graph.
 
-**Fix:** add `verifyGraph() satisfies void;` after the call to get the consumer,
+**Fix:** add `verifyGraphAtCompileTime() satisfies void;` after the call to get the consumer,
 dependency, expected type, and provided type.
 
 ```ts
 // expect-error: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 });
-app.register({ server: ({ port }: { port: string }) => port.length });
+const app = DiBag.createBuilder().withServices({ port: () => 80 });
+app.withServices({ server: ({ port }: { port: string }) => port.length });
 ```
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
 ### Wrong override {#wrong-override}
 
-**When:** `fork` or `createScope` reports
-`override value is not assignable to the original token: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override`,
+**When:** `createIndependentContainer` or `createChildContainer` reports
+`replacement value is not assignable to the original token: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override`,
 or a plain `Type 'X' is not assignable to type 'Y'` on an override factory.
 
 **Cause:** an override's service value is not assignable to the type the
-original registration declares for that key. A fork or scope substitutes a
+original registration declares for that key. An independent or child container substitutes a
 service but cannot change its contract, and its consumers are typed against the
 original.
 
 **Fix:** return the original service type (or a subtype) from the override. To
-change the contract, change the registration in the builder and re-`build()`.
+change the contract, change the registration in the builder and call `buildContainer()` again.
 
 ```ts
 // expect-error: Type 'string' is not assignable to type 'number'
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 }).build();
-app.fork(['port'], { port: () => 'eighty' });
+const app = DiBag.createBuilder().withServices({ port: () => 80 }).buildContainer();
+app.createIndependentContainer(['port'], { port: () => 'eighty' });
 ```
 
-**Recipe:** [write a fixture test with `fork`](recipes.md#fixture-test).
+**Recipe:** [write a fixture test with an independent container](recipes.md#fixture-test).
 
 ## Runtime codes {#runtime-codes}
 
 ### DI_BAG_CLASSIFIER_REQUIRED {#di-bag-classifier-required}
 
-**When:** `build()` or `buildAndStart()` completes a graph on a host without
+**When:** `buildContainer()` completes a graph on a host without
 `process.getBuiltinModule`: browsers, Web Workers, and other non-Node runtimes.
 Node, Bun, and Deno never raise it.
 
-**Cause:** a registration uses automatic acquisition, no native-Promise classifier
+**Cause:** a provider uses automatic acquisition, no native-Promise classifier
 is configured, and the host offers none. The message and `details.bindings` name
-every such registration, sorted, with private module services as `<label>/<key>`;
-a direct `transformService` without an `acquisitionMode` counts under its
-registration's name.
+every such provider, sorted, with private module services as `<label>/<key>`;
+a direct `providerWithTransformedService` without a `transformReturnKind` counts under its
+provider's name.
 
-**Fix:** register each named service with `DiBag.fromSyncFactory` or
-`DiBag.fromAsyncFactory`; give `fromFunction`, `fromClass`, and direct
-`transformService` an explicit `acquisitionMode`; or configure a trusted
+**Fix:** add each named service with `DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })`
+or `'native-promise'`; give positional providers an explicit return kind and direct
+`providerWithTransformedService` an explicit `transformReturnKind`; or configure a trusted
 classifier with `withConfiguration({ runtime: { isNativePromise } })`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
-    answer: DiBag.fromSyncFactory(() => 42),
-    later: DiBag.fromAsyncFactory(async ({ answer }: { answer: number }) => answer * 2),
+  .withServices({
+    answer: DiBag.createProvider(() => 42, { factoryReturnKind: 'sync-value' }),
+    later: DiBag.createProvider(async ({ answer }: { answer: number }) => answer * 2, { factoryReturnKind: 'native-promise' }),
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
 
-### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
-
-**When:** `factoryCtx.pushDisposer(disposer)` throws because the factory that
-owns the context has already returned or failed. Its projections may still be
-running; the factory is the boundary, not the whole acquisition.
-
-**Cause:** the acquisition context escaped its factory and was called later —
-from the service it produced, from a projection of the registration, or from
-inside a pushed disposer already running. A context belongs to one running
-factory, not to the service it produced.
-
-**Fix:** push inside the factory, immediately after acquiring the resource; own
-the returned value with `DiBag.withDisposal`, and give a pushed disposer for that
-same value a `reason` check.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const handle = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
-    const socket = { close: async () => {} };
-    factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
-    return socket;
-  }, { context: 'acquisition' }),
-  socket => socket.close(),
-);
-```
-
-**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
-
-### DI_BAG_CLEANUP_FAILED {#di-bag-cleanup-failed}
-
-**When:** `close()` rejects with `DiBagCleanupError` after attempting every
-disposer.
-
-**Cause:** one or more disposers threw or rejected. The others still ran and the
-bag is closed; `failures` lists `label` and `error` for each.
-
-**Fix:** fix the failing disposer; log the failures where the application closes.
-
-```ts
-import { DiBag, DiBagCleanupError } from 'di-bag';
-
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-try {
-  await app.close();
-} catch (error) {
-  if (!(error instanceof DiBagCleanupError)) throw error;
-  for (const failure of error.failures) console.error(failure.label, failure.error);
-}
-```
-
-**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
-
 ### DI_BAG_CLOSE_ABORTED {#di-bag-close-aborted}
 
-**When:** `close({ signal })` rejects with `DiBagCloseCancelledError`,
+**When:** `close({ abortSignal })` rejects with `DiBagCloseCancelledError`,
 `reason: 'aborted'`, because the signal aborted before cleanup finished.
 
-**Cause:** the caller stopped waiting. Cleanup continues: `details.pending`
-names disposers that started and have not finished, `details.acquiring` the
+**Cause:** the caller stopped waiting. Cleanup continues: `details.disposersStillRunning`
+names disposers that started and have not finished, `details.acquisitionsStillPending` the
 acquisitions close is still draining, and `cause` is the abort reason.
 
-**Fix:** await `cleanupPromise` before exiting when cleanup must complete; fix
+**Fix:** await `disposalPromise` before exiting when cleanup must complete; fix
 the named disposer or acquisition if it never settles.
 
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 const controller = new AbortController();
 try {
-  await app.close({ signal: controller.signal });
+  await app.close({ abortSignal: controller.signal });
 } catch (error) {
   if (!(error instanceof DiBagCloseCancelledError)) throw error;
-  console.error(error.details.pending, error.details.acquiring);
-  await error.cleanupPromise;
+  console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending);
+  await error.disposalPromise;
 }
 ```
 
@@ -385,9 +333,9 @@ try {
 
 **When:** `close()` rejects with an `AggregateError` carrying this code.
 
-**Cause:** closing a child scope or the bag's own acquisitions failed with
+**Cause:** closing a child container or the root container's own acquisitions failed with
 something other than disposer failures. `errors` holds each failure, preceded
-by a `DiBagCleanupError` when disposers also failed.
+by a `DiBagDisposalError` when disposers also failed.
 
 **Fix:** inspect `errors`; each entry keeps its own `code` when the library
 created it.
@@ -395,7 +343,7 @@ created it.
 ```ts
 import { DiBag, type DiBagDiagnostic } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 await app.close().catch((error: unknown) => {
   const failures = error instanceof AggregateError ? error.errors : [error];
   for (const failure of failures) console.error((failure as Partial<DiBagDiagnostic>).code, failure);
@@ -406,23 +354,23 @@ await app.close().catch((error: unknown) => {
 
 ### DI_BAG_CLOSE_TIMEOUT {#di-bag-close-timeout}
 
-**When:** `close({ timeoutMs })` rejects with `DiBagCloseCancelledError`,
+**When:** `close({ waitTimeoutMs })` rejects with `DiBagCloseCancelledError`,
 `reason: 'timeout'`; its `cause` is a `TimeoutError` with the same code.
 
-**Cause:** cleanup did not finish within `timeoutMs`. The message and
-`details.pending` name the disposers still running, or `details.acquiring` the
-acquisitions still pending; `cleanupPromise` settles when cleanup ends.
+**Cause:** cleanup did not finish within `waitTimeoutMs`. The message and
+`details.disposersStillRunning` name the disposers still running, or `details.acquisitionsStillPending` the
+acquisitions still pending; `disposalPromise` settles when cleanup ends.
 
 **Fix:** find why the named disposer or factory never settles (a missing
-`await`, an ignored acquisition signal); raise `timeoutMs` only for slow but
+`await`, an ignored acquisition signal); raise `waitTimeoutMs` only for slow but
 finite cleanup.
 
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-await app.close({ timeoutMs: 5_000 }).catch((error: unknown) => {
-  if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.pending);
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
+await app.close({ waitTimeoutMs: 5_000 }).catch((error: unknown) => {
+  if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.disposersStillRunning);
   throw error;
 });
 ```
@@ -431,24 +379,24 @@ await app.close({ timeoutMs: 5_000 }).catch((error: unknown) => {
 
 ### DI_BAG_CLOSED {#di-bag-closed}
 
-**When:** `resolve`, `createScope`, `fork`, or a `lazy` reference is used on a
-bag whose `close()` has finished.
+**When:** `resolve`, `createChildContainer`, `createIndependentContainer`, or a `lazy` reference is used on a
+container whose `close()` has finished.
 
-**Cause:** application work outlived the bag that serves it. `details.state` is
+**Cause:** application work outlived the container that serves it. `details.state` is
 `'closed'`.
 
-**Fix:** finish or cancel work before closing; give request work its own scope
-and close the scope, not the application bag.
+**Fix:** finish or cancel work before closing; give request work its own child container
+and close that child, not the application container.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-const scope = app.createScope();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
+const request = app.createChildContainer();
 try {
-  scope.resolve('answer');
+  request.resolve('answer');
 } finally {
-  await scope.close();
+  await request.close();
 }
 await app.close();
 ```
@@ -458,8 +406,8 @@ await app.close();
 ### DI_BAG_CLOSING {#di-bag-closing}
 
 **When:** the same operations as [`DI_BAG_CLOSED`](#di-bag-closed), while
-`close()` is still in progress. Also the message of `factoryCtx.signal.reason`
-after `close()`: an `AbortError` that is the same object for every bag. A
+`close()` is still in progress. Also the message of `factoryContext.signal.reason`
+after `close()`: an `AbortError` that is the same object for every container. A
 cancelled or failed startup aborts with its own cause instead.
 
 **Cause:** a request, timer, or factory started new resolution after shutdown
@@ -471,7 +419,40 @@ work, then call `close()`; see the snippet for `DI_BAG_CLOSED`.
 
 **Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
 
-### DI_BAG_CYCLE {#di-bag-cycle}
+### DI_BAG_CONFLICTING_SERVICE_SELECTION {#di-bag-conflicting-service-selection}
+
+**When:** `createChildContainer` names one key in both `replacedServiceKeys` and
+`sharedParentServiceKeys` (`details.conflict` is `'shared-and-replaced'`), or
+shares a transient service (`'shared-transient'`). `details.serviceKey` names
+the key.
+
+**Cause:** sharing means the child uses the parent's instance and replacing
+means it builds its own, so one key cannot do both. A transient service has no
+instance to share.
+
+**Fix:** list each key once, and do not share a transient service.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const parent = DiBag.createBuilder()
+  .withServices({
+    config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'scoped:one-per-container' }),
+    client: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' }),
+  })
+  .buildContainer();
+const child = parent.createChildContainer(
+  ['config'],
+  { config: () => ({ region: 'us' }) },
+  { sharedParentServiceKeys: ['client'] },
+);
+console.log(child.resolve('config').region);
+await parent.close();
+```
+
+**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
+
+### DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}
 
 **When:** resolving a service whose dependencies lead back to it; the message is
 `cycle: a -> b -> a` (or `alias cycle: ...`) and `details.path` lists the keys.
@@ -486,21 +467,75 @@ edge with `DiBag.lazy(token)`.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     rates: () => ({ vat: 0.2 }),
     prices: ({ rates }: { rates: { vat: number } }) => (cents: number) => cents * (1 + rates.vat),
     invoices: ({ rates }: { rates: { vat: number } }) => (cents: number) => cents * rates.vat,
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** [review a merge](recipes.md#review-merge) (`di-bag-graph --check`
 reports cycles before running).
 
-### DI_BAG_DUPLICATE_METADATA {#di-bag-duplicate-metadata}
+### DI_BAG_DISPOSAL_FAILED {#di-bag-disposal-failed}
 
-**When:** `DiBag.withMetadata(registration, { static })` adds a key the
-registration already carries.
+**When:** `close()` rejects with `DiBagDisposalError` after attempting every
+disposer.
+
+**Cause:** one or more disposers threw or rejected. The others still ran and the
+container is closed; `failures` lists `bindingLabel` and `error` for each.
+
+**Fix:** fix the failing disposer; log the failures where the application closes.
+
+```ts
+import { DiBag, DiBagDisposalError } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
+try {
+  await app.close();
+} catch (error) {
+  if (!(error instanceof DiBagDisposalError)) throw error;
+  for (const failure of error.failures) console.error(failure.bindingLabel, failure.error);
+}
+```
+
+**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
+
+### DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY {#di-bag-disposer-pushed-after-factory}
+
+**When:** `factoryContext.pushDisposer(disposer)` throws because the factory that
+owns the context has already returned or failed. Its projections may still be
+running; the factory is the boundary, not the whole acquisition.
+
+**Cause:** the acquisition context escaped its factory and was called later —
+from the service it produced, from a projection of the registration, or from
+inside a pushed disposer already running. A context belongs to one running
+factory, not to the service it produced.
+
+**Fix:** push inside the factory, immediately after acquiring the resource; own
+the returned value with `DiBag.providerWithDisposal`, and give a pushed disposer for that
+same value a `reason` check.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const handle = DiBag.providerWithDisposal({
+  provider: DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
+    const socket = { close: async () => {} };
+    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
+    return socket;
+  }, { factoryReceivesContext: true }),
+  disposeService: socket => socket.close(),
+});
+```
+
+**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
+
+### DI_BAG_DUPLICATE_METADATA_KEY {#di-bag-duplicate-metadata-key}
+
+**When:** `DiBag.providerWithRegistrationMetadata({ provider, registrationMetadata })` adds a key the
+registration already carries. `details.metadataKey` names the repeated key.
 
 **Cause:** two metadata wrappers use the same key.
 
@@ -509,38 +544,38 @@ registration already carries.
 ```ts
 import { DiBag } from 'di-bag';
 
-const service = DiBag.withMetadata(
-  DiBag.withMetadata(() => 42, { static: { 'app:owner': 'billing' } }),
-  { static: { 'app:node': 'tool' } },
-);
+const service = DiBag.providerWithRegistrationMetadata({
+  provider: DiBag.providerWithRegistrationMetadata({
+    provider: () => 42,
+    registrationMetadata: { 'app:owner': 'billing' },
+  }),
+  registrationMetadata: { 'app:node': 'tool' },
+});
 ```
 
 **Recipe:** none.
 
-### DI_BAG_DUPLICATE_REGISTRATION {#di-bag-duplicate-registration}
+### DI_BAG_DUPLICATE_SERVICE_KEY {#di-bag-duplicate-service-key}
 
-**When:** `register`, `alias`, or `installModule` adds a public key that already
-exists. The compiler reports `register introduces new names or typed tokens only`.
+**When:** `withServices`, `withTokenService`, `withServiceAlias`,
+`withInstalledModules`, `withRenamedExport` or `withRenamedRequirement` would
+give two services the same key. `details.operation` names the call and
+`details.serviceKey` the key.
 
-**Cause:** two registrations or two installed modules export the same name.
+**Cause:** a builder holds one service per key. Adding a key that exists is
+never a replacement.
 
-**Fix:** use `replace(key, factory)` to substitute an implementation; install a
-second copy of a module under another name with `renameExport`.
-
-```ts
-// expect-error: register introduces new names or typed tokens only
-import { DiBag } from 'di-bag';
-
-DiBag.createBuilder().register({ port: () => 80 }).register({ port: () => 81 });
-```
+**Fix:** to change an existing service use `withReplacedService`; otherwise pick
+another key, or rename the module's export before installing it.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-DiBag.createBuilder().register({ port: () => 80 }).replace('port', () => 81).build();
+const base = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 0 }) });
+const app = base.withReplacedService('clock', () => ({ now: () => 1 })).buildContainer();
+console.log(app.resolve('clock').now());
+await app.close();
 ```
-
-**Recipe:** [split a feature into a module](recipes.md#split-module).
 
 ### DI_BAG_INTERNAL_STATE {#di-bag-internal-state}
 
@@ -554,44 +589,58 @@ stack trace and the smallest graph that reproduces it.
 
 **Recipe:** none.
 
-### DI_BAG_INVALID_ACQUISITION_MODE {#di-bag-invalid-acquisition-mode}
+### DI_BAG_INVALID_ACQUISITION_METADATA {#di-bag-invalid-acquisition-metadata}
 
-**When:** `fromFactory`, `fromFunction`, `fromClass`, or `transformService`
-receives options that are not an object, or an `acquisitionMode` other than
-`'auto'`, `'raw'`, or `'nativePromise'`.
+**When:** a `describeAcquisition` callback returns something other than a plain
+object, synchronously: a Promise, an array, `null` or a primitive. It is raised
+while the service is acquired, so `resolve` throws or rejects with a
+`TypeError`.
 
-**Cause:** a misspelled mode or options computed at runtime.
+**Cause:** acquisition metadata is recorded at the moment the service becomes
+available. A Promise cannot be recorded, and the library does not await it.
 
-**Fix:** pass one of the three literals.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const handle = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
-### DI_BAG_INVALID_ALIAS {#di-bag-invalid-alias}
-
-**When:** `alias(destination, 'target')` names a string target that is not yet
-registered. The compiler reports `alias requires an existing named target`.
-
-**Cause:** the alias is declared before its named target.
-
-**Fix:** register the target first, or alias a typed token, which may be bound
-later.
+**Fix:** return a plain record. To describe the fulfilled value of an
+asynchronous factory, ask for it with `callbackReceives: 'fulfilled-value'`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder()
-  .register({ service: () => ({ port: 8080 }) })
-  .alias('primary', 'service')
-  .build();
+const db = DiBag.providerWithAcquisitionMetadata({
+  provider: async () => ({ version: 7 }),
+  describeAcquisition: value => ({ version: value.version }),
+  callbackReceives: 'fulfilled-value',
+});
+const app = DiBag.createBuilder().withServices({ db }).buildContainer();
+await app.resolve('db');
+await app.close();
 ```
 
-**Recipe:** none.
+### DI_BAG_INVALID_ARGUMENT {#di-bag-invalid-argument}
+
+**When:** a call receives an argument of the wrong shape: a factory that is not a
+function, an options bag that is not an object or holds an unknown property, an
+option of the wrong type, a value outside a fixed set. Every public method
+raises it, some as a `TypeError`.
+
+**Cause:** the call site is not type-checked, or a cast silenced the compiler,
+which rejects every one of these. `details` says exactly what was wrong:
+`operation` is the method, `argument` is the parameter or option (a dotted path
+for a nested option, `[]` for an element of a list), and `expected` completes
+the sentence "must be ...".
+
+**Fix:** branch on `details.argument`, not on the message. Remove the cast and
+let the compiler point at the argument.
+
+```ts
+import { DiBag } from 'di-bag';
+
+try {
+  DiBag.createProvider(42 as never);
+} catch (error) {
+  const { operation, argument, expected } = (error as { details: Record<string, unknown> }).details;
+  console.error(`${String(operation)}: ${String(argument)} must be ${String(expected)}`);
+}
+```
 
 ### DI_BAG_INVALID_CLASSIFIER_RESULT {#di-bag-invalid-classifier-result}
 
@@ -607,91 +656,8 @@ import { types } from 'node:util';
 import { DiBag as CoreDiBag } from 'di-bag';
 
 const DiBag = CoreDiBag.withConfiguration({
-  runtime: { isNativePromise: value => types.isPromise(value) },
+  runtime: { isNativePromise: candidate => types.isPromise(candidate) },
 });
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_CLEANUP {#di-bag-invalid-cleanup}
-
-**When:** `factoryCtx.pushDisposer(disposer)` throws because `disposer` is not a
-function.
-
-**Cause:** a value was passed where a disposer callback belongs, usually the
-result of calling the release instead of passing it.
-
-**Fix:** pass a function: `factoryCtx.pushDisposer(() => socket.close())`, not
-`factoryCtx.pushDisposer(socket.close())`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const socket = DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
-  const handle = { close: async () => {} };
-  factoryCtx.pushDisposer(() => handle.close());
-  return handle;
-}, { context: 'acquisition' });
-```
-
-**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
-
-### DI_BAG_INVALID_CLOSE {#di-bag-invalid-close}
-
-**When:** `close(options)` rejects because options are not
-`{ timeoutMs?, signal? }` with a finite positive `timeoutMs` and a genuine
-`AbortSignal`. Cleanup does not start.
-
-**Cause:** options computed at runtime, extra keys, or a zero or negative
-deadline.
-
-**Fix:** pass only `timeoutMs` and `signal`, or call `close()` without options.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-await app.close({ timeoutMs: 1_000, signal: AbortSignal.timeout(2_000) });
-```
-
-**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
-### DI_BAG_INVALID_CONFIGURATION {#di-bag-invalid-configuration}
-
-**When:** `DiBag.withConfiguration(options)` receives a non-object, `observers`
-that is not an array, an observer without both `onEvent` and `onError`, or a
-`runtime` without an `isNativePromise` function.
-
-**Cause:** incomplete configuration.
-
-**Fix:** pass both observer callbacks and a function classifier.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const observed = DiBag.withConfiguration({
-  observers: [{ onEvent: event => console.log(event.kind), onError: ({ error }) => console.error(error) }],
-});
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_CONSTRUCTOR {#di-bag-invalid-constructor}
-
-**When:** `DiBag.fromClass(dependencies, value)` receives something that cannot
-be called with `new`, such as an arrow function.
-
-**Cause:** a function passed where a class is expected.
-
-**Fix:** pass the class; adapt a plain function with `fromFunction`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const portKey = Symbol('port');
-const port = DiBag.token(portKey).of<number>();
-class Client { constructor(readonly port: number) {} }
-const client = DiBag.fromClass([port], Client);
-const address = DiBag.fromFunction([port], value => `localhost:${value}`);
 ```
 
 **Recipe:** none.
@@ -711,121 +677,19 @@ cannot list its properties.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     port: () => 80,
     host: () => 'localhost',
     address: ({ host, port }: { host: string; port: number }) => ({ host, port }),
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** none; see [rule 2](../../AGENTS.md#rules).
 
-### DI_BAG_INVALID_EXPORT {#di-bag-invalid-export}
-
-**When:** `buildModule(keys, options)` receives a non-array, a key that is not
-registered on that builder, or a `label` that is not a non-empty string
-(`details.option: 'label'`), or `renameExport(old, new)` names a missing export,
-a non-string name, or an existing export.
-
-**Cause:** the export list and the registrations disagree.
-
-**Fix:** export only keys the module registers; rename to an unused name.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const reports = DiBag.createBuilder().register({ service: () => ({ read: () => true }) }).buildModule(['service']);
-const east = reports.renameExport('service', 'eastReports');
-```
-
-**Recipe:** [split a feature into a module](recipes.md#split-module).
-
-### DI_BAG_INVALID_FACTORY {#di-bag-invalid-factory}
-
-**When:** `DiBag.fromFactory`, `fromSyncFactory`, or `fromAsyncFactory` receives a
-non-function, or a `context` option other than `'acquisition'`; the two portable
-helpers also refuse an `acquisitionMode` option, because they fix it themselves.
-
-**Cause:** a value passed where a factory is expected, or a mode passed to a
-helper whose name already selects it.
-
-**Fix:** pass a function; use `{ context: 'acquisition' }` to receive the
-acquisition context as the second argument; choose `fromSyncFactory` or
-`fromAsyncFactory` instead of passing a mode to them.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const settings = DiBag.fromFactory(
-  async ({ url }: { url: string }, { signal }) => (await fetch(url, { signal })).text(),
-  { context: 'acquisition' },
-);
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
-### DI_BAG_INVALID_FUNCTION {#di-bag-invalid-function}
-
-**When:** `DiBag.fromFunction(dependencies, callback)` receives a non-function.
-
-**Cause:** a value passed where the adapted function is expected.
-
-**Fix:** pass the function; bind methods that need their receiver.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const nameKey = Symbol('name');
-const name = DiBag.token(nameKey).of<string>();
-const greeting = DiBag.fromFunction([name], value => `Hello, ${value}`);
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_LIFETIME {#di-bag-invalid-lifetime}
-
-**When:** `withLifetime(registration, lifetime, options)` receives a lifetime
-other than `'root'`, `'scoped'`, or `'transient'`, unknown options, or
-`allowScopedDependencies` on a non-root lifetime or as a non-boolean.
-
-**Cause:** a computed or misspelled policy.
-
-**Fix:** pass a literal lifetime; use `allowScopedDependencies: true` only with
-`'root'`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const config = DiBag.withLifetime(() => ({ region: 'eu' }), 'root');
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
-### DI_BAG_INVALID_METADATA {#di-bag-invalid-metadata}
-
-**When:** `withMetadata` receives neither `static` nor `dynamic` options, a
-non-object static record, a dynamic mode other than `'direct'` or `'awaited'`,
-or a `describe` callback that is not a function or does not synchronously return
-a plain object.
-
-**Cause:** metadata that is not a plain record.
-
-**Fix:** return a plain object literal from `describe`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const client = DiBag.withMetadata(() => ({ region: 'eu' }), {
-  dynamic: { mode: 'direct', describe: value => ({ 'app:region': value.region }) },
-});
-```
-
-**Recipe:** none.
-
 ### DI_BAG_INVALID_MODULE {#di-bag-invalid-module}
 
-**When:** `installModule(value)` receives something that `buildModule` did not
+**When:** an element of `withInstalledModules(values)` is something that `buildModule` did not
 create, such as a copied or proxied module.
 
 **Cause:** the module was cloned, serialized, or constructed by hand.
@@ -835,144 +699,43 @@ create, such as a copied or proxied module.
 ```ts
 import { DiBag } from 'di-bag';
 
-const feature = DiBag.createBuilder().register({ answer: () => 42 }).buildModule(['answer']);
-const app = DiBag.createBuilder().installModule(feature).build();
+const feature = DiBag.createBuilder().withServices({ answer: () => 42 }).buildModule({ exportedServiceKeys: ['answer'] });
+const app = DiBag.createBuilder().withInstalledModules([
+  feature,
+]).buildContainer();
 ```
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
 
-### DI_BAG_INVALID_OVERRIDE {#di-bag-invalid-override}
+### DI_BAG_INVALID_PROVIDER {#di-bag-invalid-provider}
 
-**When:** `fork(keys, overrides)` receives a non-array selection, a non-object
-override record, a key that is not registered, or a selected key without an own
-override property.
+**When:** a value given where a factory or a provider is required is neither a
+function nor a provider made by this library: a value of `withServices`, the
+`provider` of `withTokenService`, `withCollectionContribution` or
+`withReplacedService`, or an entry of `replacementProviders`.
 
-**Cause:** the selection and the override object disagree. The compiler reports
-[unknown key](#unknown-key) for literal selections.
+**Cause:** the service itself was passed instead of a factory for it, or a
+provider object was copied. A provider is recognised by identity, so a spread
+copy of one is not a provider.
 
-**Fix:** list each replaced key once and give it an override.
-
-```ts
-import { DiBag } from 'di-bag';
-
-type Clock = { now(): number };
-const app = DiBag.createBuilder().register({ clock: (): Clock => ({ now: () => 42 }) }).build();
-const testApp = app.fork(['clock'], { clock: () => ({ now: () => 7 }) });
-await testApp.close();
-```
-
-**Recipe:** [write a fixture test with `fork`](recipes.md#fixture-test).
-
-### DI_BAG_INVALID_PLUGIN_OPTIONS {#di-bag-invalid-plugin-options}
-
-**When:** `DiBag.fromPlugin(dependencies, descriptor, options)` receives options
-without an own `acquisitionMode` of `'raw'` or `'nativePromise'`, or without a
-`validate` function.
-
-**Cause:** plugin output must be validated and its acquisition mode chosen.
-
-**Fix:** pass both options.
+**Fix:** pass `() => value`, or a provider returned by `DiBag.createProvider` and
+its sibling calls.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-type Handler = { handle(text: string): string };
-const descriptor: unknown = { apiVersion: 1, create: () => ({ handle: (text: string) => text }) };
-const handler = DiBag.fromPlugin([], descriptor, {
-  acquisitionMode: 'raw',
-  validate: (value: unknown): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
-});
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
-
-**When:** `register` receives a non-object, a record with symbol keys, or a value
-that is neither a factory nor a DiBag provider.
-
-**Cause:** a constant registered directly, or tokens mixed into a name record.
-
-**Fix:** wrap values in factories; register tokens with `register(token, provider)`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const portKey = Symbol('port');
-const port = DiBag.token(portKey).of<number>();
-DiBag.createBuilder().register({ host: () => 'localhost' }).register(port, () => 80).build();
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_REPLACEMENT {#di-bag-invalid-replacement}
-
-**When:** `replace(key, registration)` names a key the builder does not expose.
-The compiler reports [unknown key](#unknown-key).
-
-**Cause:** the key is misspelled, not yet registered, or private to a module.
-
-**Fix:** replace an exported or registered key; register a new one instead.
-
-```ts
-import { DiBag } from 'di-bag';
-
-DiBag.createBuilder().register({ port: () => 80 }).replace('port', () => 8080).build();
-```
-
-**Recipe:** [write a fixture test with `fork`](recipes.md#fixture-test).
-
-### DI_BAG_INVALID_SCOPE {#di-bag-invalid-scope}
-
-**When:** `createScope` receives more than three arguments, a non-array
-selection, a non-object override record, options other than `{ share }`, an
-unregistered key, a key both shared and overridden, a shared transient service,
-or a selected key without an override.
-
-**Cause:** the selection, overrides, and sharing disagree. The compiler reports
-most of these, for example `createScope cannot share transient providers`.
-
-**Fix:** override and share disjoint, registered, non-transient keys.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const parent = DiBag.createBuilder()
-  .register({ config: () => ({ region: 'eu' }), client: () => ({ id: 1 }) })
-  .build();
-const child = parent.createScope(['config'], { config: () => ({ region: 'us' }) }, { share: ['client'] });
-await parent.close();
-```
-
-**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
-
-### DI_BAG_INVALID_STARTUP {#di-bag-invalid-startup}
-
-**When:** `buildAndStart(keys, options)` receives a non-array selection, an
-unregistered key, unknown options, a non-positive `timeoutMs`, an invalid
-`startupOrder`, or a `signal` that is not an `AbortSignal`. No factory runs.
-
-**Cause:** startup options computed at runtime.
-
-**Fix:** pass registered keys and valid options.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const app = await DiBag.createBuilder()
-  .register({ settings: async () => 'ready' })
-  .buildAndStart(['settings'], { timeoutMs: 5_000, startupOrder: 'sequential' });
+const config = { region: 'eu' };
+const app = DiBag.createBuilder().withServices({ config: () => config }).buildContainer();
+console.log(app.resolve('config').region);
 await app.close();
 ```
 
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
 ### DI_BAG_INVALID_TOKEN {#di-bag-invalid-token}
 
-**When:** `DiBag.token(key)` receives a non-symbol, a token argument is a copied
+**When:** `DiBag.createToken(key)` receives a non-symbol, a token argument is a copied
 or fabricated object, or a dependency list is not an array.
 
-**Cause:** token identity comes from the handle `token(key).of()` returns, not
+**Cause:** token identity comes from the handle `createToken(key).forService()` returns, not
 from its shape.
 
 **Fix:** declare the symbol and token once, export the token, and import it
@@ -982,38 +745,20 @@ wherever it is used.
 import { DiBag } from 'di-bag';
 
 const clockKey = Symbol('clock');
-export const clock = DiBag.token(clockKey).of<{ now(): number }>();
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_TRANSFORM {#di-bag-invalid-transform}
-
-**When:** `transformService(registration, options)` receives a mode other than
-`'direct'` or `'awaited'`, no `transform` function, or `acquisitionMode` with
-`'awaited'`.
-
-**Cause:** options that do not match the transform mode.
-
-**Fix:** pass `acquisitionMode` only with `'direct'`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: value => value.toUpperCase() });
+export const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 ```
 
 **Recipe:** none.
 
 ### DI_BAG_LIFETIME_DEPENDENCY {#di-bag-lifetime-dependency}
 
-**When:** a `root` service resolves a `scoped` dependency at runtime;
+**When:** a singleton service resolves a scoped dependency at runtime;
 `details.consumer` and `details.dependency` name both.
 
-**Cause:** the [root capture](#root-capture) check was bypassed by a cast or
+**Cause:** the [singleton captures scoped](#singleton-captures-scoped) check was bypassed by a cast or
 untyped code.
 
-**Fix:** as for root capture: make the dependency `root`, or the consumer scoped.
+**Fix:** as for singleton capture: make the dependency singleton, or the consumer scoped.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
@@ -1026,113 +771,222 @@ and `details.path` is the resolution chain.
 **Cause:** a cast, `any`, or JavaScript hid the dependency from the
 [missing service](#missing-service) check.
 
-**Fix:** remove the cast so the compiler reports the key, then register it.
+**Fix:** remove the cast so the compiler reports the key, then add it with `withServices`.
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
-### DI_BAG_MISSING_REGISTRATION {#di-bag-missing-registration}
+### DI_BAG_MISSING_REPLACEMENT_PROVIDER {#di-bag-missing-replacement-provider}
 
-**When:** `resolve(key)` names a key the bag does not expose; the message is
-`Service "<key>" is not registered`.
+**When:** `createChildContainer` or `createIndependentContainer` receives a key in
+its positional `replacedServiceKeys` argument and the positional
+`replacementProviders` record has no own property for it.
+`details.serviceKey` names the key.
 
-**Cause:** a key computed at runtime or cast to a registered name; module
-private names are not public.
+**Cause:** the two positional arguments are read together: the list says which
+services the new container replaces, the record says with what.
 
-**Fix:** resolve literal exported keys; `bag.inspectGraph()` lists each binding's
-public keys.
+**Fix:** give one provider for every listed key, or take the key off the list.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 }).build();
-const keys = app.inspectGraph().bindings.flatMap(binding => binding.keys);
+const parent = DiBag.createBuilder().withServices({ config: () => ({ region: 'eu' }) }).buildContainer();
+const copy = parent.createIndependentContainer(
+  ['config'],
+  { config: () => ({ region: 'us' }) },
+);
+console.log(copy.resolve('config').region);
+await copy.close();
+await parent.close();
 ```
-
-**Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
 ### DI_BAG_PLUGIN_VALIDATION {#di-bag-plugin-validation}
 
-**When:** a `fromPlugin` provider acquires; `DiBagPluginValidationError` with
+**When:** a `createProviderFromPlugin` provider acquires; `DiBagPluginValidationError` with
 `phase: 'descriptor'` or `'output'` and a `reason`.
 
 **Cause:** the descriptor lacks own `apiVersion: 1` and a callable `create`, or
-`validate` did not return exactly `true` for the output.
+`isValidPluginOutput` did not return exactly `true` for the output.
 
-**Fix:** correct the plugin, or reject it before registering; see
-[`DI_BAG_INVALID_PLUGIN_OPTIONS`](#di-bag-invalid-plugin-options) for a valid
-descriptor.
+**Fix:** correct the plugin, or reject it before registering; see the
+[`createProviderFromPlugin` example](api-card.md#dibag-createproviderfromplugin)
+for a valid descriptor and required options. Malformed constructor options
+report [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 
 **Recipe:** none.
 
-### DI_BAG_STARTUP_CANCELLED {#di-bag-startup-cancelled}
+### DI_BAG_REMOVED_API {#di-bag-removed-api}
 
-**When:** `buildAndStart` rejects with `DiBagStartupCancelledError`, `reason`
-`'aborted'` or `'timeout'`.
+**When:** code written for 0.4.0 or earlier calls a name that 0.5.0 removed, for
+example `DiBag.fromFactory`, `builder.register`, `builder.build`, `bag.fork`.
+TypeScript rejects the call at compile time; this error is what JavaScript, an
+`any`-typed value, or generated code gets at run time.
 
-**Cause:** the external signal aborted or `timeoutMs` elapsed before the
-selected services were ready. Cleanup continues in the background.
+**Cause:** 0.5.0 renamed the API. The old names stay for the 0.5 line as
+functions that only throw. `details.removed` names the old call and
+`details.replacement` says what to write instead.
 
-**Fix:** await `cleanupPromise` before exiting; make slow factories honor the
-acquisition `signal`.
+**Fix:** write the replacement. For a whole project, run `npx di-bag-codemod`
+BEFORE upgrading, while the 0.4.0 types are still installed; see the
+[migration guide](../guides/migrating-to-0.5.md).
 
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+import { DiBag } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ settings: async () => 'ready' });
+const legacy = DiBag as unknown as { fromFactory?: (factory: () => number) => unknown };
 try {
-  await (await builder.buildAndStart(['settings'], { timeoutMs: 5_000 })).close();
+  legacy.fromFactory?.(() => 1);
 } catch (error) {
-  if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+  console.error((error as { details: { replacement: string } }).details.replacement);
+}
+```
+
+### DI_BAG_SERVICE_READINESS_CANCELLED {#di-bag-service-readiness-cancelled}
+
+**When:** `ensureServicesReady` rejects with `DiBagServiceReadinessCancelledError`,
+`reason` `'aborted'` or `'timeout'`.
+
+**Cause:** `abortSignal` aborted or `totalTimeoutMs` elapsed before the listed
+services were ready. This container is closing. `details.acquisitionsStillPending`
+names the services that were not ready yet, `details.disposersStillRunning` the
+disposers that had started.
+
+**Fix:** await `disposalPromise` before exiting; fix or speed up the named
+service, and make slow factories honor the acquisition `signal`.
+
+```ts
+import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
+
+const container = DiBag.createBuilder().withServices({ settings: async () => 'ready' }).buildContainer();
+try {
+  await container.ensureServicesReady(['settings'], { totalTimeoutMs: 5_000 });
+  await container.close();
+} catch (error) {
+  if (error instanceof DiBagServiceReadinessCancelledError) {
+    console.error(error.details.acquisitionsStillPending);
+    await error.disposalPromise;
+  }
   throw error;
 }
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
-### DI_BAG_STARTUP_FAILED {#di-bag-startup-failed}
+### DI_BAG_SERVICE_READINESS_FAILED {#di-bag-service-readiness-failed}
 
-**When:** `buildAndStart` rejects with `DiBagStartupError` after rolling back
-the new bag.
+**When:** `ensureServicesReady` rejects with `DiBagServiceReadinessError` after
+this container has closed.
 
-**Cause:** a selected service or its dependency failed to acquire; `cause` is
-that error and `cleanupFailures` lists rollback disposer failures.
+**Cause:** a listed service or one of its dependencies failed to acquire;
+`cause` is that error and `disposalFailures` lists disposers that failed while
+the container closed. A child container closes only itself, never its parent.
 
-**Fix:** fix `cause`; startup can be retried with a new `buildAndStart`.
+**Fix:** fix `cause`, then build a new container, or create a new child container, and call
+`ensureServicesReady` again.
 
 ```ts
-import { DiBag, DiBagStartupError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ settings: async () => 'ready' });
-const app = await builder.buildAndStart(['settings']).catch((error: unknown) => {
-  throw error instanceof DiBagStartupError ? error.cause : error;
+const container = DiBag.createBuilder().withServices({ settings: async () => 'ready' }).buildContainer();
+const app = await container.ensureServicesReady(['settings']).catch((error: unknown) => {
+  throw error instanceof DiBagServiceReadinessError ? error.cause : error;
 });
 await app.close();
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
-### DI_BAG_STARTUP_TIMEOUT {#di-bag-startup-timeout}
+### DI_BAG_SERVICE_READINESS_TIMEOUT {#di-bag-service-readiness-timeout}
 
-**When:** the `cause` of a [`DI_BAG_STARTUP_CANCELLED`](#di-bag-startup-cancelled)
+**When:** the `cause` of a
+[`DI_BAG_SERVICE_READINESS_CANCELLED`](#di-bag-service-readiness-cancelled)
 error with `reason: 'timeout'`: a `DOMException` named `TimeoutError`, with
-`details.timeoutMs`.
+`details.totalTimeoutMs`.
 
-**Cause:** selected services took longer than `timeoutMs`.
+**Cause:** the listed services took longer than `totalTimeoutMs`, which covers
+the whole call and not each service.
 
-**Fix:** raise `timeoutMs`, start fewer services eagerly, or make factories
-honor the signal so they stop promptly.
+**Fix:** raise `totalTimeoutMs`, list fewer services, or make factories honor
+the signal so they stop promptly.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_SINGLETON_REPLACEMENT {#di-bag-singleton-replacement}
+
+**When:** `container.createChildContainer(replacedServiceKeys, replacementProviders)`
+selects a service whose inherited provider has lifetime
+`'singleton:one-per-container-tree'`.
+
+**Cause:** a singleton is anchored to the container tree and has already fixed the
+dependencies of the container that introduced it. Replacing it only in a child would
+leave singleton consumers using the inherited value.
+
+**Fix:** mark the replaceable provider with `DiBag.providerWithLifetime` and
+`'scoped:one-per-container'`, or use `createIndependentContainer` when the
+replacement must rebuild the whole graph.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({
+  request: DiBag.providerWithLifetime({
+    provider: () => ({ id: 'outside-request' }),
+    lifetime: 'scoped:one-per-container',
+  }),
+}).buildContainer();
+
+const requestContainer = app.createChildContainer(
+  ['request'],
+  { request: () => ({ id: crypto.randomUUID() }) },
+);
+await requestContainer.close();
+await app.close();
+```
+
+**Details:** `{ operation: 'createChildContainer', serviceKey }`.
+
+**Recipe:** [add a request-scoped service](recipes.md#add-scoped-service).
 
 ### DI_BAG_STRUCTURAL_THENABLE {#di-bag-structural-thenable}
 
 **When:** a factory with automatic or native acquisition returns a non-Promise
-object with a callable `then`; a `TypeError` with `details.acquisitionMode`.
+object with a callable `then`; a `TypeError` with `details.factoryReturnKind`.
 
 **Cause:** the compile-time [structural thenable](#structural-thenable) check was
 disabled through `DiBagPolicy` or bypassed by a cast.
 
 **Fix:** as for the compile-time message: return a native Promise or use
-`acquisitionMode: 'raw'`.
+`factoryReturnKind: 'uninspected'`.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_UNKNOWN_SERVICE_KEY {#di-bag-unknown-service-key}
+
+**When:** a call names a service key that the builder, container or module does
+not have: `resolve`, `ensureServicesReady`, `withServiceAlias` (the target),
+`withReplacedService`, `createChildContainer`, `createIndependentContainer`,
+`buildModule` (an exported key), `withRenamedExport` and
+`withRenamedRequirement` (the current key). `details.operation` names the call
+and `details.serviceKey` the key.
+
+For `withRenamedRequirement`, runtime validation covers known exports and
+recorded requirement renames. An unseen absent requirement may pass an untyped
+call; type-check the requirement name against the module to catch it.
+
+**Cause:** the key is misspelled, was never registered, or is private to a
+module. The compiler reports this first; the runtime error is what an untyped
+call gets.
+
+**Fix:** register the service before the call, or correct the key.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 0 }) }).buildContainer();
+console.log(app.resolve('clock').now());
+await app.close();
+```
+
+### DI_BAG_WRONG_TOKEN_KIND {#di-bag-wrong-token-kind}
+
+A genuine typed token was used in an operation that requires the other token kind. A token is either a single-service token or a collection token and cannot serve both roles. Read `details.operation`, `details.expectedKind`, and `details.receivedKind`; create the token with `.forService<Service>()` for one service or `.forCollectionOf<Item>()` for a collection. Split a token that used both channels into two tokens.

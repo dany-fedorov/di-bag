@@ -4,24 +4,24 @@ import type { Assert, Equal } from './assert';
 
 type Config = { readonly url: string };
 type Db = { query(): Promise<string[]>; end(): Promise<void> };
-export const config = DiBag.fromSyncFactory((): Config => ({ url: 'memory:' }));
-export const dbSource = DiBag.fromAsyncFactory(async ({ config }: { config: Config }): Promise<Db> => ({ query: async () => [config.url], end: async () => {} }));
-export const db = DiBag.withDisposal(dbSource, db => db.end());
-export const contextualSync = DiBag.fromSyncFactory((deps: { config: Config }, factoryCtx) => {
+export const config = DiBag.createProvider((): Config => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
+export const dbSource = DiBag.createProvider(async ({ config }: { config: Config }): Promise<Db> => ({ query: async () => [config.url], end: async () => {} }), { factoryReturnKind: 'native-promise' });
+export const db = DiBag.providerWithDisposal({ provider: dbSource, disposeService: db => db.end() });
+export const contextualSync = DiBag.createProvider((deps: { config: Config }, factoryCtx) => {
   factoryCtx.pushDisposer(() => {});
-  return { url: deps.config.url, signal: factoryCtx.signal };
-}, { context: 'acquisition' });
-export const contextualAsync = DiBag.fromAsyncFactory(async (_deps: {}, factoryCtx) => ({ signal: factoryCtx.signal }), { context: 'acquisition' });
-export const anyOutput = DiBag.fromSyncFactory((): any => 1);
-export const unknownOutput = DiBag.fromSyncFactory((): unknown => 1);
+  return { url: deps.config.url, signal: factoryCtx.abortSignal };
+}, { factoryReturnKind: 'sync-value', factoryReceivesContext: true });
+export const contextualAsync = DiBag.createProvider(async (_deps: {}, factoryCtx) => ({ signal: factoryCtx.abortSignal }), { factoryReturnKind: 'native-promise', factoryReceivesContext: true });
+export const anyOutput = DiBag.createProvider((): any => 1, { factoryReturnKind: 'sync-value' });
+export const unknownOutput = DiBag.createProvider((): unknown => 1, { factoryReturnKind: 'sync-value' });
 // A function-valued service is not a thenable, even when it returns a Promise.
-export const callable = DiBag.fromSyncFactory(() => async () => 1);
-export const optionalObject = DiBag.fromSyncFactory((): { id: number } | undefined => undefined);
+export const callable = DiBag.createProvider(() => async () => 1, { factoryReturnKind: 'sync-value' });
+export const optionalObject = DiBag.createProvider((): { id: number } | undefined => undefined, { factoryReturnKind: 'sync-value' });
 class ServicePromise<T> extends Promise<T> {}
-export const subclass = DiBag.fromAsyncFactory(() => ServicePromise.resolve(1 as const));
-export const projected = DiBag.transformService(config, { mode: 'direct', transform: value => value.url, acquisitionMode: 'raw' });
-export const feature = DiBag.createBuilder().register({ config, db }).buildModule(['db'], { label: 'storage' });
-export const bag = DiBag.createBuilder().installModule(feature).register({ config, contextualSync, contextualAsync, projected }).build();
+export const subclass = DiBag.createProvider(() => ServicePromise.resolve(1 as const), { factoryReturnKind: 'native-promise' });
+export const projected = DiBag.providerWithTransformedService({ provider: config, transformService: value => value.url, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' });
+export const feature = DiBag.createBuilder().withServices({ config, db }).buildModule({ exportedServiceKeys: ['db'], moduleLabel: 'storage' });
+export const bag = DiBag.createBuilder().withInstalledModules([feature]).withServices({ config, contextualSync, contextualAsync, projected }).buildContainer();
 export const resolved: Promise<Db> = bag.resolve('db');
 export type Checks = [
   Assert<Equal<ProviderOutput<typeof config>, Config>>,

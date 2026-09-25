@@ -2,10 +2,10 @@ import { DiBag } from 'di-bag';
 import type { Catalog, CatalogData } from './contract.js';
 
 export const catalogModule = DiBag.createBuilder()
-  .register({
-    catalog: DiBag.withLifetime(({ catalogData }: { catalogData: CatalogData }): Catalog => {
+  .withServices({
+    catalog: DiBag.providerWithLifetime({ provider: ({ catalogData }: { catalogData: CatalogData }): Catalog => {
       const bySku = new Map(catalogData.products.map(product => [product.sku, product]));
       return { find: sku => bySku.get(sku), list: () => catalogData.products };
-    }, 'root'),
+    }, lifetime: 'singleton:one-per-container-tree' }),
   })
-  .buildModule(['catalog'], { label: 'catalog' });
+  .buildModule({ exportedServiceKeys: ['catalog'], moduleLabel: 'catalog' });

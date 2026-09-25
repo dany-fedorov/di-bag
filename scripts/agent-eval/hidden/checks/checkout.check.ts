@@ -7,13 +7,13 @@ import type { Inventory } from '../../src/features/inventory/contract.js';
 import type { Notifier } from '../../src/features/notifications/contract.js';
 
 const builder = DiBag.createBuilder()
-  .installModule(checkoutModule)
-  .register({
-    catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
+  .withInstalledModules([checkoutModule])
+  .withServices({
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: () => undefined, list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
     inventory: (): Inventory => ({ available: () => 0, reserve: () => false, commit: () => {} }),
     payments: (): PaymentGateway => ({ charge: async () => 'charge' }),
     notifier: (): Notifier => ({ orderPlaced: async () => {} }),
   });
 
-builder.verifyGraph() satisfies void;
-export const exported = (): Checkout => builder.build().resolve('checkout');
+builder.verifyGraphAtCompileTime() satisfies void;
+export const exported = (): Checkout => builder.buildContainer().resolve('checkout');

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "register", "to": "withServices", "arity": [1] },
+    { "owner": "Builder", "from": "register", "to": "withTokenService", "arity": [2], "arguments": { "kind": "bag", "names": ["token", "provider"] } },
+    { "owner": "Builder", "from": "alias", "to": "withServiceAlias", "arguments": { "kind": "bag", "names": ["alias-key", "target service key"] } },
+    { "owner": "Builder", "from": "buildModule", "to": "buildModule", "arguments": { "kind": "bag", "names": ["exportedServiceKeys"], "trailing": { "mode": "merge", "keys": { "label": "moduleLabel" } } } },
+    { "owner": "Bag", "from": "fork", "to": "createIndependentContainer", "arguments": { "kind": "bag", "names": ["replacedServiceKeys", "replacementProviders"] } },
+    { "owner": "Bag", "from": "createScope", "to": "createChildContainer", "arity": [0, 1] },
+    { "owner": "Bag", "from": "createScope", "to": "createChildContainer", "arity": [2, 3], "arguments": { "kind": "bag", "names": ["replacedServiceKeys", "replacementProviders"], "trailing": { "mode": "merge", "keys": { "share": "sharedParentServiceKeys" } } } },
+    { "owner": "DiBagApi", "from": "withLifetime", "to": "withLifetime", "arguments": { "kind": "bag", "names": ["provider", "lifetime"], "trailing": { "mode": "keep" } } },
+    { "owner": "DiBagApi", "from": "fromFunction", "to": "createProviderFromFunction", "arguments": { "kind": "bag", "names": ["dependencies", "factoryFunction"], "trailing": { "mode": "drop" } } }
+  ],
+  "options": [
+    { "owner": "Bag", "method": "createScope", "argument": 0, "from": "share", "to": "sharedParentServiceKeys" }
+  ],
+  "values": [
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "root", "to": "singleton:one-per-container-tree" }
+  ]
+}

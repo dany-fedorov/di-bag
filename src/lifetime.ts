@@ -1,73 +1,60 @@
-import { libraryError } from './errors';
-import type { Factory, Registration } from './registration';
+import { libraryTypeError } from './errors';
+import type { Factory } from './registration';
 import { createProvider } from './provider';
-import type { Provider, ProviderFactory, RetainedMetadata, ProviderAcquisitionMetadata, ProviderGraphContract, ProviderAcquiredValue } from './provider';
+import type { ProviderBase } from './provider';
 import { describe, retainDescription } from './provider-operations';
+import { snapshotOptionsBag } from './options-bag';
 import type { GraphContract } from './token-types';
 import type { Singleton, Unsatisfied } from './types';
 
 /**
- * Cache at the ownership-family root, once per scope, or once per resolution.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-root-scoped-or-transient-caching
+ * Cache once per container tree, once per container, or once per resolution.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-a-lifetime
  */
-export type Lifetime = 'root' | 'scoped' | 'transient';
+export type Lifetime = 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve';
+export type LifetimeKind = 'singleton' | 'scoped' | 'transient';
 export interface LifetimePolicy {
-  readonly kind: Lifetime;
-  readonly allowScopedDependencies: boolean;
+  readonly kind: LifetimeKind;
+  readonly allowsScopedDependencies: boolean;
 }
-type Admission<L> = Singleton<L> extends true ? unknown : Unsatisfied<'lifetime requires an individually known policy literal', {}>;
-type InvalidOption<L, O> = O extends infer T & {} ? T extends unknown ? Exclude<keyof T, 'allowScopedDependencies'> extends never
-  ? L extends 'root' ? T extends { readonly allowScopedDependencies?: boolean } ? never : true
-    : 'allowScopedDependencies' extends keyof T ? true : never
-  : true : never : never;
-type Options<L, O> = [InvalidOption<L, O>] extends [never] ? unknown : InvalidOptions;
-type InvalidOptions = Unsatisfied<'withLifetime allowScopedDependencies requires root lifetime and a boolean value', {}>;
-export type LifetimeGraph<G extends GraphContract, L extends Lifetime, O> = G extends infer T & {}
-  ? T extends GraphContract ? L extends 'scoped' ? 'lifetime' extends keyof T ? Omit<T, 'lifetime'> : T
-    : Omit<T, 'lifetime'> & { readonly lifetime: { readonly kind: L; readonly allowScopedDependencies: [O] extends [{ readonly allowScopedDependencies: true }] ? true : false } }
-  : never : never;
-
-/**
- * Select family-root caching, per-scope caching, or a fresh owned attempt per read.
- * Strict roots cannot capture scoped dependencies. Wrapping preserves the factory,
- * acquired value, metadata, frames, and ownership stages.
- * @param registration - The registration whose caching policy to replace.
- * @param lifetime - An individually known `root`, `scoped`, or `transient` literal.
- * @returns A provider with the selected lifetime policy.
- */
-export function withLifetime<R extends Registration, const L extends Lifetime>(
-  registration: R & Registration,
-  lifetime: L & Admission<L>,
-): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraphContract<R>, L, undefined>, ProviderAcquiredValue<R>>;
-/**
- * Select a lifetime and optionally permit a root provider to capture scoped dependencies.
- * @param registration - The registration whose caching policy to replace.
- * @param lifetime - An individually known `root`, `scoped`, or `transient` literal.
- * @param options - Root-only `{ allowScopedDependencies: boolean }` admission.
- * @returns A provider preserving factory, output, metadata, frames, and ownership stages.
- */
-export function withLifetime<R extends Registration, const L extends Lifetime, const O extends object | undefined>(
-  registration: R & Registration,
-  lifetime: L & Admission<L>,
-  options: O & Options<NoInfer<L>, NoInfer<O>>,
-): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraphContract<R>, L, O>, ProviderAcquiredValue<R>>;
-export function withLifetime(registration: Registration, lifetime: Lifetime, options?: object): unknown {
-  if (lifetime !== 'root' && lifetime !== 'scoped' && lifetime !== 'transient') throw libraryError('DI_BAG_INVALID_LIFETIME', 'invalid lifetime policy', { operation: 'withLifetime', lifetime });
-  let allowScopedDependencies = false;
-  if (options !== undefined) {
-    if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError('DI_BAG_INVALID_LIFETIME', 'invalid lifetime options', { operation: 'withLifetime', lifetime });
-    const keys = Reflect.ownKeys(options);
-    if (keys.some(key => key !== 'allowScopedDependencies') || ('allowScopedDependencies' in options && !Object.hasOwn(options, 'allowScopedDependencies'))) throw libraryError('DI_BAG_INVALID_LIFETIME', 'invalid lifetime options', { operation: 'withLifetime', lifetime });
-    if (keys.length) {
-      if (lifetime !== 'root') throw libraryError('DI_BAG_INVALID_LIFETIME', 'withLifetime allowScopedDependencies requires root lifetime', { operation: 'withLifetime', lifetime });
-      const selected: unknown = Reflect.get(options, 'allowScopedDependencies');
-      if (typeof selected !== 'boolean') throw libraryError('DI_BAG_INVALID_LIFETIME', 'withLifetime allowScopedDependencies must be boolean', { operation: 'withLifetime', lifetime });
-      allowScopedDependencies = selected;
-    }
-  }
-  const policy = Object.freeze({ kind: lifetime, allowScopedDependencies });
-  const description = describe(registration);
+export const publicLifetime = (kind: LifetimeKind): Lifetime => kind === 'singleton' ? 'singleton:one-per-container-tree' : kind === 'scoped' ? 'scoped:one-per-container' : 'transient:one-per-resolve';
+export type LifetimeAdmission<SelectedLifetime> = Singleton<SelectedLifetime> extends true
+  ? unknown
+  : Unsatisfied<'lifetime requires an individually known policy literal', {}>;
+type InvalidLifetimeOptions<SelectedLifetime, Options> = Options extends infer Candidate & {}
+  ? Candidate extends unknown
+    ? Exclude<keyof Candidate, 'allowsScopedDependencies'> extends never
+      ? SelectedLifetime extends 'singleton:one-per-container-tree'
+        ? Candidate extends { readonly allowsScopedDependencies?: boolean } ? never : true
+        : 'allowsScopedDependencies' extends keyof Candidate ? true : never
+      : true
+    : never
+  : never;
+export type LifetimeOptions<SelectedLifetime, Options> = [InvalidLifetimeOptions<SelectedLifetime, Options>] extends [never]
+  ? unknown
+  : Unsatisfied<'providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value', {}>;
+type LifetimeKindOf<SelectedLifetime extends Lifetime> =
+  SelectedLifetime extends 'singleton:one-per-container-tree' ? 'singleton'
+  : SelectedLifetime extends 'scoped:one-per-container' ? 'scoped'
+  : 'transient';
+export type LifetimeGraph<Graph extends GraphContract, SelectedLifetime extends Lifetime, Options> = Graph extends infer Candidate & {}
+  ? Candidate extends GraphContract
+    ? LifetimeKindOf<SelectedLifetime> extends 'scoped'
+      ? 'lifetime' extends keyof Candidate ? Omit<Candidate, 'lifetime'> : Candidate
+      : Omit<Candidate, 'lifetime'> & { readonly lifetime: {
+          readonly kind: LifetimeKindOf<SelectedLifetime>;
+          readonly allowsScopedDependencies: [Options] extends [{ readonly allowsScopedDependencies: true }] ? true : false;
+        } }
+    : never
+  : never;
+export function selectLifetime(provider: ProviderBase, lifetime: unknown, options?: unknown, operation = 'withLifetime'): ProviderBase {
+  if (lifetime !== 'singleton:one-per-container-tree' && lifetime !== 'scoped:one-per-container' && lifetime !== 'transient:one-per-resolve') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} lifetime must use a full lifetime value`, { operation, argument: 'lifetime', expected: "one of: 'singleton:one-per-container-tree', 'scoped:one-per-container', 'transient:one-per-resolve'" });
+  const bag = options === undefined ? {} : snapshotOptionsBag(options, operation, [], ['allowsScopedDependencies']);
+  if (Object.hasOwn(bag, 'allowsScopedDependencies') && lifetime !== 'singleton:one-per-container-tree') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} allowsScopedDependencies is available only for singleton lifetime`, { operation, argument: 'allowsScopedDependencies', expected: "absent unless lifetime is 'singleton:one-per-container-tree'" });
+  if (Object.hasOwn(bag, 'allowsScopedDependencies') && typeof bag.allowsScopedDependencies !== 'boolean') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} allowsScopedDependencies must be boolean`, { operation, argument: 'allowsScopedDependencies', expected: 'a boolean' });
+  const kind: LifetimeKind = lifetime === 'singleton:one-per-container-tree' ? 'singleton' : lifetime === 'scoped:one-per-container' ? 'scoped' : 'transient';
+  const description = describe(provider);
   const handle = createProvider<Factory, object, readonly unknown[], GraphContract, unknown>();
-  retainDescription(handle, Object.freeze({ ...description, lifetime: policy }));
+  retainDescription(handle, Object.freeze({ ...description, lifetime: Object.freeze({ kind, allowsScopedDependencies: bag.allowsScopedDependencies === true }) }));
   return handle;
 }

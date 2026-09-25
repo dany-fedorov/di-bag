@@ -8,9 +8,9 @@
 type OverrideRegistrations<F extends Registrations, N extends Registrations> = Omit<F, keyof N> & N;
 ```
 
-Defined in: [types.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L46)
+Defined in: [types.ts:48](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L48)
 
-Replace overlapping registrations in `F` with registrations from `N`.
+Replace overlapping providers in `F` with providers from `N`.
 
 ## Type Parameters
 
@@ -21,4 +21,4 @@ Replace overlapping registrations in `F` with registrations from `N`.
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container

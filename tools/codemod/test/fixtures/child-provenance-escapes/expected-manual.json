@@ -1,0 +1,18 @@
+[
+  {
+    "line": 5,
+    "reason": "this child replacement may change a root-lifetime service; pin lifetimes and scoped captures by hand"
+  },
+  {
+    "line": 9,
+    "reason": "this child replacement may change a root-lifetime service; pin lifetimes and scoped captures by hand"
+  },
+  {
+    "line": 13,
+    "reason": "this child replacement may change a root-lifetime service; pin lifetimes and scoped captures by hand"
+  },
+  {
+    "line": 18,
+    "reason": "this child replacement may change a root-lifetime service; pin lifetimes and scoped captures by hand"
+  }
+]

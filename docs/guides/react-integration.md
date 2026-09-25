@@ -18,7 +18,7 @@ needed: components ask for services, not for a container.
 - [Who owns what](#who-owns-what)
 - [When props and Context are enough](#when-props-and-context-are-enough)
 - [Build the application runtime once](#build-the-application-runtime-once)
-- [A project runtime borrows, owns, and starts](#a-project-runtime-borrows-owns-and-starts)
+- [A project runtime borrows and owns](#a-project-runtime-borrows-and-owns)
 - [The runtime owner](#the-runtime-owner)
 - [Connect it to React](#connect-it-to-react)
 - [Reactivity is separate from resolution](#reactivity-is-separate-from-resolution)
@@ -38,23 +38,23 @@ needed: components ask for services, not for a container.
 
 Three rules follow from [ownership](../../README.md#give-resources-a-clear-owner):
 
-- **Shared means owned once, borrowed everywhere else.** The app bag owns the
-  transport with `withDisposal`; a project runtime registers the same transport
+- **Shared means owned once, borrowed everywhere else.** The app container owns the
+  transport with `DiBag.providerWithDisposal`; a project runtime registers the same transport
   with a plain factory and no disposer, so closing a project never closes it.
   The owner of a borrowed value must outlive its borrowers, which is why
-  `shutdown()` closes project runtimes before the app bag.
-- **No bag per component.** A bag is an ownership family with startup and
-  teardown; a component is a render function. Give each *lifetime* one runtime
+  `shutdown()` closes project runtimes before the app container.
+- **No container per component.** A container owns services and their disposal;
+  a component is a render function. Give each *lifetime* one runtime
   and pass its narrow services down through Context.
-- **No module-scope user singletons.** A runtime created at module import time
+- **No user singletons at module import.** A runtime created at module import time
   is shared by every request in a server-rendered process. This recipe has no
   SSR example; if you render on the server, create the app runtime per request
   or per worker, never per module, and keep user state in a session runtime.
-  See [lifetime rules](tutorial.md#choose-root-scoped-or-transient-caching).
+  See [lifetime rules](tutorial.md#choose-a-lifetime).
 
 ## When props and Context are enough
 
-If nothing needs asynchronous startup or asynchronous cleanup, you do not need
+If nothing needs asynchronous service readiness or asynchronous disposal, you do not need
 the owner. Build the services once and pass them down:
 
 ```tsx
@@ -63,104 +63,115 @@ const Services = createContext(services);
 root.render(<Services.Provider value={services}><App /></Services.Provider>);
 ```
 
-Reach for a bag when a service must be *started* before use (a lock, a socket,
+Reach for a container when a service must be *ready* before use (a lock, a socket,
 a database handle), must be *released* when its owner goes away, or must be
 *replaced* when an identity changes. Reach for the owner below when React is
 the thing deciding when that happens.
 
 ## Build the application runtime once
 
-`bootstrap()` runs before React renders. Every stage names its acquisition
-mode: browsers have no `process.getBuiltinModule`, so an `auto` stage would
-throw `DI_BAG_CLASSIFIER_REQUIRED` at `build()`; see
-[portable mode](tutorial.md#portable-mode). The `fromSyncFactory`/`fromAsyncFactory`
-helpers ([#28](https://github.com/dany-fedorov/di-bag/issues/28)) are the
-explicit modes with less repetition; the semantics are those of
-`acquisitionMode: 'raw'` and `'nativePromise'`.
+`bootstrap()` runs before React renders. Every factory states its factory return
+kind. Browsers have no host Promise classifier, so an auto-detect factory would
+throw `DI_BAG_CLASSIFIER_REQUIRED` at `buildContainer()`; see
+[portable mode](tutorial.md#portable-mode). `DiBag.createProvider` takes
+`factoryReturnKind: 'sync-value'` or `'native-promise'` for these factories.
 
 ```ts
-import { DiBag, type CloseOptions, type StartupOptions } from 'di-bag';
+import { DiBag, type CloseOptions, type EnsureServicesReadyOptions } from 'di-bag';
+
+type DocumentRecord = { readonly id: string; readonly title: string };
+type ProjectLock = { readonly projectId: string; release(): Promise<void> };
+type Storage = {
+  load(projectId: string): Promise<readonly DocumentRecord[]>;
+  save(projectId: string, documents: readonly DocumentRecord[]): Promise<void>;
+  lock(projectId: string): Promise<ProjectLock>;
+};
+type Transport = {
+  fetchManifest(projectId: string, signal: AbortSignal): Promise<{ readonly name: string }>;
+  close(): Promise<void>;
+};
+type AppServices = { readonly storage: Storage; readonly transport: Transport };
+type AppAdapters = AppServices;
+type AppRuntime = { readonly services: AppServices; close(options?: CloseOptions): Promise<void> };
 
 export function createAppBuilder(adapters: AppAdapters) {
-  return DiBag.createBuilder().register({
-    // Borrowed: IndexedDB-style storage has no close; the bag never disposes it.
-    storage: DiBag.withLifetime(DiBag.fromSyncFactory((): Storage => adapters.storage), 'root'),
-    // Owned: bootstrap hands the transport over, and the app bag closes it exactly once.
-    transport: DiBag.withLifetime(
-      DiBag.withDisposal(DiBag.fromSyncFactory((): Transport => adapters.transport), transport => transport.close()),
-      'root',
-    ),
+  return DiBag.createBuilder().withServices({
+    // Borrowed: IndexedDB-style storage has no close; the container never disposes it.
+    storage: DiBag.providerWithLifetime({ provider: DiBag.createProvider((): Storage => adapters.storage, { factoryReturnKind: 'sync-value' }), lifetime: 'singleton:one-per-container-tree' }),
+    // Owned: bootstrap hands the transport over, and the app container closes it exactly once.
+    transport: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider((): Transport => adapters.transport, { factoryReturnKind: 'sync-value' }), disposeService: transport => transport.close() }), lifetime: 'singleton:one-per-container-tree' }),
   });
 }
 
-export async function createAppRuntime(adapters: AppAdapters, options?: StartupOptions): Promise<AppRuntime> {
-  const bag = await createAppBuilder(adapters).buildAndStart(['storage', 'transport'], options);
-  const services: AppServices = { storage: bag.resolve('storage'), transport: bag.resolve('transport') };
-  return { services, close: closeOptions => bag.close(closeOptions) };
+export async function createAppRuntime(adapters: AppAdapters, options?: EnsureServicesReadyOptions): Promise<AppRuntime> {
+  const container = await createAppBuilder(adapters).buildContainer().ensureServicesReady(['storage', 'transport'], options);
+  const services: AppServices = { storage: container.resolve('storage'), transport: container.resolve('transport') };
+  return { services, close: closeOptions => container.close(closeOptions) };
 }
 ```
 
-The runtime object exposes `services` and `close`; nothing in React sees the bag.
+The runtime object exposes `services` and `close`; nothing in React sees the container.
 
-## A project runtime borrows, owns, and starts
+## A project runtime borrows and owns {#a-project-runtime-borrows-and-owns}
 
-A project runtime is an independent bag. It borrows the app's services by
-value and owns what only it uses: the exclusive project lock, the manifest,
-and the document store. `buildAndStart` is the startup: the caller's `signal`
-cancels it, and failure rolls back what was acquired.
+A project runtime builds an independent container. It borrows the app's storage
+and transport by value with no disposer. It owns the exclusive project lock,
+the manifest, and the document store. `ensureServicesReady` makes the selected
+services ready. The caller's `abortSignal` cancels the wait. Failure disposes
+what the project container acquired.
 
 ```ts
 export function createProjectBuilder(app: AppServices, projectId: string) {
-  return DiBag.createBuilder().register({
-    projectId: DiBag.fromSyncFactory(() => projectId),
-    storage: DiBag.fromSyncFactory((): Storage => app.storage),
-    transport: DiBag.fromSyncFactory((): Transport => app.transport),
-    lock: DiBag.withDisposal(
-      DiBag.fromAsyncFactory(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId)),
-      lock => lock.release(),
-    ),
+  return DiBag.createBuilder().withServices({
+    projectId: DiBag.createProvider(() => projectId, { factoryReturnKind: 'sync-value' }),
+    storage: DiBag.createProvider((): Storage => app.storage, { factoryReturnKind: 'sync-value' }),
+    transport: DiBag.createProvider((): Transport => app.transport, { factoryReturnKind: 'sync-value' }),
+    lock: DiBag.providerWithDisposal({ provider: DiBag.createProvider(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId), { factoryReturnKind: 'native-promise' }), disposeService: lock => lock.release() }),
     // Depends on the lock so nothing is fetched for a project another runtime still holds.
-    manifest: DiBag.fromAsyncFactory(
-      async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryCtx) => {
+    manifest: DiBag.createProvider(
+      async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryContext) => {
         await lock;
-        return transport.fetchManifest(projectId, factoryCtx.signal);
+        return transport.fetchManifest(projectId, factoryContext.abortSignal);
       },
-      { context: 'acquisition' },
+      { factoryReturnKind: 'native-promise', factoryReceivesContext: true },
     ),
-    documents: DiBag.fromAsyncFactory(async ({ storage, projectId, lock }: { storage: Storage; projectId: string; lock: Promise<ProjectLock> }): Promise<DocumentsStore> => {
-      await lock;
-      let snapshot = await storage.load(projectId);
-      const listeners = new Set<() => void>();
-      return {
-        subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },
-        getSnapshot: () => snapshot,
-        async add(title) {
-          const next = [...snapshot, { id: `${projectId}-${snapshot.length + 1}`, title }];
-          await storage.save(projectId, next);
-          snapshot = next;
-          for (const listener of [...listeners]) listener();
-        },
-      };
-    }),
+    documents: DiBag.createProvider(
+      async ({ storage, projectId, lock }: { storage: Storage; projectId: string; lock: Promise<ProjectLock> }): Promise<DocumentsStore> => {
+        await lock;
+        let snapshot = await storage.load(projectId);
+        const listeners = new Set<() => void>();
+        return {
+          subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+          getSnapshot: () => snapshot,
+          async add(title) {
+            const next: readonly DocumentRecord[] = [...snapshot, { id: `${projectId}-${snapshot.length + 1}`, title }];
+            await storage.save(projectId, next);
+            snapshot = next;
+            for (const listener of [...listeners]) listener();
+          },
+        };
+      }, { factoryReturnKind: 'native-promise' },
+    ),
   });
 }
 
-export async function createProjectRuntime(app: AppServices, projectId: string, options?: StartupOptions): Promise<ProjectRuntime> {
-  const bag = await createProjectBuilder(app, projectId).buildAndStart(['lock', 'manifest', 'documents'], options);
-  const [manifest, documents] = await Promise.all([bag.resolve('manifest'), bag.resolve('documents')]);
-  return { services: { projectId, name: manifest.name, documents }, close: closeOptions => bag.close(closeOptions) };
+export async function createProjectRuntime(app: AppServices, projectId: string, options?: EnsureServicesReadyOptions): Promise<ProjectRuntime> {
+  const container = await createProjectBuilder(app, projectId).buildContainer().ensureServicesReady(['lock', 'manifest', 'documents'], options);
+  const manifest = await container.resolve('manifest');
+  const documents = await container.resolve('documents');
+  return { services: { projectId, name: manifest.name, documents }, close: closeOptions => container.close(closeOptions) };
 }
 ```
 
-When the manifest fetch fails, `buildAndStart` rejects with
-`DiBagStartupError` *after* releasing the lock it had already acquired; the
-cause is on `error.cause`. When the caller aborts, it rejects promptly with
-`DiBagStartupCancelledError`, and `error.cleanupPromise` settles once the
-in-flight fetch has settled and the lock is released — cancellation is
-cooperative, which is why `fetchManifest` receives `factoryCtx.signal`.
+When the manifest fetch fails, `ensureServicesReady` rejects with
+`DiBagServiceReadinessError` after releasing the lock it had already acquired.
+The cause is on `error.cause`. When the caller aborts, it rejects promptly with
+`DiBagServiceReadinessCancelledError`. Its `disposalPromise` settles once the
+in-flight fetch has settled and the lock is released. Cancellation is
+cooperative, which is why `fetchManifest` receives `factoryContext.abortSignal`.
 
 A factory that acquires *several* things before it can return owns the
-intermediate ones itself through `factoryCtx.pushDisposer` (issue
+intermediate ones itself through `factoryContext.pushDisposer` (issue
 [#27](https://github.com/dany-fedorov/di-bag/issues/27), see
 [release a partially acquired resource](tutorial.md#release-partial-acquisition)).
 That covers what a factory registered; a factory that opened a handle and
@@ -175,23 +186,23 @@ time, keyed by an identity.
 
 ```ts
 const owner = new RuntimeOwner<ProjectRuntime>({
-  start: (projectId, signal) => createProjectRuntime(app.services, projectId, { signal, timeoutMs: 5_000 }),
+  start: (projectId, signal) => createProjectRuntime(app.services, projectId, { abortSignal: signal, totalTimeoutMs: 5_000 }),
   onFailure: failure => telemetry.report(failure),
   closeTimeoutMs: 2_000,
 });
-const selection = owner.select('alpha');   // status: starting → ready | failed
+const selection = owner.select('alpha');   // status: starting, then ready or failed
 selection.release();                        // status: idle; the runtime closes
 ```
 
 What it guarantees, each pinned by a test in `tests/react/runtime-owner.test.ts`:
 
-- **A replaced startup never becomes current.** Every startup gets a
+- **Replaced readiness never becomes current.** Every readiness attempt gets a
   generation and its own `AbortController`. `select` of a different identity
   (or `release`) aborts the current one. If `start` still fulfils afterwards,
   the runtime is closed at once and never published; if it rejects with
-  `DiBagStartupCancelledError`, its `cleanupPromise` is awaited and owned.
-- **Teardowns are serialized.** The next startup begins only after the previous
-  slot has settled: its close finished, or its cancelled startup's cleanup
+  `DiBagServiceReadinessCancelledError`, its `disposalPromise` is awaited and owned.
+- **Teardowns are serialized.** The next readiness attempt begins only after the previous
+  slot has settled: its close finished, or its cancelled readiness attempt's disposal
   finished. An exclusive resource such as the project lock therefore cannot be
   held by two runtimes at once.
 - **The wait can be bounded, and a bound is not proof.** With
@@ -199,13 +210,13 @@ What it guarantees, each pinned by a test in `tests/react/runtime-owner.test.ts`
   `{ phase: 'close-wait-expired' }` to `onFailure`, and starts the replacement.
   The old teardown keeps running; a later rejection still reaches the sink as
   `close-failed`. This is the intentional overlap policy: the resource itself
-  refuses a second holder, so the replacement's startup fails visibly instead
+  refuses a second holder, so the replacement's readiness fails visibly instead
   of sharing silently. Leave `closeTimeoutMs` unset to never overlap.
-- **Nothing is swallowed.** React does not await effect cleanup promises, so the
+- **Nothing is swallowed.** React does not await effect disposal promises, so the
   owner keeps them: every `close()` rejection and every expired wait goes to
   `onFailure`. The owner never logs.
 - **Only the live selection releases.** `release()` on a stale selection is a
-  no-op. `retry()` restarts the live identity after a failed startup without
+  no-op. `retry()` restarts the live identity after failed readiness without
   changing which selection is live.
 - **Status is an external store.** `subscribe`/`getSnapshot` return frozen,
   referentially stable `RuntimeStatus` values:
@@ -227,10 +238,10 @@ export function useSelectedRuntime<T extends Closable>(owner: RuntimeOwner<T>, i
 ```
 
 Selection happens in an effect, never in render or `useMemo`: rendering must
-be free of side effects, and Strict Mode proves it by running setup, cleanup,
+be free of side effects, and Strict Mode proves it by running setup, effect disposal,
 and setup again in development. With this hook that sequence releases the
-first selection — before its startup was even invoked, because the owner
-starts after one microtask — and ends with a fresh, usable generation 2. The
+first selection before its readiness was invoked. The owner starts after one microtask.
+The second setup ends with a fresh, usable generation 2. The
 browser lane asserts exactly that (`mounted.generation` is 2 in the
 development build and 1 in production).
 
@@ -265,19 +276,19 @@ and `getState`, a Redux store, or your own. DI Bag adds no observable system.
 
 | What happened | Where it shows | What was released |
 | --- | --- | --- |
-| A selected factory threw during startup | `status.state === 'failed'`, `error` is `DiBagStartupError` with `cause` | Everything already owned, before the rejection |
-| The identity changed during startup | Nothing; the startup is cancelled | Everything the cancelled startup owned, once its factories settle |
-| A disposer rejected at close | `onFailure({ phase: 'close-failed', error })`, `error` is `DiBagCleanupError` | Every other disposer still ran |
+| A selected factory threw during service readiness | `status.state === 'failed'`, `error` is `DiBagServiceReadinessError` with `cause` | Everything already owned, before the rejection |
+| The identity changed during service readiness | Nothing; the readiness wait is cancelled | Everything the cancelled container owned, once its factories settle |
+| A disposer rejected at close | `onFailure({ phase: 'close-failed', error })`, `error` is `DiBagDisposalError` | Every other disposer still ran |
 | Teardown outlived `closeTimeoutMs` | `onFailure({ phase: 'close-wait-expired' })`, then `close-failed` if it eventually fails | Unknown until it settles; the replacement may fail on the exclusive resource |
 
-`bag.close({ timeoutMs })` gives the same bounded wait at the library level and
-names the disposers still running in `error.details.pending`; see
-[cleanup waits for your work by default](../../README.md#tradeoffs-and-limits).
+`container.close({ waitTimeoutMs })` gives a bounded wait at the library level.
+The error names the disposers still running in `error.details.disposersStillRunning`.
+See [disposal waits for your work by default](../../README.md#tradeoffs-and-limits).
 
 ## Development HMR and navigation
 
 `bootstrap()` returns `shutdown()`, which unmounts, closes the owner, then
-closes the app bag. Two hooks call it:
+closes the app container. Two hooks call it:
 
 - **HMR.** A dev server that replaces the page entry's module leaves the old
   module's runtime alive unless the old module closes it. Under a Vite-style
@@ -288,7 +299,7 @@ closes the app bag. Two hooks call it:
   directory compiles to. State that must survive a reload belongs in storage,
   not in a runtime.
 - **Navigation.** `pagehide` calls `shutdown()` too, but the browser never
-  waits for it. Do not rely on awaited unload cleanup for correctness: an
+  waits for it. Do not rely on awaited unload disposal for correctness: an
   exclusive lock held in a server or in shared storage needs its own expiry or
   heartbeat, and a project reopened in a new tab must be able to take over.
 
@@ -331,9 +342,9 @@ and any console `error` or `warning`, so React's own warnings are assertions.
 
 | Idea | [Obsidian](https://wix-incubator.github.io/obsidian/docs/documentation/) | [inversify-react](https://github.com/Kukkimonsuta/inversify-react) | [react-ioc](https://github.com/gnaeus/react-ioc) | This recipe |
 | --- | --- | --- | --- | --- |
-| Scoping | `@graph` classes with `@singleton` or `@lifecycleBound` scopes; a bound graph is destroyed when its last requester unmounts | A `Provider` per subtree; providers form a container hierarchy | `@provider` per component subtree; nested providers form scopes | One bag per lifetime (app, session, project); the owner closes a project runtime when its selection is released |
+| Lifetime and ownership | `@graph` classes with `@singleton` or `@lifecycleBound` lifetimes; a bound graph is destroyed when its last requester unmounts | A `Provider` per subtree; providers form a container hierarchy | `@provider` per component subtree; nested providers form ownership levels | One independent container per project runtime; the owner closes it when its selection is released |
 | Access from components | Injection into components, hooks, and classes | `useInjection(id)`, `useContainer()` | `useInstance(Service)` | A Context per narrow services interface; no generic resolution hook |
-| Startup | Synchronous graph construction | Synchronous resolution | Synchronous construction, lazy registration | Asynchronous `buildAndStart` with cancellation, rollback, and explicit loading and failure states |
+| Initialization | Synchronous graph construction | Synchronous resolution | Synchronous construction, lazy registration | Asynchronous `ensureServicesReady` with cancellation, rollback, and explicit loading and failure states |
 | Disposal | Graph cleared on unmount | Not documented | `.dispose()` called on created instances when the provider unmounts | `close()` with ordered disposers; rejections and bounded waits reach an explicit sink |
 | Reactivity | Built-in `Observable` and `useObserver` | None | None | Any `subscribe`/`getSnapshot` store through `useSyncExternalStore` |
 | Requirements | Decorators, Babel plugin | Decorators optional (`reflect-metadata` for `@resolve`) | Decorators optional; React 16.6+ | No decorators, no peer dependency; React 19 exercised |
@@ -342,11 +353,11 @@ Adopted: a graph per lifecycle that is destroyed when its last requester goes
 away (Obsidian); a provider per ownership level and a hierarchy of them
 (inversify-react); disposal when the provider unmounts (react-ioc). Left out
 deliberately: decorators and metadata, a generic injection hook, a
-library-owned observable system, and constructing containers during render —
-none of the three models asynchronous startup, cancellation of a replaced
-startup, or teardown that outlives an effect cleanup, which is what this
+library-owned observable system, and constructing containers during render.
+None of the three models asynchronous service readiness, cancellation of a replaced
+readiness attempt, or teardown that outlives effect disposal, which is what this
 recipe is for. The precedents are React-container designs to compare against,
-not endorsements, and their documented behaviour was not re-tested here.
+not endorsements, and their documented behavior was not re-tested here.
 
 ## When this becomes a package
 

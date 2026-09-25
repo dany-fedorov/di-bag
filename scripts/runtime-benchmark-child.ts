@@ -9,7 +9,7 @@ import {
   type RuntimeWorkResult,
   type TimedScenarioResult,
 } from './performance-evidence.ts';
-import { prepareScenario, runTimed, verifyScenario } from '../tests/benchmarks/runtime-scenarios.ts';
+import { prepareScenario, runTimed, verifyScenario, type RuntimeBuilderSurface } from '../tests/benchmarks/runtime-scenarios.ts';
 
 export type RuntimeScenarioLifecycle<P extends PreparedScenario, T extends TimedScenarioResult> = {
   prepareScenario(name: RuntimeChildRequest['scenario'], providers: number): Promise<P>;
@@ -54,14 +54,26 @@ export function parseRuntimeChildRequestArgument(args: readonly string[]): Runti
   }
 }
 
-export async function runtimeBenchmarkChildMain(args = process.argv.slice(2)): Promise<void> {
+export function runtimeBuilderSurfaceForLane(lane: string): RuntimeBuilderSurface {
+  if (lane === 'current') return 'current';
+  if (lane === 'baseline') return 'baseline';
+  throw new Error('runtime child lane must be current or baseline');
+}
+
+export async function runtimeBenchmarkChildMain(
+  args = process.argv.slice(2),
+  loadFacade?: (entry: string, lane: 'current' | 'baseline') => Promise<{ DiBag: unknown }>,
+): Promise<void> {
   const request = parseRuntimeChildRequestArgument(args);
-  const entry = request.scenario === 'node-native-promise' ? 'di-bag/node' : 'di-bag';
+  const surface = runtimeBuilderSurfaceForLane(request.lane);
+  const entry = request.lane === 'baseline' && request.scenario === 'node-native-promise' ? 'di-bag/node' : 'di-bag';
   const consumerRequire = createRequire(resolve(process.cwd(), 'package.json'));
   const resolvedDiBag = consumerRequire.resolve(entry);
-  const imported = await import(entry) as { DiBag: unknown };
+  const imported = loadFacade === undefined
+    ? await import(entry) as { DiBag: unknown }
+    : await loadFacade(entry, request.lane as 'current' | 'baseline');
   await printRuntimeChild(request, resolvedDiBag, {
-    prepareScenario: (scenario, providers) => prepareScenario(scenario, providers, imported.DiBag),
+    prepareScenario: (scenario, providers) => prepareScenario(scenario, providers, imported.DiBag, surface),
     runTimed,
     verifyScenario,
   });

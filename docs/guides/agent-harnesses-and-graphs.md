@@ -38,13 +38,13 @@ edges or provide durable execution.
   a bounded tool set and explicit context sources to the LLM. DI Bag does not
   choose prompts or manage the model's context window.
 - **Contract checks and fixture tests.** Check declared dependencies and replacement
-  contracts before starting the harness. Then use forks with deterministic model
+  contracts before using the harness. Then use independent containers with deterministic model
   and tool fixtures to test routing and state handling. These checks complement
   live-model evals for answer quality and task success.
 - **Inspectable capability descriptions.** Attach application-defined descriptions to
   providers, then inspect them without constructing services. Build catalogs,
   diagnostics, and dispatch rules around that data while keeping node functions
-  independent of the tooling. `inspect` describes one registration, `inspectGraph`
+  independent of the tooling. `serviceSnapshot` describes one registration, `graphSnapshot`
   describes every binding and the edges observed so far, and the static graph tool
   exports declared edges from source.
 
@@ -77,39 +77,33 @@ type Node = (state: State) => Promise<State>;
 type Search = { find(query: string): Promise<readonly string[]> };
 type Llm = { complete(prompt: string): Promise<string> };
 
-const retrievalModule = DiBag.createBuilder().register({
+const retrievalModule = DiBag.createBuilder().withServices({
   normalize: () => (question: string) => question.trim().toLowerCase(),
-  retrieve: DiBag.withMetadata(
-    ({ search, normalize }: {
+  retrieve: DiBag.providerWithRegistrationMetadata({ provider: ({ search, normalize }: {
       search: Search;
       normalize: (question: string) => string;
     }): Node => async state => ({
       ...state,
       context: await search.find(normalize(state.question)),
-    }),
-    { static: { 'app:node': { kind: 'tool', description: 'Retrieve support context' } } },
-  ),
-}).buildModule(['retrieve']);
+    }), registrationMetadata: { 'app:node': { kind: 'tool', description: 'Retrieve support context' } } }),
+}).buildModule({ exportedServiceKeys: ['retrieve'] });
 
-const answerModule = DiBag.createBuilder().register({
+const answerModule = DiBag.createBuilder().withServices({
   formatPrompt: () => (state: State) =>
     `Question: ${state.question}\nContext: ${state.context.join('\n')}`,
-  answer: DiBag.withMetadata(
-    ({ llm, formatPrompt }: {
+  answer: DiBag.providerWithRegistrationMetadata({ provider: ({ llm, formatPrompt }: {
       llm: Llm;
       formatPrompt: (state: State) => string;
     }): Node => async state => ({
       ...state,
       answer: await llm.complete(formatPrompt(state)),
-    }),
-    { static: { 'app:node': { kind: 'llm', description: 'Answer using retrieved context' } } },
-  ),
-}).buildModule(['answer']);
+    }), registrationMetadata: { 'app:node': { kind: 'llm', description: 'Answer using retrieved context' } } }),
+}).buildModule({ exportedServiceKeys: ['answer'] });
 
 const incomplete = DiBag.createBuilder()
-  .installModule(retrievalModule)
-  .installModule(answerModule)
-  .register({
+  .withInstalledModules([retrievalModule])
+  .withInstalledModules([answerModule])
+  .withServices({
     search: (): Search => ({ find: async () => [] }),
     // Application code defines the agent graph's edges and per-call state.
     run: ({ retrieve, answer }: { retrieve: Node; answer: Node }) =>
@@ -121,34 +115,34 @@ const incomplete = DiBag.createBuilder()
       },
   });
 
-const fixture = incomplete.register({
+const fixture = incomplete.withServices({
   llm: (): Llm => ({
     complete: async () => { throw new Error('Supply an LLM adapter for this run'); },
   }),
-}).build();
+}).buildContainer();
 
 function rejectedWiring() {
   // @ts-expect-error The answer module still requires an LLM client.
-  incomplete.build();
+  incomplete.buildContainer();
   // @ts-expect-error An LLM replacement must return a string, not a number.
-  fixture.fork(['llm'], { llm: () => ({ complete: async () => 42 }) });
+  fixture.createIndependentContainer(['llm'], { llm: () => ({ complete: async () => 42 }) });
 }
 
 try {
   // Explicitly select public nodes; private helpers stay inside their modules.
   const names = ['retrieve', 'answer'] as const;
   const catalog = names.map(name => ({
-    name, ...fixture.inspect(name).registrationMetadata['app:node'],
+    name, ...fixture.serviceSnapshot(name).registrationMetadata['app:node'],
   }));
   assert.deepEqual(catalog.map(node => node.kind), ['tool', 'llm']);
   for (const name of names) {
-    assert.deepEqual(fixture.inspect(name).acquisitions, []);
+    assert.deepEqual(fixture.serviceSnapshot(name).acquisitions, []);
   }
 
   // Evaluation harness: run both graph paths with fresh dependency instances.
   for (const hasEvidence of [true, false]) {
     const prompts: string[] = [];
-    const trial = fixture.fork(['search', 'llm'], {
+    const trial = fixture.createIndependentContainer(['search', 'llm'], {
       search: (): Search => ({
         find: async query => {
           assert.equal(query, 'refund policy?');
@@ -187,7 +181,7 @@ context sent to the model fixture. The metadata catalog is ordinary application
 data: DI Bag does not turn it into an LLM tool schema or register tools with a
 model provider automatically.
 
-Each fork owns fresh acquisitions and is closed separately. The prompt log is
+Each independent container owns fresh acquisitions and is closed separately. The prompt log is
 created inside each trial; a factory closing over a shared mutable object would
 still share that object. Graph state is created per `run` call, not kept in a
 cached service. These fixtures test harness behavior, not real retrieval
@@ -198,7 +192,10 @@ relevance or LLM quality.
 When modules developed in parallel meet, follow the
 [review-merge recipe](../agent/recipes.md#review-merge); it includes the optional
 `di-bag-graph --check` step for dependency cycles. At runtime,
-`bag.inspectGraph()` reports the bindings plus the edges observed so far.
+`container.graphSnapshot()` reports the bindings plus the edges observed so far.
+The static tool emits schema version 1. A node has `key`, `line`,
+`dependencies`, `async`, `lifetime`, and `owned` fields. The `owned` field
+marks a disposal stage. The tool also reports `cycle` and `unresolved` issues.
 
 ## Connect your own harness or graph framework
 
@@ -213,10 +210,12 @@ capabilities before resolving them. Your harness must select what to expose,
 validate untrusted inputs and model outputs, and enforce its own authorization
 and execution limits. Metadata is descriptive, not a security boundary.
 
-Use [scopes and forks](../../README.md#scopes-and-forks) according to the ownership
-you need: scopes share root-lifetime services; forks have independent acquisitions
-and cleanup. Register explicit disposers for owned clients. A harness must await
-in-flight node work before closing its bag; closing a bag is not workflow
+Use [child containers](tutorial.md#create-child-containers) and
+[independent containers](tutorial.md#create-an-independent-container) according to the ownership
+you need. Child containers share explicitly marked singleton services. Independent
+containers have separate acquisitions and disposal. Register explicit disposers for
+owned clients. A harness must await in-flight node work before closing its container;
+closing a container is not workflow
 cancellation.
 
 Routing, retries, checkpoints, and durable state remain with the harness or graph

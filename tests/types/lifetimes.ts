@@ -1,52 +1,64 @@
 import { DiBag } from '../../src';
-const { withLifetime } = DiBag;
-import type { Provider, Module, Bag } from '../../src';
+import type { Provider, Module, Container, CheckedLifetimes } from '../../src';
 import { withTokenBinding } from '../../src/provider';
+import type { Assert, Equal } from './assert';
 
-export const graph = DiBag.createBuilder().register({
-  db: withLifetime(() => ({ query: () => 1 }), 'root'),
-  repo: withLifetime(({ db }: { db: { query(): number } }) => db.query(), 'root'),
-}).build();
-export const scoped = graph.createScope();
-export const independent = graph.fork();
-export const raw = withLifetime(DiBag.fromFactory(() => Promise.resolve({ id: 1 }), { acquisitionMode: 'raw' }), 'root');
-export const native = withLifetime(DiBag.fromFactory(() => Promise.resolve({ id: 1 }), { acquisitionMode: 'nativePromise' }), 'transient');
-export const metadata = DiBag.withMetadata(DiBag.withDisposal(raw, value => { const exact: Promise<{ id: number }> = value; void exact; }), { static: { owner: 'app' as const } });
-export const builder = DiBag.createBuilder().register({ raw: metadata });
-export const feature = DiBag.createBuilder().register({ raw: metadata }).buildModule(['raw']);
-export const moduleBag = DiBag.createBuilder().installModule(feature).build();
-export const capturing = DiBag.createBuilder().register({ scoped: () => 1, permissive: withLifetime(({ scoped }: { scoped: number }) => scoped, 'root', { allowScopedDependencies: true }), strict: withLifetime(({ permissive }: { permissive: number }) => permissive, 'root') }).build();
-export const cycles = DiBag.createBuilder().register({ a: withLifetime(({ b }: { b: number }): number => b, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient') }).build();
-export const privateValid = DiBag.createBuilder().register({ db: withLifetime(() => 1, 'root'), bridge: withLifetime(({ db }: { db: number }) => db, 'transient') }).buildModule(['bridge']);
-export const privateBag = DiBag.createBuilder().installModule(privateValid).register({ db: () => 1, root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
-export const replacedRoot = DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule(['root']);
-export const replacedBag = DiBag.createBuilder().installModule(replacedRoot).replace('root', () => 1).build();
-export const renamedRoot = DiBag.createBuilder().register({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule(['db', 'root']).renameExport('db', 'database');
-export const renamedBag = DiBag.createBuilder().installModule(renamedRoot).build();
+// The exported lifetime diagnostic exposes the captive site as `singleton`.
+const captiveScoped = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' });
+const captiveSingleton = DiBag.providerWithLifetime({ provider: ({ scoped }: { scoped: number }) => scoped, lifetime: 'singleton:one-per-container-tree' });
+type CaptiveDiagnostic = CheckedLifetimes<{ scoped: typeof captiveScoped; singleton: typeof captiveSingleton }, never>;
+type CaptiveDetails = CaptiveDiagnostic extends { readonly captives: infer C } ? C : never;
+export type CaptiveDiagnosticFields = [
+  Assert<Equal<CaptiveDetails['singleton'], 'singleton'>>,
+  Assert<Equal<'root' extends keyof CaptiveDetails ? true : false, false>>,
+];
+
+export const graph = DiBag.createBuilder().withServices({
+  db: DiBag.providerWithLifetime({ provider: () => ({ query: () => 1 }), lifetime: 'singleton:one-per-container-tree' }),
+  repo: DiBag.providerWithLifetime({ provider: ({ db }: { db: { query(): number } }) => db.query(), lifetime: 'singleton:one-per-container-tree' }),
+}).buildContainer();
+export const scoped = graph.createChildContainer();
+export const independent = graph.createIndependentContainer();
+export const raw = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => Promise.resolve({ id: 1 }), { factoryReturnKind: 'uninspected' }), lifetime: 'singleton:one-per-container-tree' });
+export const native = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => Promise.resolve({ id: 1 }), { factoryReturnKind: 'native-promise' }), lifetime: 'transient:one-per-resolve' });
+export const metadata = DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: raw, disposeService: value => { const exact: Promise<{ id: number }> = value; void exact; } }), registrationMetadata: { owner: 'app' as const } });
+export const builder = DiBag.createBuilder().withServices({ raw: metadata });
+export const feature = DiBag.createBuilder().withServices({ raw: metadata }).buildModule({ exportedServiceKeys: ['raw'] });
+export const moduleBag = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
+export const capturing = DiBag.createBuilder().withServices({ scoped: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), permissive: DiBag.providerWithLifetime({ provider: ({ scoped }: { scoped: number }) => scoped, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true }), strict: DiBag.providerWithLifetime({ provider: ({ permissive }: { permissive: number }) => permissive, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
+export const cycles = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: ({ b }: { b: number }): number => b, lifetime: 'transient:one-per-resolve' }), b: DiBag.providerWithLifetime({ provider: ({ a }: { a: number }): number => a, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
+export const privateValid = DiBag.createBuilder().withServices({ db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), bridge: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'transient:one-per-resolve' }) }).buildModule({ exportedServiceKeys: ['bridge'] });
+export const privateBag = DiBag.createBuilder().withInstalledModules([privateValid]).withServices({ db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), root: DiBag.providerWithLifetime({ provider: ({ bridge }: { bridge: number }) => bridge, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
+export const replacedRoot = DiBag.createBuilder().withServices({ db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), root: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }) }).buildModule({ exportedServiceKeys: ['root'] });
+export const replacedBag = DiBag.createBuilder().withInstalledModules([replacedRoot]).withReplacedService('root', DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).buildContainer();
+export const renamedRoot = DiBag.createBuilder().withServices({ db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), root: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }) }).buildModule({ exportedServiceKeys: ['db', 'root'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'database' });
+export const renamedBag = DiBag.createBuilder().withInstalledModules([renamedRoot]).buildContainer();
 export const key: unique symbol = Symbol('root');
-export const token = DiBag.token(key).of<number>();
-export const bound = withTokenBinding(token, withLifetime(() => 1, 'root'));
-export const rebound = withTokenBinding(token, DiBag.transformService(bound, { mode: 'direct', transform: value => value }));
-export const tokenBag = DiBag.createBuilder().register(token, rebound).register({ root: withLifetime(DiBag.fromFunction([token], value => value), 'root') }).build();
-export const tokenFork = tokenBag.fork([token], { [key]: withLifetime(() => 2, 'root') });
-export const frames = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: () => ({ frame: 1 }) } });
-export const asyncFrames = DiBag.withMetadata(withLifetime(() => 1, 'transient'), { dynamic: { mode: 'awaited', describe: () => ({}) } });
-export const capability = DiBag.transformService(withLifetime(() => ({ read: () => Promise.resolve(1) }), 'root'), { mode: 'direct', transform: value => value.read(), ...{ acquisitionMode: 'raw' } });
-export const mapped = DiBag.transformService(metadata, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } });
-export const asyncMapped = DiBag.transformService(metadata, { mode: 'awaited', transform: value => value });
-export const explicitDefault = withLifetime(() => 1, 'scoped');
-export const defaultProvider: Provider<() => number> = explicitDefault;
-export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.createBuilder().register({ value: explicitDefault }).buildModule(['value']);
-export const defaultBag: Bag<{ value: () => number }> = DiBag.createBuilder().register({ value: () => 1 }).build();
-export const mixed = Math.random() ? withLifetime(() => 1, 'root') : () => 1;
-export const wrappedMixed = withLifetime(mixed, 'transient');
-export const scopedCycle = DiBag.createBuilder().register({ a: ({ b }: { b: number }): number => b, b: withLifetime(({ a }: { a: number }): number => a, 'transient') }).build();
-export const pureCycleRoot = DiBag.createBuilder().register({ a: withLifetime(({ b }: { b: number }): number => b, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient'), root: withLifetime(({ a }: { a: number }) => a, 'root') }).build();
-export const exportlessValid = DiBag.createBuilder().installModule(DiBag.createBuilder().register({ privateRoot: withLifetime(() => 1, 'root') }).buildModule([])).build();
-export const renameCollisionValid = DiBag.createBuilder().register({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db, publicDb }: { db: number; publicDb: number }) => db + publicDb, 'root') }).buildModule(['db', 'root']).renameExport('db', 'publicDb');
-export const renameCollisionBag = DiBag.createBuilder().installModule(renameCollisionValid).build();
-export const reflectedScope = graph.createScope;
-export const reflectedFork = graph.fork;
-export const resetPolicy = withLifetime(withLifetime(() => 1, 'root', { allowScopedDependencies: true }), 'scoped');
-export const replacedPrivateExport = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule(['db']).renameExport('db', 'database');
-export const replacedPrivateBag = DiBag.createBuilder().installModule(replacedPrivateExport).replace('database', withLifetime(() => 1, 'root')).build();
+export const token = DiBag.createToken(key).forService<number>();
+export const bound = withTokenBinding(token, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }));
+export const rebound = withTokenBinding(token, DiBag.providerWithTransformedService({ provider: bound, transformService: value => value, callbackReceives: 'exposed-service' }));
+export const tokenBag = DiBag.createBuilder().withTokenService(token, rebound).withServices({ root: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
+export const tokenFork = tokenBag.createIndependentContainer([token], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'singleton:one-per-container-tree' }) });
+export const frames = DiBag.providerWithAcquisitionMetadata({ provider: raw, describeAcquisition: () => ({ frame: 1 }), callbackReceives: 'exposed-service' });
+export const asyncFrames = DiBag.providerWithAcquisitionMetadata({ provider: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'transient:one-per-resolve' }), describeAcquisition: () => ({}), callbackReceives: 'fulfilled-value' });
+export const capability = DiBag.providerWithTransformedService({ provider: DiBag.providerWithLifetime({ provider: () => ({ read: () => Promise.resolve(1) }), lifetime: 'singleton:one-per-container-tree' }), transformService: value => value.read(), callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' });
+export const mapped = DiBag.providerWithTransformedService({ provider: metadata, transformService: value => value, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' });
+export const asyncMapped = DiBag.providerWithTransformedService({ provider: metadata, transformService: value => value, callbackReceives: 'fulfilled-value' });
+export const explicitDefault = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' });
+export const bareDefault = DiBag.createProvider(() => 1);
+export const defaultProvider: Provider<() => number> = bareDefault;
+export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.createBuilder().withServices({ value: bareDefault }).buildModule({ exportedServiceKeys: ['value'] });
+export const defaultBag: Container<{ value: Provider<() => number> }> = DiBag.createBuilder().withServices({ value: bareDefault }).buildContainer();
+type ContainerAliasValue = Assert<Equal<ReturnType<typeof defaultBag.resolve<'value'>>, number>>;
+export const mixed = Math.random() ? DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }) : () => 1;
+export const wrappedMixed = DiBag.providerWithLifetime({ provider: mixed, lifetime: 'transient:one-per-resolve' });
+export const scopedCycle = DiBag.createBuilder().withServices({ a: ({ b }: { b: number }): number => b, b: DiBag.providerWithLifetime({ provider: ({ a }: { a: number }): number => a, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
+export const pureCycleRoot = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: ({ b }: { b: number }): number => b, lifetime: 'transient:one-per-resolve' }), b: DiBag.providerWithLifetime({ provider: ({ a }: { a: number }): number => a, lifetime: 'transient:one-per-resolve' }), root: DiBag.providerWithLifetime({ provider: ({ a }: { a: number }) => a, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
+export const exportlessValid = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ privateRoot: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }) }).buildModule({ exportedServiceKeys: [] })]).buildContainer();
+export const renameCollisionValid = DiBag.createBuilder().withServices({ db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), root: DiBag.providerWithLifetime({ provider: ({ db, publicDb }: { db: number; publicDb: number }) => db + publicDb, lifetime: 'singleton:one-per-container-tree' }) }).buildModule({ exportedServiceKeys: ['db', 'root'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'publicDb' });
+export const renameCollisionBag = DiBag.createBuilder().withInstalledModules([renameCollisionValid]).buildContainer();
+export const reflectedScope = graph.createChildContainer;
+export const reflectedFork = graph.createIndependentContainer;
+export const resetPolicy = DiBag.providerWithLifetime({ provider: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true }), lifetime: 'scoped:one-per-container' });
+export const replacedPrivateExport = DiBag.createBuilder().withServices({ db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), hidden: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }) }).buildModule({ exportedServiceKeys: ['db'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'database' });
+export const replacedPrivateBag = DiBag.createBuilder().withInstalledModules([replacedPrivateExport]).withReplacedService('database', DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' })).buildContainer();

@@ -1,14 +1,10 @@
 {
   "name": "di-bag",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "DI container for agent-built codebases: the compiler checks the wiring, modules stay private, resources get cleaned up.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    "./node": {
-      "types": "./dist/node.d.ts",
-      "default": "./dist/node.js"
-    },
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
@@ -39,8 +35,11 @@
     "check:react-browser": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/react-browser-lane.ts --required",
     "example:react": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/react-browser-lane.ts --page",
     "docs:generate": "node tools/docs/generate.mjs",
-    "docs:check": "node --test --test-isolation=none tools/docs/test/*.test.mjs && node tools/docs/generate.mjs --check && node tools/docs/check-agent-docs.mjs && node tools/docs/site.mjs check",
+    "docs:check": "node --test --test-isolation=none tools/docs/test/*.test.mjs && node tools/docs/generate.mjs --check && node tools/docs/check-agent-docs.mjs && node tools/docs/site.mjs check && node scripts/check-docs-retired-names.mjs",
+    "docs:retired-names": "node scripts/check-docs-retired-names.mjs",
     "graph:check": "node --test tools/graph/test/*.test.mjs",
+    "codemod:check": "node --test tools/codemod/test/*.test.mjs",
+    "codemod:acceptance": "node scripts/codemod-acceptance.mjs",
     "agent-eval:test": "node --test scripts/agent-eval/test/*.test.mjs",
     "docs:build": "node tools/docs/site.mjs build",
     "docs:dev": "node tools/docs/site.mjs dev",

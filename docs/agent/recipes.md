@@ -7,8 +7,8 @@ directory also has the `tsconfig.json` and check command from
 
 ## Add a request-scoped service with cleanup {#add-scoped-service}
 
-Services are scoped by default: each `createScope()` gets its own instance, and
-`withDisposal` releases it when that scope closes.
+Providers are scoped per container by default, so each child gets its own request state and consumers.
+Explicit scoped marks document that intent; `providerWithDisposal` releases owned instances when the child closes.
 
 ```ts
 // src/features/audit/contract.ts
@@ -20,18 +20,16 @@ export type AuditSink = { write(lines: readonly string[]): Promise<void> };
 // src/features/audit/module.ts
 import { DiBag } from 'di-bag';
 import type { Audit, AuditSink } from './contract.js';
-
-export const auditModule = DiBag.createBuilder()
-  .register({
-    audit: DiBag.withDisposal(
-      ({ sink }: { sink: AuditSink }): Audit => {
-        const lines: string[] = [];
-        return { record: event => { lines.push(event); }, flush: () => sink.write(lines.splice(0)) };
-      },
-      audit => audit.flush(),
-    ),
-  })
-  .buildModule(['audit']);
+export const auditModule = DiBag.createBuilder().withServices({
+    audit: DiBag.providerWithLifetime({
+      provider: DiBag.providerWithDisposal({
+        provider: ({ sink }: { sink: AuditSink }): Audit => {
+          const lines: string[] = [];
+          return { record: event => { lines.push(event); }, flush: () => sink.write(lines.splice(0)) };
+        },
+        disposeService: audit => audit.flush(),
+      }), lifetime: 'scoped:one-per-container' }),
+}).buildModule({ exportedServiceKeys: ['audit'] });
 ```
 
 ```ts
@@ -39,34 +37,38 @@ export const auditModule = DiBag.createBuilder()
 import { DiBag } from 'di-bag';
 import type { AuditSink } from './contract.js';
 import { auditModule } from './module.js';
-
-DiBag.createBuilder()
-  .installModule(auditModule)
-  .register({ sink: (): AuditSink => ({ write: async () => {} }) })
-  .verifyGraph() satisfies void;
+DiBag.createBuilder().withInstalledModules([auditModule])
+  .withServices({ sink: (): AuditSink => ({ write: async () => {} }) })
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
-Open one scope per request and close it when the request ends:
+Open one child container per request and close it when the request ends:
 
 ```ts
 // src/server.ts
+import { DiBag } from 'di-bag';
+import type { Audit } from './features/audit/contract.js';
 import { composition } from './app.js';
-
-const app = composition.build();
-export async function handle(path: string) {
-  const scope = app.createScope();
-  try {
-    scope.resolve('audit').record(path);
-  } finally {
-    await scope.close(); // runs this request's disposers
-  }
+type RequestContext = { requestId: string };
+const app = composition.withServices({
+  request: DiBag.providerWithLifetime({ provider: (): RequestContext => ({ requestId: 'outside-request' }), lifetime: 'scoped:one-per-container' }),
+  handler: DiBag.providerWithLifetime({
+    provider: ({ request, audit }: { request: RequestContext; audit: Audit }) => ({ run() { audit.record(`request:${request.requestId}`); } }),
+    lifetime: 'scoped:one-per-container',
+  }),
+}).buildContainer();
+export async function handle(requestId: string) {
+  const requestContainer = app.createChildContainer(['request'], { request: (): RequestContext => ({ requestId }) });
+  try { requestContainer.resolve('handler').run(); }
+  finally { await requestContainer.close(); } // flushes this request's audit
 }
+export async function shutdown() { await app.close(); }
 ```
 
-## Write a fixture test with `fork` {#fixture-test}
+## Write a fixture test with an independent container {#fixture-test}
 
 Build the module once with a default for each requirement that fails if used,
-then give each test a fork with its own fixture. Forks are independent: close
+then give each test an independent container with its own fixture. Independent containers are separate: close
 each one.
 
 ```ts
@@ -78,39 +80,86 @@ import type { AuditSink } from './contract.js';
 import { auditModule } from './module.js';
 
 const fixture = DiBag.createBuilder()
-  .installModule(auditModule)
-  .register({ sink: (): AuditSink => ({ write: async () => { throw new Error('supply a sink'); } }) })
-  .build();
+  .withInstalledModules([
+    auditModule,
+  ])
+  .withServices({ sink: (): AuditSink => ({ write: async () => { throw new Error('supply a sink'); } }) })
+  .buildContainer();
 after(() => fixture.close());
 
-test('closing a scope flushes what it recorded', async () => {
+test('closing a child container flushes what it recorded', async () => {
   const written: string[][] = [];
-  const bag = fixture.fork(['sink'], {
+  const testContainer = fixture.createIndependentContainer(['sink'], {
     sink: (): AuditSink => ({ write: async lines => { written.push([...lines]); } }),
   });
   try {
-    const scope = bag.createScope();
-    scope.resolve('audit').record('GET /');
-    await scope.close();
+    const request = testContainer.createChildContainer();
+    request.resolve('audit').record('GET /');
+    await request.close();
     assert.deepEqual(written, [['GET /']]);
   } finally {
-    await bag.close();
+    await testContainer.close();
   }
 });
 ```
 
 Run it with the module's [fast check](../../AGENTS.md#fast-check).
 
+## Build one composite from collection members {#composite-service}
+
+Give the composite logger a service token and its ordered sinks a collection token.
+The factory receives the collection as a positional dependency.
+
+```ts
+// src/features/logging/contract.ts
+import { DiBag } from 'di-bag';
+
+export type Logger = { log(line: string): void };
+const loggerSymbol = Symbol('logger');
+const loggerSinksSymbol = Symbol('logger sinks');
+export const loggerToken = DiBag.createToken(loggerSymbol).forService<Logger>();
+export const loggerSinksToken = DiBag.createToken(loggerSinksSymbol).forCollectionOf<Logger>();
+```
+
+```ts
+// src/features/logging/module.ts
+import { DiBag } from 'di-bag';
+import { loggerSinksToken, loggerToken, type Logger } from './contract.js';
+
+export const loggingModule = DiBag.createBuilder()
+  .withCollectionContribution({ collectionToken: loggerSinksToken, provider: (): Logger => ({ log: line => console.log(line) }) })
+  .withCollectionContribution({ collectionToken: loggerSinksToken, provider: (): Logger => ({ log: line => { process.stderr.write(`${line}\n`); } }) })
+  .withTokenService(loggerToken, DiBag.createProviderFromFunction({
+    dependencies: [loggerSinksToken],
+    factoryFunction: (sinks: readonly Logger[]): Logger => ({ log: line => { for (const sink of sinks) sink.log(line); } }),
+  }))
+  .buildModule({ exportedServiceKeys: [loggerToken], moduleLabel: 'logging' });
+```
+
+```ts
+// src/features/logging/check.ts
+import { DiBag } from 'di-bag';
+import { loggerToken } from './contract.js';
+import { loggingModule } from './module.js';
+
+const app = DiBag.createBuilder().withInstalledModules([loggingModule]).buildContainer();
+app.resolve(loggerToken).log('ready');
+await app.close();
+```
+
+Another module can contribute a sink without changing the composite factory.
+The collection keeps contribution order.
+
 ## Split a feature into a module with private services {#split-module}
 
 1. Create `src/features/billing/` and move the types other code uses into
    `contract.ts`: what the module exports and what it requires from the host.
 2. Move helpers into private files. Their registration names stay inside the
-   module, so another module may also register a `store`.
+   module, so another module may also define a `store`.
 3. Register the factories in `module.ts`, export only the entry points, and pass
-   `{ label: 'billing' }` so runtime messages name private services `billing/store`.
+   `moduleLabel: 'billing'` so runtime messages name private services `billing/store`.
 4. Add `check.ts` and `tsconfig.json`, run the per-module check, then replace
-   the old registrations in `src/app.ts` with `.installModule(billingModule)`.
+   the old registrations in `src/app.ts` with `.withInstalledModules([billingModule])`.
 
 ```ts
 // src/features/billing/contract.ts
@@ -131,7 +180,7 @@ import type { Billing, PaymentGateway } from './contract.js';
 import { createStore, type Store } from './store.js';
 
 export const billingModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     store: createStore,
     billing: ({ store, gateway }: { store: Store; gateway: PaymentGateway }): Billing => ({
       async charge(orderId, cents) {
@@ -141,7 +190,7 @@ export const billingModule = DiBag.createBuilder()
       },
     }),
   })
-  .buildModule(['billing'], { label: 'billing' });
+  .buildModule({ exportedServiceKeys: ['billing'], moduleLabel: 'billing' });
 ```
 
 ```ts
@@ -151,27 +200,31 @@ import type { PaymentGateway } from './contract.js';
 import { billingModule } from './module.js';
 
 DiBag.createBuilder()
-  .installModule(billingModule)
-  .register({ gateway: (): PaymentGateway => ({ charge: async () => 'receipt' }) })
-  .verifyGraph() satisfies void;
+  .withInstalledModules([
+    billingModule,
+  ])
+  .withServices({ gateway: (): PaymentGateway => ({ charge: async () => 'receipt' }) })
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 ## Debug a missing-dependency rejection {#debug-missing-dependency}
 
-Without the `gateway` fixture, `check.ts` fails on the `verifyGraph()` line:
+Without the `gateway` fixture, `check.ts` fails on the `verifyGraphAtCompileTime()` line:
 
 ```ts
 // src/features/billing/check.ts
-// expect-error: required service registrations are missing: gateway
+// expect-error: required services are missing: gateway
 import { DiBag } from 'di-bag';
 import { billingModule } from './module.js';
 
 DiBag.createBuilder()
-  .installModule(billingModule)
-  .verifyGraph() satisfies void;
+  .withInstalledModules([
+    billingModule,
+  ])
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
-1. The text after `missing:` lists the keys. Without `verifyGraph()`, the same
+1. The text after `missing:` lists the keys. Without `verifyGraphAtCompileTime()`, the same
    message appears where the builder expression starts.
 2. Find who declares the key: `grep -rn "gateway" src/features/*/contract.ts src/features/*/module.ts`.
 3. Decide where it belongs. A dependency the module requires is registered by
@@ -188,8 +241,8 @@ the cast rather than adding a registration by trial.
 
 ## Add and consume an async client {#async-client}
 
-The client is created once for the application (`root`), awaited by
-consumers, and closed with the root bag. Its configuration must be root too.
+The client is created once for the container tree, awaited by consumers, and
+closed with the root container. Its configuration must use the singleton lifetime too.
 
 ```ts
 // src/features/catalog/contract.ts
@@ -213,17 +266,21 @@ import { DiBag } from 'di-bag';
 import { connect } from './client.js';
 import type { Catalog, Db, DbConfig } from './contract.js';
 
+const source = DiBag.createProvider(async ({ config }: { config: DbConfig }) => connect(config.url), { factoryReturnKind: 'native-promise' });
+const registered = DiBag.providerWithRegistrationMetadata({ provider: source, registrationMetadata: { owner: 'platform' } });
+const observed = DiBag.providerWithAcquisitionMetadata({ provider: registered, callbackReceives: 'fulfilled-value', describeAcquisition: () => ({ driver: 'database' }) });
+const mapped = DiBag.providerWithTransformedService({ provider: observed, callbackReceives: 'fulfilled-value', transformService: connection => connection });
+const owned = DiBag.providerWithDisposal({ provider: mapped, disposeService: connection => connection.end() });
+const database = DiBag.providerWithLifetime({ provider: owned, lifetime: 'singleton:one-per-container-tree' });
+
 export const catalogModule = DiBag.createBuilder()
-  .register({
-    db: DiBag.withLifetime(
-      DiBag.withDisposal(({ config }: { config: DbConfig }) => connect(config.url), db => db.end()),
-      'root',
-    ),
+  .withServices({
+    db: database,
     catalog: ({ db }: { db: Promise<Db> }): Catalog => ({
       names: async () => (await db).query('select name from products'),
     }),
   })
-  .buildModule(['catalog']);
+  .buildModule({ exportedServiceKeys: ['catalog'] });
 ```
 
 ```ts
@@ -232,19 +289,18 @@ import { DiBag } from 'di-bag';
 import type { DbConfig } from './contract.js';
 import { catalogModule } from './module.js';
 
-DiBag.createBuilder()
-  .installModule(catalogModule)
-  .register({ config: DiBag.withLifetime((): DbConfig => ({ url: 'memory:' }), 'root') })
-  .verifyGraph() satisfies void;
+DiBag.createBuilder().withInstalledModules([catalogModule])
+  .withServices({ config: DiBag.providerWithLifetime({ provider: (): DbConfig => ({ url: 'memory:' }), lifetime: 'singleton:one-per-container-tree' }) })
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
-A scoped `config` fails with `root lifetime cannot capture scoped dependency: db -> config`.
+A scoped `config` fails with `singleton lifetime cannot capture scoped dependency: db -> config`.
 If a driver returns a query builder, return `Promise.resolve(builder)`; see
 [structural thenable](errors.md#structural-thenable).
 
 ## Own a resource a factory acquires on the way {#partial-acquisition}
 
-`withDisposal` owns the value a factory *returns*; `pushDisposer` owns what the
+`providerWithDisposal` owns the value a provider *returns*; `pushDisposer` owns what the
 factory acquires on the way. A resource that is both — acquired before the
 factory can fail, then returned — gets both, with a reason check on the push.
 
@@ -274,64 +330,58 @@ import { authenticate, open } from './client.js';
 import type { Feed, FeedConfig, Socket } from './contract.js';
 
 export const feedModule = DiBag.createBuilder()
-  .register({
-    socket: DiBag.withDisposal(DiBag.fromFactory(async ({ config }: { config: FeedConfig }, factoryCtx): Promise<Socket> => {
+  .withServices({
+    socket: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async ({ config }: { config: FeedConfig }, factoryContext): Promise<Socket> => {
       const socket = await open(config.url);
-      factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
+      factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
       await authenticate(socket, config.token);
       return socket;
-    }, { context: 'acquisition' }), socket => socket.close()),
+    }, { factoryReceivesContext: true }), disposeService: socket => socket.close() }),
     feed: ({ socket }: { socket: Promise<Socket> }): Feed => ({
       publish: async text => (await socket).send(text),
     }),
   })
-  .buildModule(['feed']);
+  .buildModule({ exportedServiceKeys: ['feed'] });
 ```
 
 A pushed disposer runs exactly once, last pushed first: at once if the factory
-fails, otherwise at `close()` after the `withDisposal` disposer. A failed
+fails, otherwise at `close()` after the `providerWithDisposal` disposer. A failed
 handshake closes the socket through the push; a clean shutdown closes it through
-`withDisposal`, and the push sees `'service-disposed'` and does nothing. The
-reason describes the `withDisposal` on the returned value, not ownership a
+`providerWithDisposal`, and the push sees `'service-disposed'` and does nothing. The
+reason describes `providerWithDisposal` on the returned value, not ownership a
 consumer attaches to a transformed value. A rejecting disposer is reported
-through [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed); pushing after
-the factory settled throws [`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cleanup-after-factory).
+through [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed); pushing after
+the factory settled throws [`DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY`](errors.md#di-bag-disposer-pushed-after-factory).
 
 ## Make a graph portable to browsers and workers {#portable-graph}
 
-Hosts without `process.getBuiltinModule` cannot classify Promises, so every
-registration says whether its factory is synchronous or asynchronous. The same
-module then runs on Node, Bun, Deno, and in a browser Worker.
+Hosts without `process.getBuiltinModule` cannot classify Promises, so every registration states its factory kind; the same module then runs on Node, Bun, Deno, and in a browser Worker.
 
 ```ts
 // src/features/search/contract.ts
 export type Index = { lookup(term: string): Promise<string[]>; close(): Promise<void> };
-export type IndexConfig = { url: string };
-export type Search = { find(term: string): Promise<string[]> };
+export type IndexConfig = { url: string }; export type Search = { find(term: string): Promise<string[]> };
 ```
 
 ```ts
 // src/features/search/module.ts
 import { DiBag } from 'di-bag';
 import type { Index, IndexConfig, Search } from './contract.js';
-
-export const searchModule = DiBag.createBuilder()
-  .register({
-    index: DiBag.withLifetime(
-      DiBag.withDisposal(
-        DiBag.fromAsyncFactory(async ({ config }: { config: IndexConfig }): Promise<Index> => ({
-          lookup: async term => [`${config.url}#${term}`],
-          close: async () => {},
-        })),
-        index => index.close(),
-      ),
-      'root',
-    ),
-    search: DiBag.fromSyncFactory(({ index }: { index: Promise<Index> }): Search => ({
-      find: async term => (await index).lookup(term),
-    })),
-  })
-  .buildModule(['search'], { label: 'search' });
+export const searchModule = DiBag.createBuilder().withServices({
+  index: DiBag.providerWithLifetime({
+    provider: DiBag.providerWithDisposal({
+      provider: DiBag.createProvider(async ({ config }: { config: IndexConfig }): Promise<Index> => ({
+      lookup: async term => [`${config.url}#${term}`],
+      close: async () => {},
+      }), { factoryReturnKind: 'native-promise' }),
+      disposeService: index => index.close(),
+    }),
+    lifetime: 'singleton:one-per-container-tree',
+  }),
+  search: DiBag.createProvider(({ index }: { index: Promise<Index> }): Search => ({
+    find: async term => (await index).lookup(term),
+  }), { factoryReturnKind: 'sync-value' }),
+}).buildModule({ exportedServiceKeys: ['search'], moduleLabel: 'search' });
 ```
 
 ```ts
@@ -339,26 +389,34 @@ export const searchModule = DiBag.createBuilder()
 import { DiBag } from 'di-bag';
 import type { IndexConfig } from './contract.js';
 import { searchModule } from './module.js';
-
-DiBag.createBuilder()
-  .installModule(searchModule)
-  .register({ config: DiBag.withLifetime(DiBag.fromSyncFactory((): IndexConfig => ({ url: 'memory:' })), 'root') })
-  .verifyGraph() satisfies void;
+DiBag.createBuilder().withInstalledModules([searchModule]).withServices({ config: DiBag.providerWithLifetime({ provider: DiBag.createProvider((): IndexConfig => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' }), lifetime: 'singleton:one-per-container-tree' }) })
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
-`fromSyncFactory` is `fromFactory` with `acquisitionMode: 'raw'`: the exact value
-is the service and `then` is never read; an `async` function or a thenable output
-is rejected at compile time. `fromAsyncFactory` is `fromFactory` with
-`acquisitionMode: 'nativePromise'`: the Promise is the service, consumers await it,
-and `withDisposal` receives the fulfilled value. Give direct `transformService`,
-`fromFunction`, and `fromClass` an explicit `acquisitionMode`. A leftover automatic
-registration fails `build()` with [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required),
-which names it; a Promise that is itself the service keeps `fromFactory(create, { acquisitionMode: 'raw' })`.
+`factoryReturnKind: 'sync-value'` makes the exact synchronous value the service, never reads `then`, and rejects Promise and structural-thenable outputs at compile time.
+`'native-promise'` requires a native Promise, exposes that Promise, and gives its fulfilled value to disposal callbacks.
+`'uninspected'` preserves the exact returned value, including a Promise or structural thenable.
+Omit the option for `'auto-detect'` on hosts with a native-Promise classifier.
+
+```ts
+import { DiBag } from 'di-bag';
+type Config = { url: string };
+declare function openCatalog(url: string): Promise<{ url: string }>;
+declare function knex(table: string): { readonly table: string; then(resolve: (value: string) => void): void };
+const config = DiBag.createProvider((): Config => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
+const catalog = DiBag.createProvider(async ({ config }: { config: Config }) => openCatalog(config.url), {
+  factoryReturnKind: 'native-promise',
+});
+const query = DiBag.createProvider(() => knex('users'), { factoryReturnKind: 'uninspected' });
+const app = DiBag.createBuilder().withServices({ config, catalog, query }).buildContainer();
+```
+
+An auto-detect registration fails `buildContainer()` with [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required) on hosts without a native-Promise classifier; the error names the registration.
 
 ## Review a merge {#review-merge}
 
 The merge check is `src/app.check.ts` plus the full test suite. `src/app.ts`
-installs one module per line and registers what the modules require.
+installs its modules together and supplies what the modules require.
 
 ```ts
 // src/app.ts
@@ -371,11 +429,13 @@ import type { DbConfig } from './features/catalog/contract.js';
 import { catalogModule } from './features/catalog/module.js';
 
 export const composition = DiBag.createBuilder()
-  .installModule(auditModule)
-  .installModule(billingModule)
-  .installModule(catalogModule)
-  .register({
-    config: DiBag.withLifetime((): DbConfig => ({ url: 'memory:' }), 'root'),
+  .withInstalledModules([
+    auditModule,
+    billingModule,
+    catalogModule,
+  ])
+  .withServices({
+    config: DiBag.providerWithLifetime({ provider: (): DbConfig => ({ url: 'memory:' }), lifetime: 'singleton:one-per-container-tree' }),
     gateway: (): PaymentGateway => ({ charge: async cents => `receipt:${cents}` }),
     sink: (): AuditSink => ({ write: async lines => { console.log(lines.join('\n')); } }),
   });
@@ -385,12 +445,12 @@ export const composition = DiBag.createBuilder()
 // src/app.check.ts
 import { composition } from './app.js';
 
-composition.verifyGraph() satisfies void;
+composition.verifyGraphAtCompileTime() satisfies void;
 ```
 
-1. Resolve conflicts in `src/app.ts` by keeping every `installModule` line.
+1. Resolve conflicts in `src/app.ts` by keeping every module in the `withInstalledModules` list.
 2. `npx tsc --noEmit -p tsconfig.json` checks `src/app.check.ts`: a requirement
-   no branch registers, or a contract one branch changed under another's
+   no branch supplies, or a contract one branch changed under another's
    consumer, fails there by name.
 3. Run the full test suite.
 4. Optionally, in CI: `npx di-bag-graph --check` exits 1 on dependency cycles
@@ -398,6 +458,54 @@ composition.verifyGraph() satisfies void;
    unless `--project` names another, and needs its own package:
    `npm install --save-dev di-bag-graph`. The type check does not see cycles;
    without this step they fail at first resolve with
-   [`DI_BAG_CYCLE`](errors.md#di-bag-cycle). The graph is a merge-review and CI
+   [`DI_BAG_DEPENDENCY_CYCLE`](errors.md#di-bag-dependency-cycle). The graph is a merge-review and CI
    artifact, not a map for finding code; the layout is the map. Options and
    output: [di-bag-graph README](https://github.com/dany-fedorov/di-bag/blob/main/tools/graph/README.md).
+
+## Install modules that both require `config` {#rename-module-requirements}
+
+Rename each module value at the install site. Both factories still read `config`.
+The host supplies separate values and gives the colliding `handler` exports distinct names.
+
+```ts
+// src/features/orders-and-billing/contract.ts
+export type OrdersConfig = { currency: string };
+export type BillingConfig = { vatRate: number };
+```
+
+```ts
+// src/features/orders-and-billing/modules.ts
+import { DiBag } from 'di-bag';
+import type { BillingConfig, OrdersConfig } from './contract.js';
+
+export const ordersModule = DiBag.createBuilder()
+  .withServices({ handler: ({ config }: { config: OrdersConfig }) => () => config.currency })
+  .buildModule({ exportedServiceKeys: ['handler'], moduleLabel: 'orders' });
+export const billingModule = DiBag.createBuilder()
+  .withServices({ handler: ({ config }: { config: BillingConfig }) => () => config.vatRate })
+  .buildModule({ exportedServiceKeys: ['handler'], moduleLabel: 'billing' });
+```
+
+```ts
+// src/features/orders-and-billing/check.ts
+import { DiBag } from 'di-bag';
+import type { BillingConfig, OrdersConfig } from './contract.js';
+import { billingModule, ordersModule } from './modules.js';
+
+const app = DiBag.createBuilder()
+  .withInstalledModules([
+    ordersModule
+      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
+      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
+    billingModule
+      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
+      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
+  ])
+  .withServices({
+    ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
+    billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
+  })
+  .buildContainer();
+console.log(app.resolve('ordersHandler')(), app.resolve('billingHandler')());
+await app.close();
+```

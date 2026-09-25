@@ -201,7 +201,7 @@ for (const lane of ['classic', 'native'] as const) {
         expect((row.diagnostics as Array<{ line: number; message: string }>)[0]).toMatchObject({
           line: row.boundaryLine,
         });
-        expect((row.diagnostics as Array<{ message: string }>)[0]!.message).toContain('required service registrations are missing');
+        expect((row.diagnostics as Array<{ message: string }>)[0]!.message).toContain('required services are missing');
       }
     }, 65_000);
   }

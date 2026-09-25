@@ -1,29 +1,29 @@
 import { DiBag } from '../../src';
 
 const key: unique symbol = Symbol('service');
-export const serviceToken = DiBag.token(key).of<{ read(): number }>();
-const feature = DiBag.createBuilder().register({
+export const serviceToken = DiBag.createToken(key).forService<{ read(): number }>();
+const feature = DiBag.createBuilder().withServices({
   privateValue: ({ config }: { config: { id: string } }) => config.id,
   service: ({ privateValue }: { privateValue: string }) => ({ id: privateValue }),
-}).buildModule(['service']).renameExport('service', 'exported');
-export const parent = DiBag.createBuilder().installModule(feature).register(serviceToken, () => ({ read: () => 1 })).register({
+}).buildModule({ exportedServiceKeys: ['service'] }).withRenamedExport({ currentExportKey: 'service', newExportKey: 'exported' });
+export const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(serviceToken, (): { read(): number } => ({ read: () => 1 })).withServices({
   config: () => ({ id: 'parent' }),
   asyncValue: async () => ({ read: () => Number(1) }),
-  raw: DiBag.withMetadata(DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' }), { static: { name: 'raw' as const } }),
-}).build();
-export const child = parent.createScope(['config', serviceToken, 'asyncValue'], {
+  raw: DiBag.providerWithRegistrationMetadata({ provider: DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), registrationMetadata: { name: 'raw' as const } }),
+}).buildContainer();
+export const child = parent.createChildContainer(['config', serviceToken, 'asyncValue'], {
   config: () => ({ id: 'child', added: true as const }),
-  [key]: () => ({ read: () => 2, tokenExtra: 'exact' as const }),
-  asyncValue: async () => ({ read: () => 2, extra() { return 'async' as const; } }),
-}, { share: ['exported', 'raw'] });
-export const grandchild = child.createScope({ share: [serviceToken, 'asyncValue'] });
-export const fork = child.fork(['config'], { config: () => ({ id: 'fork', added: true as const }) });
+  [key]: (): { read: () => number; tokenExtra: 'exact' } => ({ read: () => 2, tokenExtra: 'exact' as const }),
+  asyncValue: async (): Promise<{ read: () => number; extra(): 'async' }> => ({ read: () => 2, extra() { return 'async' as const; } }),
+}, { sharedParentServiceKeys: ['exported', 'raw'] });
+export const grandchild = child.createChildContainer({ sharedParentServiceKeys: [serviceToken, 'asyncValue'] });
+export const fork = child.createIndependentContainer(['config'], { config: () => ({ id: 'fork', added: true as const }) });
 
-export const roots = DiBag.createBuilder().register({
-  config: DiBag.withLifetime(() => ({ id: 'parent' }), 'root'),
-  service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config }), 'root'),
-}).build();
-export const overriddenRootDependency = roots.createScope(['config'], { config: () => ({ id: 'child' }) });
-export const childRoot = roots.createScope(['service'], {
-  service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config, owned: true as const }), 'root'),
+export const roots = DiBag.createBuilder().withServices({
+  config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'singleton:one-per-container-tree' }),
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config }), lifetime: 'singleton:one-per-container-tree' }),
+}).buildContainer();
+export const overriddenRootDependency = roots.createIndependentContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'singleton:one-per-container-tree' }) });
+export const childRoot = roots.createIndependentContainer(['service'], {
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config, owned: true as const }), lifetime: 'singleton:one-per-container-tree' }),
 });

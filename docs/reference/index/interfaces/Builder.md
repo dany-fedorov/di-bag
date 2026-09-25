@@ -2,13 +2,13 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Builder
 
-# Interface: Builder\<E *extends* `Entry`, C *extends* `NeedConstraint` = `never`\>
+# Interface: Builder\<Entries *extends* `Entry`, Constraints *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:336](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L336)
+Defined in: [di-bag.ts:413](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L413)
 
 An immutable, type-checked graph builder. Every operation returns a new builder.
 Create one with [DiBagApi.createBuilder](DiBagApi.md#createbuilder). The same builder value can
-[Builder.build](#build) a bag once its graph is complete, or
+[Builder.buildContainer](#buildcontainer) a container once its graph is complete, or
 [Builder.buildModule](#buildmodule) a reusable module whose unmet dependencies become
 requirements the installing host must satisfy.
 
@@ -20,198 +20,30 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `E` | - |
-| `C` | - |
+| `Entries` | The union of accepted provider entries, one per public key. |
+| `Constraints` | The requirements, contributions and lifetime obligations that installed modules retain on this graph. |
 
 ## Properties
 
-### contribute
+### buildModule
 
 ```ts
-readonly contribute: BuilderContribute<E, C>;
+readonly buildModule: BuilderBuildModule<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:432](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L432)
-
-Append a provider to a typed-token collection.
-
-#### Param
-
-**token**
-
-The collection's typed token.
-
-#### Param
-
-**registration**
-
-A registration whose output satisfies the token service type.
-
-#### Returns
-
-A new builder preserving contribution order.
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
-
-#### Example
-
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const builder = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch');
-```
-
-## Methods
-
-### alias()
-
-```ts
-alias<const D extends AliasSelection, const T extends AliasSelection>(destination: D & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, D, T>> : AliasAdmission<D>), target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T> ? AliasTarget<RegistrationsFromEntries<E>, T> & AliasDestination<RegistrationsFromEntries<E>, NoInfer<D>, T> : unknown) & (unknown extends AliasAdmission<D> & AliasAdmission<T> ? IncrementalChecked<E, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>>> : unknown), ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []): Builder<E | AliasEntry<RegistrationsFromEntries<E>, D, T>, C>;
-```
-
-Defined in: [di-bag.ts:406](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L406)
-
-Add another lookup name or token for an existing service.
-
-#### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `D` | - |
-| `T` | - |
-
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `destination` | A new string name or typed token. |
-| `target` | The existing name or token whose canonical acquisition is reused. |
-| `...invalid` | - |
-
-#### Returns
-
-A new builder; aliases add no cache or ownership of their own.
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_DUPLICATE_REGISTRATION` when the destination exists;
-`DI_BAG_INVALID_ALIAS` for an absent named target.
-
-#### Example
-
-```ts
-const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).alias('now', 'clock');
-```
-
-***
-
-### build()
-
-```ts
-build(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>): Bag<RegistrationsFromEntries<E>, C>;
-```
-
-Defined in: [di-bag.ts:563](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L563)
-
-Finish a complete graph as a lazy bag.
-The bag owns what it acquires; close it when done.
-
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `this` | - |
-
-#### Returns
-
-A fresh bag that owns the acquisitions it creates.
-
-#### Throws
-
-`DI_BAG_CLASSIFIER_REQUIRED` when a registration uses `auto` acquisition, the facade has no Promise
-classifier, and the host has no `process.getBuiltinModule`.
-
-#### Example
-
-```ts
-const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
-await bag.close();
-```
-
-***
-
-### buildAndStart()
-
-```ts
-buildAndStart<const K extends readonly unknown[]>(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>, keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildAndStart'>, options?: StartupOptions): Promise<Bag<RegistrationsFromEntries<E>, C>>;
-```
-
-Defined in: [di-bag.ts:583](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L583)
-
-Create a fresh bag and acquire selected services before returning it.
-
-#### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `K` | - |
-
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `this` | - |
-| `keys` | A finite tuple of existing names or typed tokens to make ready. |
-| `options?` | Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling. |
-
-#### Returns
-
-A promise for the new bag after every selected final stage is ready.
-
-#### Throws
-
-[DiBagStartupError](../classes/DiBagStartupError.md) (`DI_BAG_STARTUP_FAILED`) after rollback on acquisition failure;
-[DiBagStartupCancelledError](../classes/DiBagStartupCancelledError.md) (`DI_BAG_STARTUP_CANCELLED`) promptly on abort or timeout;
-`DI_BAG_INVALID_STARTUP` for malformed keys or options; `DI_BAG_INVALID_TOKEN` for a bad token;
-`DI_BAG_CLASSIFIER_REQUIRED` as for [Builder.build](#build). Each arrives as a rejection.
-
-#### Example
-
-```ts
-const bag = await DiBag.createBuilder()
-  .register({ db: async () => ({ ping: () => true }) })
-  .buildAndStart(['db'], { timeoutMs: 5_000 });
-```
-
-***
-
-### buildModule()
-
-```ts
-buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'> & SealAdmission<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>, C>, options?: ModuleOptions): Module<ExportedServices<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>, ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>;
-```
-
-Defined in: [di-bag.ts:539](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L539)
+Defined in: [di-bag.ts:610](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L610)
 
 Seal this graph as a reusable module and select its public names and typed tokens.
-Unselected registrations stay private to each installation; unmet dependencies
+Unselected services stay private to each installation; unmet dependencies
 become requirements of the module. Installed modules nest: their private
-bindings and retained constraints are re-scoped inside this module.
+bindings and retained constraints are nested inside this module.
 
-#### Type Parameters
+#### Param
 
-| Type Parameter | Description |
-| ------ | ------ |
-| `K` | - |
+**options**
 
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `keys` | A finite tuple of existing names or tokens; an empty tuple is allowed. |
-| `options?` | An optional `label`; each installation names its private bindings `<label>/<key>` in<br>error messages, cycle paths, `inspectGraph()`, and observer events, and nested labels compose as `outer/inner/key`. |
+`exportedServiceKeys` is a finite tuple of existing names or tokens, and may be empty. `moduleLabel` is optional;
+each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `graphSnapshot()`, and observer events.
 
 #### Returns
 
@@ -219,238 +51,287 @@ An immutable module that can be renamed or installed in another builder.
 
 #### Throws
 
-`DI_BAG_INVALID_EXPORT` if the selection is not a tuple, contains an absent name or token, or the label is not a non-empty string;
-`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object or non-tuple selection
+or the label is not a non-empty string; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent name or token; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
+`DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
 
 #### Example
 
 ```ts
 const orders = DiBag.createBuilder()
-  .register({ repository: () => new Map<string, number>() })
-  .register({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
-  .buildModule(['placeOrder'], { label: 'orders' });
-// Errors and inspectGraph() name the private binding 'orders/repository'.
-const app = DiBag.createBuilder().installModule(orders).build();
+  .withServices({ repository: () => new Map<string, number>() })
+  .withServices({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
+  .buildModule({ exportedServiceKeys: ['placeOrder'], moduleLabel: 'orders' });
+// Errors and graphSnapshot() name the private binding 'orders/repository'.
+const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
 ```
 
 ***
 
-### installModule()
+### withCollectionContribution
 
 ```ts
-installModule<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> & IncrementalChecked<E, D> & IncrementalConstraints<C, MC, RegistrationsFromEntries<E>, D>): Builder<E | RegistrationEntries<D>, C | MC>;
+readonly withCollectionContribution: BuilderWithCollectionContribution<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:495](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L495)
+Defined in: [di-bag.ts:508](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L508)
 
-Install a sealed module, allocating fresh private bindings for this installation.
-The installing host must register every requirement the module does not register itself.
+Append a provider to the list of a collection token.
 
-#### Type Parameters
+#### Param
 
-| Type Parameter | Description |
-| ------ | ------ |
-| `P` | - |
-| `R` | - |
-| `MC` | - |
-| `D` | - |
+**options**
+
+`collectionToken` names the list; `provider` is a provider or plain factory whose output satisfies the token's item type.
+
+#### Returns
+
+A new builder preserving contribution order.
+
+#### Throws
+
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+
+#### Example
+
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
+const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
+```
+
+***
+
+### withInstalledModules
+
+```ts
+readonly withInstalledModules: BuilderWithInstalledModules<Entries, Constraints>;
+```
+
+Defined in: [di-bag.ts:558](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L558)
+
+Install sealed modules in list order, allocating fresh private bindings for each installation.
+Each module is checked against this builder plus the modules before it in the list.
+The installing host must provide every requirement that no module of the graph provides.
+
+#### Param
+
+**modules**
+
+A finite list of modules whose public names collide neither with this builder nor with each other.
+
+#### Returns
+
+A new builder exposing only the selected exports of each module; contributions keep list order.
+
+#### Throws
+
+`DI_BAG_INVALID_ARGUMENT` when `modules` is not an array; `DI_BAG_INVALID_MODULE` for an element not made by `buildModule`;
+`DI_BAG_DUPLICATE_SERVICE_KEY` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
+
+#### Example
+
+```ts
+const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
+const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();
+```
+
+***
+
+### withReplacedService
+
+```ts
+readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints>;
+```
+
+Defined in: [di-bag.ts:530](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L530)
+
+Replace an existing binding with a compatible provider, selecting it by name, service token, collection token.
+
+#### Param
+
+**serviceKey**
+
+One existing string-literal service name or typed token.
+
+#### Param
+
+**provider**
+
+The replacement, checked against every surviving consumer.
+
+#### Returns
+
+A new builder with the replacement.
+
+#### Throws
+
+`DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_PROVIDER` for an invalid provider;
+`DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
+
+#### Example
+
+```ts
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withReplacedService('clock', () => 0);
+```
+
+***
+
+### withServiceAlias
+
+```ts
+readonly withServiceAlias: BuilderWithServiceAlias<Entries, Constraints>;
+```
+
+Defined in: [di-bag.ts:480](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L480)
+
+Add another lookup name for an existing service.
+
+#### Param
+
+**options**
+
+`aliasKey` is a new string name or single-service token; `targetServiceKey` is the existing name or token whose canonical acquisition is reused.
+
+#### Returns
+
+A new builder; aliases add no cache or ownership of their own.
+
+#### Throws
+
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
+`DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent named target.
+
+#### Example
+
+```ts
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
+```
+
+***
+
+### withServices
+
+```ts
+readonly withServices: BuilderWithServices<Entries, Constraints>;
+```
+
+Defined in: [di-bag.ts:441](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L441)
+
+Add new string-named services.
+A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
+Bind typed tokens separately with `withTokenService`.
+
+#### Param
+
+**providersByName**
+
+A finite object whose own string keys are service names and whose values are providers or plain factories.
+
+#### Returns
+
+A new builder containing snapshots of the supplied providers.
+
+#### Throws
+
+`DI_BAG_INVALID_ARGUMENT` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
+`DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
+
+#### Example
+
+```ts
+type Clock = { now(): number };
+const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
+```
+
+***
+
+### withTokenService
+
+```ts
+readonly withTokenService: BuilderWithTokenService<Entries, Constraints>;
+```
+
+Defined in: [di-bag.ts:461](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L461)
+
+Add the single service of a typed token.
+
+#### Param
+
+**token**
+
+A new single-service token.
+
+#### Param
+
+**provider**
+
+A provider or plain factory whose exposed output satisfies the token's service type.
+
+#### Returns
+
+A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
+
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
+`DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
+
+#### Example
+
+```ts
+const clockKey = Symbol('clock');
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => Date.now() }));
+```
+
+## Methods
+
+### buildContainer()
+
+```ts
+buildContainer(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Container<RegistrationsFromEntries<Entries>, Constraints>;
+```
+
+Defined in: [di-bag.ts:628](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L628)
+
+Finish a complete graph as a lazy container.
+The container owns what it acquires; close it when done.
 
 #### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `module` | A module whose public names do not collide and whose external requirements remain checkable. |
+| `this` | - |
 
 #### Returns
 
-A new builder exposing only the module's selected exports.
+A fresh container that owns the acquisitions it creates.
 
 #### Throws
 
-`DI_BAG_INVALID_MODULE` for a value not made by `buildModule`; `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered.
+`DI_BAG_CLASSIFIER_REQUIRED` when a provider uses `auto` acquisition, the facade has no Promise
+classifier, and the host has no `process.getBuiltinModule`.
 
 #### Example
 
 ```ts
-const greeting = DiBag.createBuilder()
-  .register({ greet: ({ name }: { name: string }) => `hello, ${name}` })
-  .buildModule(['greet']);
-const bag = DiBag.createBuilder().installModule(greeting).register({ name: () => 'Ada' }).build();
+const app = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+await app.close();
 ```
 
 ***
 
-### register()
-
-#### Call Signature
+### verifyGraphAtCompileTime()
 
 ```ts
-register<N extends {
-    [K in keyof N]: Registration;
-}>(more: N & Registrations & ([N] extends [never] ? never : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>)): Builder<E | RegistrationEntries<N>, C>;
+verifyGraphAtCompileTime<Self extends Builder<Entries, Constraints>>(this: Self): CompositionReport<Self>;
 ```
 
-Defined in: [di-bag.ts:364](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L364)
-
-Add new string-named registrations.
-A factory declares its dependencies in the type of its one object parameter; destructure it or read `deps.name`, never spread it.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `N` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `more` | A finite object whose own string keys are service names and values are registrations. |
-
-##### Returns
-
-A new builder containing snapshots of the supplied registrations.
-
-##### Throws
-
-`DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered.
-
-##### Example
-
-```ts
-type Clock = { now(): number };
-const builder = DiBag.createBuilder()
-  .register({ clock: (): Clock => ({ now: () => Date.now() }) })
-  .register({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
-```
-
-#### Call Signature
-
-```ts
-register<T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & ThenableAdmission<Record<TokenKey<T>, NoInfer<V>>> & IncrementalChecked<E, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>): Builder<E | {
-    key: TokenKey<T>;
-    registration: TokenBinding<T, V>;
-}, C>;
-```
-
-Defined in: [di-bag.ts:378](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L378)
-
-Register a provider to a typed token.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `T` | - |
-| `V` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `token` | A new typed token identity. |
-| `registration` | A registration whose exposed output satisfies the token service type. |
-
-##### Returns
-
-A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
-
-##### Throws
-
-`DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_DUPLICATE_REGISTRATION` when it is already registered;
-`DI_BAG_INVALID_REGISTRATION` for an invalid registration.
-
-***
-
-### replace()
-
-#### Call Signature
-
-```ts
-replace<const K extends string, V extends (ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>) | FactoryWithDisposal<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>>>(key: K & ReplacementKeyOf<EntryKeys<E>, K>, registration: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
-    key: K;
-}> | {
-    key: K;
-    registration: V;
-}, WithoutExportObligations<C, K>>;
-```
-
-Defined in: [di-bag.ts:456](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L456)
-
-Replace an existing string-named registration with a dependency-free factory.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `K` | - |
-| `V` | The exact replacement factory or disposable-factory type. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `key` | One existing string-literal service name. |
-| `registration` | The replacement, checked against every surviving consumer. |
-
-##### Returns
-
-A new builder with the replacement.
-
-##### Throws
-
-`DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
-
-##### Example
-
-```ts
-const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).replace('clock', () => 0);
-```
-
-#### Call Signature
-
-```ts
-replace<const K extends string | TokenBase, V extends Registration>(key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<E>, K>>, registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>): Builder<ReplacedEntries<E, K, V>, WithoutExportObligations<C, SelectionKey<K>>>;
-```
-
-Defined in: [di-bag.ts:468](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L468)
-
-Replace an existing named or typed-token registration.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `K` | - |
-| `V` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `key` | The single existing name or token to replace. |
-| `registration` | A replacement compatible with the token and known consumers. |
-
-##### Returns
-
-A new builder with the replacement and its inferred service type.
-
-##### Throws
-
-`DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION` for malformed input.
-
-***
-
-### verifyGraph()
-
-```ts
-verifyGraph<Self extends Builder<E, C>>(this: Self): CompositionReport<Self>;
-```
-
-Defined in: [di-bag.ts:515](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L515)
+Defined in: [di-bag.ts:586](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L586)
 
 Report at the type level why this graph would not build; the runtime call does nothing.
-Write `builder.verifyGraph() satisfies void;` so a rejected graph fails on that line with
+Write `builder.verifyGraphAtCompileTime() satisfies void;` so a rejected graph fails on that line with
 the complete message and details, instead of at the start of the builder expression.
 
 #### Type Parameters
@@ -467,11 +348,11 @@ the complete message and details, instead of at the start of the builder express
 
 #### Returns
 
-`void` for a buildable graph; otherwise the failure that `build()` would report.
+`void` for a buildable graph; otherwise the failure that `buildContainer()` would report.
 
 #### Example
 
 ```ts
-const builder = DiBag.createBuilder().register({ greeting: () => 'hello' });
-builder.verifyGraph() satisfies void;
+const builder = DiBag.createBuilder().withServices({ greeting: () => 'hello' });
+builder.verifyGraphAtCompileTime() satisfies void;
 ```

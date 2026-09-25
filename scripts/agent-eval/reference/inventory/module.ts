@@ -4,13 +4,13 @@ import type { Inventory, StockLevels } from './contract.js';
 import { createHolds, createLedger, type Holds, type Ledger } from './ledger.js';
 
 export const inventoryModule = DiBag.createBuilder()
-  .register({
-    ledger: DiBag.withLifetime(({ stockLevels }: { stockLevels: StockLevels }) => createLedger(stockLevels), 'root'),
-    holds: DiBag.withDisposal(({ ledger }: { ledger: Ledger }) => createHolds(ledger), holds => holds.release()),
-    inventory: ({ catalog, ledger, holds }: { catalog: Catalog; ledger: Ledger; holds: Holds }): Inventory => ({
+  .withServices({
+    ledger: DiBag.providerWithLifetime({ provider: ({ stockLevels }: { stockLevels: StockLevels }) => createLedger(stockLevels), lifetime: 'singleton:one-per-container-tree' }),
+    holds: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ ledger }: { ledger: Ledger }) => createHolds(ledger), disposeService: holds => holds.release() }), lifetime: 'scoped:one-per-container' }),
+    inventory: DiBag.providerWithLifetime({ provider: ({ catalog, ledger, holds }: { catalog: Catalog; ledger: Ledger; holds: Holds }): Inventory => ({
       available: sku => ledger.available(sku),
       reserve: (sku, quantity) => catalog.find(sku) !== undefined && holds.hold(sku, quantity),
       commit: () => holds.commit(),
-    }),
+    }), lifetime: 'scoped:one-per-container' }),
   })
-  .buildModule(['inventory'], { label: 'inventory' });
+  .buildModule({ exportedServiceKeys: ['inventory'], moduleLabel: 'inventory' });

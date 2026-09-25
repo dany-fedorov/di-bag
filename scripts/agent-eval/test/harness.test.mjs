@@ -61,7 +61,7 @@ test('a module that needs a service its contract does not list fails the merge c
   const result = await run({ agentCommand: agentCommand(solution) });
   assert.equal(result.success, false);
   assert.equal(result.merge.typecheck.ok, false);
-  assert.match(result.merge.typecheck.output, /required service registrations are missing: clock/);
+  assert.match(result.merge.typecheck.output, /required services are missing: clock/);
   assert.equal(result.merge.modules.checkout.isolated.ok, false);
   assert.match(result.merge.modules.checkout.isolated.output, /missing: clock/);
   assert.equal(result.merge.modules.catalog.isolated.ok, true);

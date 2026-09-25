@@ -5,19 +5,19 @@ import type { CatalogData } from './contract.js';
 import { catalogModule } from './module.js';
 
 const fixture = DiBag.createBuilder()
-  .installModule(catalogModule)
-  .register({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') })
-  .build();
+  .withInstalledModules([catalogModule])
+  .withServices({ catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({ products: [] }), lifetime: 'singleton:one-per-container-tree' }) })
+  .buildContainer();
 after(() => fixture.close());
 
 test('finds products and shares one catalog across scopes', async () => {
-  const bag = fixture.fork(['catalogData'], {
-    catalogData: DiBag.withLifetime((): CatalogData => ({ products: [{ sku: 'tea', name: 'Tea', priceCents: 450 }] }), 'root'),
+  const bag = fixture.createIndependentContainer(['catalogData'], {
+    catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({ products: [{ sku: 'tea', name: 'Tea', priceCents: 450 }] }), lifetime: 'singleton:one-per-container-tree' }),
   });
   try {
-    const catalog = bag.createScope().resolve('catalog');
+    const catalog = bag.createChildContainer().resolve('catalog');
     assert.equal(catalog.find('tea')?.priceCents, 450);
-    assert.equal(bag.createScope().resolve('catalog'), catalog);
+    assert.equal(bag.createChildContainer().resolve('catalog'), catalog);
   } finally {
     await bag.close();
   }

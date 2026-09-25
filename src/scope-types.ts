@@ -1,44 +1,78 @@
-import type { CanonicalLifetime } from './lifetime-types';
+import type { CanonicalLifetime, ChildReplacementAdmission } from './lifetime-types';
 import type { Provider, ProviderGraphContract, ProviderFactory, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue } from './provider';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { SelectionKey } from './token-types';
 import type { Selection, Unsatisfied } from './types';
+import type { CollectionTokenBase, TokenKey } from './tokens';
+import type { NeedConstraint } from './module-types';
 
 type Transients<R extends Registrations, S extends readonly unknown[]> = {
-  [K in SelectionKey<S[number]> & keyof R]: 'transient' extends CanonicalLifetime<R, K> ? K : never;
+  [K in SelectionKey<S[number]> & keyof R]: 'transient:one-per-resolve' extends CanonicalLifetime<R, K> ? K : never;
 }[SelectionKey<S[number]> & keyof R];
 
 /**
- * CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child scope.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child container.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
-export type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
-  /** Existing names or tokens to resolve through the parent's acquisition and ownership context. */
-  readonly share: S & Selection<R, S, 'createScope share'> & (
-    [Transients<R, S>] extends [never] ? unknown
-      : Unsatisfied<'createScope cannot share transient providers', { tokens: Transients<R, S> }>
-  );
-};
+export type ChildContainerShareAdmission<S extends readonly unknown[]> = [Extract<S[number], CollectionTokenBase>] extends [never] ? unknown
+  : Unsatisfied<'createChildContainer cannot share a collection token', { tokens: TokenKey<Extract<S[number], CollectionTokenBase>> }>;
 
-/**
- * Reject a child-scope key selected for both replacement and parent sharing.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
- */
-export type DisjointScopeSelection<K extends readonly unknown[], S extends readonly unknown[]> =
-  [SelectionKey<K[number]> & SelectionKey<S[number]>] extends [never] ? unknown
-    : Unsatisfied<'createScope cannot share and override the same token', { tokens: SelectionKey<K[number]> & SelectionKey<S[number]> }>;
+type ReplacementOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint,
+  ReplacedServiceKeys extends readonly unknown[],
+  ReplacementProviders,
+  Operation extends string,
+> = [ReplacedServiceKeys[number]] extends [never]
+  ? { readonly replacedServiceKeys?: never; readonly replacementProviders?: never }
+  : {
+      readonly replacedServiceKeys: ReplacedServiceKeys
+        & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, Operation>;
+      readonly replacementProviders: ReplacementProviders;
+    };
+
+/** Options for creating an independent container with selected replacements. */
+export type CreateIndependentContainerOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createIndependentContainer'>;
+
+/** Options for creating a tracked child container with replacement and sharing selections. */
+export type CreateChildContainerOptions<
+  ServiceRegistrations extends Registrations,
+  SharedParentServiceKeys extends readonly unknown[],
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys>, 'createChildContainer'> & {
+  readonly sharedParentServiceKeys?: SharedParentServiceKeys
+    & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'>
+    & ChildContainerShareAdmission<SharedParentServiceKeys> & (
+      [Transients<ServiceRegistrations, SharedParentServiceKeys>] extends [never] ? unknown
+        : Unsatisfied<'createChildContainer cannot share transient providers', { tokens: Transients<ServiceRegistrations, SharedParentServiceKeys> }>
+    );
+} & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>;
+
+/** Reject a child-container key selected for both replacement and parent sharing. */
+export type DisjointChildContainerSelection<ReplacedServiceKeys extends readonly unknown[], SharedParentServiceKeys extends readonly unknown[]> =
+  [SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>] extends [never] ? unknown
+    : Unsatisfied<'createChildContainer cannot share and replace the same service', {
+        tokens: SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>;
+      }>;
 
 // Selected sharing belongs to one runtime. Retain alias-only parent routing for
-// its checks, then clear it when constructing an independent fork or fresh scope.
+// its checks, then clear it when constructing an independent or fresh child container.
 type SharedKeys<R extends Registrations> = {
   [K in keyof R]: ProviderGraphContract<R[K]> extends { readonly sharedAlias: unknown } ? K : never;
 }[keyof R];
-type Unshared<V extends Registration> = ProviderGraphContract<V> extends {
-  readonly sharedAlias: { readonly original: infer O extends Registration };
+type Unshared<V extends ProviderOrFactory> = ProviderGraphContract<V> extends {
+  readonly sharedAlias: { readonly original: infer O extends ProviderOrFactory };
 } ? O : V;
 /**
- * Remove parent-sharing routes when creating a fresh scope or independent fork.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * Remove parent-sharing routes when creating a fresh child or independent container.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type UnsharedAliases<R extends Registrations> = [SharedKeys<R>] extends [never] ? R
   : Omit<R, SharedKeys<R>> & { [K in SharedKeys<R>]: Unshared<R[K]> };
@@ -52,13 +86,13 @@ type SharedAlias<R extends Registrations, Parent extends Registrations, K extend
 >;
 /**
  * Named mapping keeps reflected package declarations inside this checked generic boundary.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type SharedAliasProviders<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> =
   [AliasKeys<R, S>] extends [never] ? R
     : Omit<R, AliasKeys<R, S>> & { [K in AliasKeys<R, S>]: SharedAlias<R, Parent, K> };
 /**
- * The registration map visible in a child after clearing and applying selected sharing routes.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * The provider map visible in a child after clearing and applying selected sharing routes.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = SharedAliasProviders<UnsharedAliases<R>, Parent, S>;

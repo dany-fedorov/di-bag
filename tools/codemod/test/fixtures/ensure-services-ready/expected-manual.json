@@ -1,0 +1,6 @@
+[
+  {
+    "line": 10,
+    "reason": "startupOrder is not a literal; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number"
+  }
+]

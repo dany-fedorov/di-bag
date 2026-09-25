@@ -1,0 +1,10 @@
+[
+  {
+    "line": 5,
+    "reason": "Bag is re-exported; the re-export keeps its old public name, rename it when your own consumers can follow"
+  },
+  {
+    "line": 6,
+    "reason": "DiBagCleanupError is re-exported; the re-export keeps its old public name, rename it when your own consumers can follow"
+  }
+]

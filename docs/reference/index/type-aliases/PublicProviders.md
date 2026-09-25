@@ -10,9 +10,9 @@ type PublicProviders<R extends object> = {
 };
 ```
 
-Defined in: [module-types.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L121)
+Defined in: [module-types.ts:127](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L127)
 
-Project registrations to dependency-free public descriptions while retaining behavioral contracts.
+Project providers to dependency-free public descriptions while retaining behavioral contracts.
 
 ## Type Parameters
 

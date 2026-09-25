@@ -1,43 +1,43 @@
-import { DiBag } from '../../../src';
+import { DiBag, type ProviderOrFactory } from '../../../src';
 // diagnostic: not assignable
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => 2 } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => 2, callbackReceives: 'exposed-service' });
 // diagnostic: not assignable
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => null } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => null, callbackReceives: 'exposed-service' });
 // diagnostic: acquisition metadata must be a synchronous object record
-// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: async () => ({ origin: 'async' }) } });
+// diagnostic-also: TS2769 No overload matches this call.
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: async () => ({ origin: 'async' }), callbackReceives: 'exposed-service' });
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'awaited', describe: async () => ({ origin: 'async' }) } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: async () => ({ origin: 'async' }), callbackReceives: 'fulfilled-value' });
 // diagnostic: acquisition metadata must be a synchronous object record
-// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => [] } });
+// diagnostic-also: TS2769 No overload matches this call.
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => [], callbackReceives: 'exposed-service' });
 // diagnostic: acquisition metadata must be a synchronous object record
-// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => () => 1 } });
+// diagnostic-also: TS2769 No overload matches this call.
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => () => 1, callbackReceives: 'exposed-service' });
 // diagnostic: acquisition metadata must be a synchronous object record
-// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => ({ then() {} }) } });
+// diagnostic-also: TS2769 No overload matches this call.
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => ({ then() {} }), callbackReceives: 'exposed-service' });
 declare const unionMetadata: { origin: string } | Promise<{ origin: string }>;
 // diagnostic: acquisition metadata must be a synchronous object record
-// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => unionMetadata } });
+// diagnostic-also: TS2769 No overload matches this call.
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => unionMetadata, callbackReceives: 'exposed-service' });
 // diagnostic: not assignable
-DiBag.withMetadata(() => Promise.resolve(1), { dynamic: { mode: 'direct', describe: (value: number) => ({ value }) } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => Promise.resolve(1), describeAcquisition: (value: number) => ({ value }), callbackReceives: 'exposed-service' });
 // diagnostic: not assignable
-DiBag.withMetadata(() => Promise.resolve(1), { dynamic: { mode: 'awaited', describe: (value: Promise<number>) => ({ value }) } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => Promise.resolve(1), describeAcquisition: (value: Promise<number>) => ({ value }), callbackReceives: 'fulfilled-value' });
 // diagnostic: not assignable
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: function (this: { origin: string }, value) { return { origin: this.origin, value }; } } });
-type OpaqueRegistration = Exclude<Parameters<typeof DiBag.withMetadata>[0], ((...args: never[]) => unknown) | { create: unknown }>;
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: function (this: { origin: string }, value) { return { origin: this.origin, value }; }, callbackReceives: 'exposed-service' });
+type OpaqueRegistration = Exclude<ProviderOrFactory, ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaque: OpaqueRegistration;
 // diagnostic: not assignable
-DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: (value: number) => ({ value }) } });
+DiBag.providerWithAcquisitionMetadata({ provider: opaque, describeAcquisition: (value: number) => ({ value }), callbackReceives: 'exposed-service' });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ value: DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).build();
-const annotated = DiBag.withMetadata(({ dep }: { dep: number }) => dep, { dynamic: { mode: 'direct', describe: value => ({ value }) } });
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ annotated }).build();
+// diagnostic-also: TS2684 required services are missing
+DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: opaque, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' }) }).buildContainer();
+const annotated = DiBag.providerWithAcquisitionMetadata({ provider: ({ dep }: { dep: number }) => dep, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' });
+// diagnostic: required services are missing
+DiBag.createBuilder().withServices({ annotated }).buildContainer();
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({ annotated, dep: () => 'wrong' });
+DiBag.createBuilder().withServices({ annotated, dep: () => 'wrong' });
 // diagnostic: read-only
-DiBag.createBuilder().register({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).build().inspect('value').acquisitions[0]!.acquisitionMetadata[0] = { present: false };
+DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' }) }).buildContainer().serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata[0] = { isPresent: false };

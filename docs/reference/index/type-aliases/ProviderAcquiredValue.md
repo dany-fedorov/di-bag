@@ -2,15 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ProviderAcquiredValue
 
-# Type Alias: ProviderAcquiredValue\<R *extends* [`Registration`](Registration.md)\>
+# Type Alias: ProviderAcquiredValue\<R *extends* [`ProviderOrFactory`](ProviderOrFactory.md)\>
 
 ```ts
-type ProviderAcquiredValue<R extends Registration> = ProviderBase extends R ? unknown : R extends infer T & {} ? AcquiredOf<T> : unknown;
+type ProviderAcquiredValue<R extends ProviderOrFactory> = ProviderBase extends R ? unknown : R extends infer T & {} ? AcquiredOf<T> : unknown;
 ```
 
-Defined in: [provider.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L73)
+Defined in: [provider.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L87)
 
-Extract the fulfilled or raw value passed to the registration's outer disposer.
+Extract the fulfilled or raw value passed to the provider's outer disposer.
 
 ## Type Parameters
 

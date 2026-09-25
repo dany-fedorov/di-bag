@@ -27,9 +27,9 @@ const layout = fence('src/features/x/\n  module.ts', 'text');
 test('headings use explicit ids or the site slug, and fences hide heading-like lines', () => {
   assert.equal(slugify('Recommended module layout'), 'recommended-module-layout');
   assert.equal(slugify('Attach cleanup with withDisposal()'), 'attach-cleanup-with-withdisposal');
-  const { headings, blocks } = parseMarkdown(`# Page\n## DI_BAG_CYCLE {#di-bag-cycle}\n${fence('# not a heading')}## Plain title\n`);
-  assert.deepEqual(headings.map(heading => [heading.id, heading.explicit]), [['page', false], ['di-bag-cycle', true], ['plain-title', false]]);
-  assert.equal(blocks[0].heading, 'di-bag-cycle');
+  const { headings, blocks } = parseMarkdown(`# Page\n## DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}\n${fence('# not a heading')}## Plain title\n`);
+  assert.deepEqual(headings.map(heading => [heading.id, heading.explicit]), [['page', false], ['di-bag-dependency-cycle', true], ['plain-title', false]]);
+  assert.equal(blocks[0].heading, 'di-bag-dependency-cycle');
 });
 
 test('markers read only leading comment lines', () => {
@@ -81,14 +81,42 @@ test('snippets type-check together against a consumer package, honoring continue
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('guides and the README contribute their standalone blocks, and only those', () => {
+  const standalone = "import { make } from 'di-bag';\nimport { strict as assert } from 'node:assert';\nassert.equal(make(1), 1);";
+  const root = fixture({
+    'README.md': `# Readme\n${fence(standalone)}${fence("const fragment = builder.withServices({});")}`,
+    'docs/guides/tutorial.md': [
+      '# Tutorial',
+      fence("import { make } from 'di-bag';\nconst wrong: string = make(2);"),
+      fence("import { make } from 'di-bag';\nimport { handle } from './handle-request.ts';\nhandle(make(3));"),
+      fence("import { make } from 'di-bag';\nimport express from 'express';\nexpress(make(4));"),
+      fence("import { make } from 'di-bag';\nexport const view = <p>{make(5)}</p>;", 'tsx'),
+      fence('npm install di-bag', 'sh'),
+    ].join('\n'),
+    'docs/guides/migrating-to-0.5.md': `# Historical\n${fence(standalone)}`,
+    'src/api.ts': 'export {};\n',
+    'node_modules/di-bag/package.json': '{ "name": "di-bag", "exports": { ".": { "types": "./index.d.ts" } } }',
+    'node_modules/di-bag/index.d.ts': 'export declare function make(value: number): number;',
+  });
+  try {
+    const { snippets, errors } = collectSnippets(root);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(snippets.map(snippet => snippet.where), ['README.md:2', 'docs/guides/tutorial.md:2']);
+    assert.deepEqual(snippets.map(snippet => snippet.file), ['README/block-2.ts', 'docs/guides/tutorial/block-2.ts']);
+    const failures = checkSnippets(snippets, root, typeRoots);
+    assert.equal(failures.length, 1, failures.join('\n'));
+    assert.match(failures[0], /^docs\/guides\/tutorial\.md:2: line 2: TS2322/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('budgets, layout identity, and error coverage report drift', () => {
-  const families = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
+  const families = ['missing-service', 'unsatisfied-consumer', 'singleton-captures-scoped', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
   const errorsPage = codes => `# Errors {#errors}\n${codes.map(code => `## ${code} {#${code.toLowerCase().replace(/_/g, '-')}}\n`).join('')}${families.map(id => `## Family {#${id}}\n`).join('')}`;
   const root = fixture({
     'AGENTS.md': `# A\n${layout}`,
     'docs/guides/examples-modularity.md': `# M\n## Recommended module layout\n${layout}`,
-    'docs/agent/errors.md': errorsPage(['DI_BAG_CYCLE']),
-    'src/a.ts': "throw libraryError('DI_BAG_CYCLE', 'cycle');",
+    'docs/agent/errors.md': errorsPage(['DI_BAG_DEPENDENCY_CYCLE']),
+    'src/a.ts': "throw libraryError('DI_BAG_DEPENDENCY_CYCLE', 'cycle');",
   });
   try {
     assert.deepEqual([...checkBudgets(root), ...checkLayoutBlock(root), ...checkErrorCoverage(root)], []);
@@ -100,7 +128,7 @@ test('budgets, layout identity, and error coverage report drift', () => {
     writeFileSync(join(root, 'docs/agent/recipes.md'), `# Recipes\n## Short {#short}\n${'x\n'.repeat(57)}\n## Long {#long}\n${'x\n'.repeat(59)}`);
     assert.deepEqual(checkBudgets(root).slice(2), ['docs/agent/recipes.md#long has 60 lines; recipes stay under 60']);
     writeFileSync(join(root, 'src/b.ts'), "libraryError('DI_BAG_NEW', 'new');");
-    writeFileSync(join(root, 'docs/agent/errors.md'), `${errorsPage(['DI_BAG_CYCLE', 'DI_BAG_GONE'])}## DI_BAG_ODD {#odd}\n## Untagged\n`);
+    writeFileSync(join(root, 'docs/agent/errors.md'), `${errorsPage(['DI_BAG_DEPENDENCY_CYCLE', 'DI_BAG_GONE'])}## DI_BAG_ODD {#odd}\n## Untagged\n`);
     assert.deepEqual(checkErrorCoverage(root), [
       'docs/agent/errors.md:11: DI_BAG_ODD must use {#di-bag-odd}',
       'docs/agent/errors.md:12: heading "Untagged" needs an explicit {#id}',
@@ -114,9 +142,9 @@ test('budgets, layout identity, and error coverage report drift', () => {
 test('message URLs in src resolve to a page and anchor, in sources and in the build', () => {
   const root = fixture({
     'README.md': '# Intro\n',
-    'docs/agent/errors.md': '# Errors\n## DI_BAG_CYCLE {#di-bag-cycle}\n',
-    'src/a.ts': "const see = 'see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle';",
-    'dist/agent/errors.html': '<h2 id="di-bag-cycle">DI_BAG_CYCLE</h2>',
+    'docs/agent/errors.md': '# Errors\n## DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}\n',
+    'src/a.ts': "const see = 'see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-dependency-cycle';",
+    'dist/agent/errors.html': '<h2 id="di-bag-dependency-cycle">DI_BAG_DEPENDENCY_CYCLE</h2>',
   });
   try {
     assert.deepEqual(checkMessageUrlsInSources(root, sitePages(root)), []);

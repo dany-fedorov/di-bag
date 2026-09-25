@@ -9,24 +9,24 @@
         "collapsed": true,
         "items": [
           {
-            "text": "DiBagCleanupError",
-            "link": "/reference/index/classes/DiBagCleanupError.md"
-          },
-          {
             "text": "DiBagCloseCancelledError",
             "link": "/reference/index/classes/DiBagCloseCancelledError.md"
+          },
+          {
+            "text": "DiBagDisposalError",
+            "link": "/reference/index/classes/DiBagDisposalError.md"
           },
           {
             "text": "DiBagPluginValidationError",
             "link": "/reference/index/classes/DiBagPluginValidationError.md"
           },
           {
-            "text": "DiBagStartupCancelledError",
-            "link": "/reference/index/classes/DiBagStartupCancelledError.md"
+            "text": "DiBagServiceReadinessCancelledError",
+            "link": "/reference/index/classes/DiBagServiceReadinessCancelledError.md"
           },
           {
-            "text": "DiBagStartupError",
-            "link": "/reference/index/classes/DiBagStartupError.md"
+            "text": "DiBagServiceReadinessError",
+            "link": "/reference/index/classes/DiBagServiceReadinessError.md"
           }
         ]
       },
@@ -35,20 +35,12 @@
         "collapsed": true,
         "items": [
           {
-            "text": "AcquisitionContext",
-            "link": "/reference/index/interfaces/AcquisitionContext.md"
-          },
-          {
             "text": "AcquisitionEventFields",
             "link": "/reference/index/interfaces/AcquisitionEventFields.md"
           },
           {
             "text": "AcquisitionSnapshot",
             "link": "/reference/index/interfaces/AcquisitionSnapshot.md"
-          },
-          {
-            "text": "Bag",
-            "link": "/reference/index/interfaces/Bag.md"
           },
           {
             "text": "BindingSnapshot",
@@ -59,8 +51,12 @@
             "link": "/reference/index/interfaces/Builder.md"
           },
           {
-            "text": "CleanupFailure",
-            "link": "/reference/index/interfaces/CleanupFailure.md"
+            "text": "BuilderBuildModule",
+            "link": "/reference/index/interfaces/BuilderBuildModule.md"
+          },
+          {
+            "text": "BuilderWithReplacedService",
+            "link": "/reference/index/interfaces/BuilderWithReplacedService.md"
           },
           {
             "text": "CloseOptions",
@@ -71,8 +67,28 @@
             "link": "/reference/index/interfaces/CloseProgress.md"
           },
           {
+            "text": "CollectionToken",
+            "link": "/reference/index/interfaces/CollectionToken.md"
+          },
+          {
+            "text": "CollectionTokenBase",
+            "link": "/reference/index/interfaces/CollectionTokenBase.md"
+          },
+          {
             "text": "ConfigurationOptions",
             "link": "/reference/index/interfaces/ConfigurationOptions.md"
+          },
+          {
+            "text": "Container",
+            "link": "/reference/index/interfaces/Container.md"
+          },
+          {
+            "text": "ContainerEventFields",
+            "link": "/reference/index/interfaces/ContainerEventFields.md"
+          },
+          {
+            "text": "CreateProviderFromPluginOptions",
+            "link": "/reference/index/interfaces/CreateProviderFromPluginOptions.md"
           },
           {
             "text": "DiBagApi",
@@ -87,16 +103,28 @@
             "link": "/reference/index/interfaces/DiBagPolicy.md"
           },
           {
+            "text": "DisposalFailure",
+            "link": "/reference/index/interfaces/DisposalFailure.md"
+          },
+          {
             "text": "DisposerContext",
             "link": "/reference/index/interfaces/DisposerContext.md"
           },
           {
-            "text": "FactoryWithDisposal",
-            "link": "/reference/index/interfaces/FactoryWithDisposal.md"
+            "text": "EnsureServicesReadyOptions",
+            "link": "/reference/index/interfaces/EnsureServicesReadyOptions.md"
+          },
+          {
+            "text": "FactoryContext",
+            "link": "/reference/index/interfaces/FactoryContext.md"
           },
           {
             "text": "GraphSnapshot",
             "link": "/reference/index/interfaces/GraphSnapshot.md"
+          },
+          {
+            "text": "LifecycleObserver",
+            "link": "/reference/index/interfaces/LifecycleObserver.md"
           },
           {
             "text": "Module",
@@ -111,14 +139,6 @@
             "link": "/reference/index/interfaces/ObserverFailure.md"
           },
           {
-            "text": "ObserverOptions",
-            "link": "/reference/index/interfaces/ObserverOptions.md"
-          },
-          {
-            "text": "PluginOptions",
-            "link": "/reference/index/interfaces/PluginOptions.md"
-          },
-          {
             "text": "Provider",
             "link": "/reference/index/interfaces/Provider.md"
           },
@@ -129,14 +149,6 @@
           {
             "text": "RuntimeOptions",
             "link": "/reference/index/interfaces/RuntimeOptions.md"
-          },
-          {
-            "text": "ScopeEventFields",
-            "link": "/reference/index/interfaces/ScopeEventFields.md"
-          },
-          {
-            "text": "StartupOptions",
-            "link": "/reference/index/interfaces/StartupOptions.md"
           },
           {
             "text": "Token",
@@ -157,10 +169,6 @@
             "link": "/reference/index/type-aliases/AcquisitionMetadataPresence.md"
           },
           {
-            "text": "AcquisitionMode",
-            "link": "/reference/index/type-aliases/AcquisitionMode.md"
-          },
-          {
             "text": "AliasEntries",
             "link": "/reference/index/type-aliases/AliasEntries.md"
           },
@@ -173,8 +181,28 @@
             "link": "/reference/index/type-aliases/AliasRegistration.md"
           },
           {
-            "text": "BuilderContribute",
-            "link": "/reference/index/type-aliases/BuilderContribute.md"
+            "text": "BuilderWithCollectionContribution",
+            "link": "/reference/index/type-aliases/BuilderWithCollectionContribution.md"
+          },
+          {
+            "text": "BuilderWithInstalledModules",
+            "link": "/reference/index/type-aliases/BuilderWithInstalledModules.md"
+          },
+          {
+            "text": "BuilderWithServiceAlias",
+            "link": "/reference/index/type-aliases/BuilderWithServiceAlias.md"
+          },
+          {
+            "text": "BuilderWithServices",
+            "link": "/reference/index/type-aliases/BuilderWithServices.md"
+          },
+          {
+            "text": "BuilderWithTokenService",
+            "link": "/reference/index/type-aliases/BuilderWithTokenService.md"
+          },
+          {
+            "text": "CanonicalLifetime",
+            "link": "/reference/index/type-aliases/CanonicalLifetime.md"
           },
           {
             "text": "CheckDependencyCompatibility",
@@ -185,24 +213,24 @@
             "link": "/reference/index/type-aliases/CheckDependencyCompleteness.md"
           },
           {
+            "text": "CheckedChildContainerLifetimes",
+            "link": "/reference/index/type-aliases/CheckedChildContainerLifetimes.md"
+          },
+          {
             "text": "CheckedLifetimes",
             "link": "/reference/index/type-aliases/CheckedLifetimes.md"
           },
           {
-            "text": "CheckedScopeLifetimes",
-            "link": "/reference/index/type-aliases/CheckedScopeLifetimes.md"
+            "text": "ChildReplacementAdmission",
+            "link": "/reference/index/type-aliases/ChildReplacementAdmission.md"
           },
           {
-            "text": "CollectionDependency",
-            "link": "/reference/index/type-aliases/CollectionDependency.md"
+            "text": "CollectionItem",
+            "link": "/reference/index/type-aliases/CollectionItem.md"
           },
           {
-            "text": "CompositionArguments",
-            "link": "/reference/index/type-aliases/CompositionArguments.md"
-          },
-          {
-            "text": "CompositionFunction",
-            "link": "/reference/index/type-aliases/CompositionFunction.md"
+            "text": "CollectionTokenMember",
+            "link": "/reference/index/type-aliases/CollectionTokenMember.md"
           },
           {
             "text": "CompositionReport",
@@ -221,6 +249,18 @@
             "link": "/reference/index/type-aliases/ContributionConstraint.md"
           },
           {
+            "text": "CreateChildContainerOptions",
+            "link": "/reference/index/type-aliases/CreateChildContainerOptions.md"
+          },
+          {
+            "text": "CreateIndependentContainerOptions",
+            "link": "/reference/index/type-aliases/CreateIndependentContainerOptions.md"
+          },
+          {
+            "text": "CreateProviderFromPlugin",
+            "link": "/reference/index/type-aliases/CreateProviderFromPlugin.md"
+          },
+          {
             "text": "DependencyReference",
             "link": "/reference/index/type-aliases/DependencyReference.md"
           },
@@ -229,8 +269,12 @@
             "link": "/reference/index/type-aliases/DiBagErrorCode.md"
           },
           {
-            "text": "DisjointScopeSelection",
-            "link": "/reference/index/type-aliases/DisjointScopeSelection.md"
+            "text": "DisjointChildContainerSelection",
+            "link": "/reference/index/type-aliases/DisjointChildContainerSelection.md"
+          },
+          {
+            "text": "FactoryReturnKind",
+            "link": "/reference/index/type-aliases/FactoryReturnKind.md"
           },
           {
             "text": "LazyDependency",
@@ -301,10 +345,6 @@
             "link": "/reference/index/type-aliases/Overrides.md"
           },
           {
-            "text": "PluginAcquisitionMode",
-            "link": "/reference/index/type-aliases/PluginAcquisitionMode.md"
-          },
-          {
             "text": "PluginOutputValidator",
             "link": "/reference/index/type-aliases/PluginOutputValidator.md"
           },
@@ -313,8 +353,16 @@
             "link": "/reference/index/type-aliases/PluginProvider.md"
           },
           {
-            "text": "PluginProviderFactory",
-            "link": "/reference/index/type-aliases/PluginProviderFactory.md"
+            "text": "PluginReturnKind",
+            "link": "/reference/index/type-aliases/PluginReturnKind.md"
+          },
+          {
+            "text": "PositionalFactoryArguments",
+            "link": "/reference/index/type-aliases/PositionalFactoryArguments.md"
+          },
+          {
+            "text": "PositionalFactoryFunction",
+            "link": "/reference/index/type-aliases/PositionalFactoryFunction.md"
           },
           {
             "text": "Presence",
@@ -349,6 +397,10 @@
             "link": "/reference/index/type-aliases/ProviderOptionalTokens.md"
           },
           {
+            "text": "ProviderOrFactory",
+            "link": "/reference/index/type-aliases/ProviderOrFactory.md"
+          },
+          {
             "text": "ProviderOutput",
             "link": "/reference/index/type-aliases/ProviderOutput.md"
           },
@@ -377,10 +429,6 @@
             "link": "/reference/index/type-aliases/ReboundSelection.md"
           },
           {
-            "text": "Registration",
-            "link": "/reference/index/type-aliases/Registration.md"
-          },
-          {
             "text": "RegistrationEntries",
             "link": "/reference/index/type-aliases/RegistrationEntries.md"
           },
@@ -395,10 +443,6 @@
           {
             "text": "ScopedAliases",
             "link": "/reference/index/type-aliases/ScopedAliases.md"
-          },
-          {
-            "text": "ScopeOptions",
-            "link": "/reference/index/type-aliases/ScopeOptions.md"
           },
           {
             "text": "SealedConstraints",
@@ -425,6 +469,10 @@
             "link": "/reference/index/type-aliases/SharedAliasProviders.md"
           },
           {
+            "text": "SingleServiceTokenMember",
+            "link": "/reference/index/type-aliases/SingleServiceTokenMember.md"
+          },
+          {
             "text": "TokenBinding",
             "link": "/reference/index/type-aliases/TokenBinding.md"
           },
@@ -435,6 +483,10 @@
           {
             "text": "TokenKey",
             "link": "/reference/index/type-aliases/TokenKey.md"
+          },
+          {
+            "text": "TokenKind",
+            "link": "/reference/index/type-aliases/TokenKind.md"
           },
           {
             "text": "TokenMember",
@@ -457,23 +509,6 @@
           {
             "text": "DiBag",
             "link": "/reference/index/variables/DiBag.md"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "text": "node",
-    "link": "/reference/node/",
-    "collapsed": true,
-    "items": [
-      {
-        "text": "Variables",
-        "collapsed": true,
-        "items": [
-          {
-            "text": "DiBag",
-            "link": "/reference/node/variables/DiBag.md"
           }
         ]
       }

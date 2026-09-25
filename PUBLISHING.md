@@ -15,7 +15,7 @@ tool versions, native diagnostic inventory, build output, dry-run and actual pac
 JSON, archive bytes and hashes, and every supervised command record.
 
 Verify the public API and inferred consumer declarations in the packed
-archive. The documented local version is `0.4.0`; select and verify each
+archive. The documented local version is `0.5.0`; select and verify each
 subsequent version before publication.
 
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
@@ -79,7 +79,7 @@ Install the explicit archive path into fresh consumers with:
 npm install --offline --ignore-scripts --no-audit --no-fund --no-package-lock <archive-path>
 ```
 
-Consumers must exercise the root and Node entry points in CommonJS and ESM under
+Consumers must exercise the root entry point in CommonJS and ESM under
 Node and Bun, compile the physical declarations with producer source removed
 under both supported compilers, and prove the archive has zero runtime
 dependencies. Any timeout, signal, memory/output bound, changed input,
@@ -117,15 +117,58 @@ independently. Record a tool release in the `CHANGELOG.md` section of the
    `tsc` and `npx di-bag-graph --check` there.
 4. `npm pack ./tools/graph --pack-destination /tmp/di-bag-release-candidate` and
    inspect the archive.
-5. Publication of that archive falls under the authorization rule below: the
-   same registry check, public access, and provenance as `di-bag`, only in a
-   separately authorized session.
+5. Publication of that verified local archive falls under the authorization
+   rule below. Use `--access public` and a scratch `--userconfig`; omit
+   provenance attestation. Run it only in a separately authorized session.
+
+## Releasing di-bag-codemod
+
+`tools/codemod` is the separate package `di-bag-codemod`, with its own version,
+lockfile, and `typescript` dependency. It migrates code against installed DI Bag
+0.4 declarations, so its version moves independently. Record a tool release in
+the `CHANGELOG.md` section of the `di-bag` release it accompanies, naming the
+tool version.
+
+1. Set `version` in `tools/codemod/package.json`; run
+   `npm install --prefix tools/codemod` to update its lockfile.
+2. Run `npm ci --prefix tools/codemod`, `npm run codemod:check`, and
+   `npm run codemod:acceptance`. The pack test asserts the exact archive file
+   surface.
+3. Run the CI step "Smoke-test the packed codemod" locally: it installs the
+   packed tool into a fresh consumer, copies the vendored 0.4 declarations into
+   `node_modules/di-bag`, and verifies the `withServices` and `buildContainer`
+   rewrites.
+4. `npm pack ./tools/codemod --pack-destination /tmp/di-bag-release-candidate`
+   and inspect the archive.
+5. Publication of that archive falls under the authorization rule below. The
+   controller publishes the verified local archive with `--access public` and
+   a scratch `--userconfig`; omit provenance attestation, which requires a CI
+   identity.
 
 ## DO NOT RUN without fresh explicit authorization
 
+The login is interactive and writes credentials only to a newly created,
+mode-700 user-config directory; the exit trap removes that file and directory.
+Never put a registry token in an argument, this document, or a retained log.
+Confirm `npm whoami` names the intended publisher.
+Each version check must report that the exact version is absent; an existing
+version, unexpected owner, or failed login stops the release. Publish the two
+tools before the library from the exact verified candidate archives. Provenance
+is omitted because this is a local-token publication rather than a CI identity.
+
 ```bash
-npm view di-bag@0.4.0 version --registry=https://registry.npmjs.org
-npm login --registry=https://registry.npmjs.org
-npm publish /tmp/di-bag-release-candidate/di-bag-0.4.0.tgz --access public --provenance
-npm dist-tag add di-bag@0.4.0 latest --registry=https://registry.npmjs.org
+release_scratch="$(mktemp -d)"
+chmod 700 "$release_scratch"
+trap 'rm -f "$release_scratch/publish.npmrc"; rmdir "$release_scratch"' EXIT
+npm login --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm whoami --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag-graph@0.2.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag-codemod@0.1.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag@0.5.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-0.5.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag-graph@0.2.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag-codemod@0.1.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag@0.5.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
 ```

@@ -26,9 +26,9 @@ test('the control chain compiles clean', () => {
 test('named modules hold 50 providers each and the fault sits in the last module', () => {
   const valid = namedModuleScaleSource(120);
   expect(valid.match(/^const feature\d+ = /gm)).toHaveLength(3);
-  // Three installs into the host, plus the reuse check's `installModule(feature0)`.
-  expect(valid.match(/\.installModule\(feature\d+\)/g)).toHaveLength(4);
-  expect(valid).toContain('const reused = DiBag.createBuilder().installModule(feature0).build();');
+  // Three installs into the host, plus the reuse check's `withInstalledModules([feature0])`.
+  expect(valid.match(/\.withInstalledModules\(\[feature\d+\]\)/g)).toHaveLength(4);
+  expect(valid).toContain('const reused = DiBag.createBuilder().withInstalledModules([feature0]).buildContainer();');
   expect(valid).toContain("bag.resolve('svc60')");
   expect(valid).toContain("bag.resolve('svc119')");
   expect(valid).toContain("reused.resolve('svc49')");

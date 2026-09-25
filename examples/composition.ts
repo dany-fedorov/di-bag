@@ -27,25 +27,24 @@ async function main() {
   const pathKey = Symbol('path');
   const labelKey = Symbol('label');
   const clientAliasKey = Symbol('client alias');
-  const port = DiBag.token(portKey).of<number>();
-  const client = DiBag.token(clientKey).of<Client>();
-  const path = DiBag.token(pathKey).of<string>();
-  const label = DiBag.token(labelKey).of<string>();
-  const clientAlias = DiBag.token(clientAliasKey).of<Client>();
+  const port = DiBag.createToken(portKey).forService<number>();
+  const client = DiBag.createToken(clientKey).forService<Client>();
+  const path = DiBag.createToken(pathKey).forService<string>();
+  const label = DiBag.createToken(labelKey).forService<string>();
+  const clientAlias = DiBag.createToken(clientAliasKey).forService<Client>();
   const bag = DiBag.createBuilder()
-    .register(port, () => 8080)
-    .register(client, DiBag.fromClass([port], Client))
-    .alias(clientAlias, client)
-    .register(path, () => 'health')
-    .register({
-      endpoint: DiBag.fromFunction([client, path], endpoint),
-      reporter: DiBag.fromClass(
-        [DiBag.lazy(clientAlias), DiBag.optional(label)],
-        Reporter,
+    .withTokenService(port, () => 8080)
+    .withTokenService(client, DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }))
+    .withServiceAlias({ aliasKey: clientAlias, targetServiceKey: client })
+    .withTokenService(path, () => 'health')
+    .withServices({
+      endpoint: DiBag.createProviderFromFunction({ dependencies: [client, path], factoryFunction: endpoint }),
+      reporter: DiBag.createProviderFromClass(
+        { dependencies: [DiBag.lazy(clientAlias), DiBag.optional(label)], serviceClass: Reporter },
       ),
     })
-    .alias('report', 'reporter')
-    .build();
+    .withServiceAlias({ aliasKey: 'report', targetServiceKey: 'reporter' })
+    .buildContainer();
   const url = bag.resolve('endpoint');
   assert.equal(url, 'http://localhost:8080/health');
   assert.equal(bag.resolve('reporter').describe(), 'service at localhost:8080');

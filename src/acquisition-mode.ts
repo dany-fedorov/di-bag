@@ -7,57 +7,59 @@ import type { IsAny, SeeErrors, StructuralThenable, Unsatisfied } from './types'
  * the exact raw value, or an observed native Promise fulfillment.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
  */
-export type AcquisitionMode = 'auto' | 'raw' | 'nativePromise';
+export type FactoryReturnKind = 'auto-detect' | 'sync-value' | 'native-promise' | 'uninspected';
 /**
  * Portable facade configuration for `auto` acquisition stages.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
  */
 export interface RuntimeOptions {
   /** Return true only for native Promises the host can observe without thenable assimilation. */
-  readonly isNativePromise: (this: void, value: unknown) => boolean;
+  readonly isNativePromise: (this: void, candidate: unknown) => boolean;
 }
 export interface RuntimeContext { readonly isNativePromise?: RuntimeOptions['isNativePromise']; readonly observers?: LifecycleObservers }
 export const unconfigured: RuntimeContext = Object.freeze({});
 export function runtimeContext(options: RuntimeOptions, previous: RuntimeContext = unconfigured): RuntimeContext {
-  if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration' });
+  if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration', argument: 'runtime', expected: 'an object' });
   const { isNativePromise } = options;
-  if (typeof isNativePromise !== 'function') throw libraryError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration' });
+  if (typeof isNativePromise !== 'function') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration', argument: 'runtime.isNativePromise', expected: 'a function' });
   return Object.freeze({ ...previous, isNativePromise });
 }
-export type Acquired<O, M extends AcquisitionMode> = M extends 'raw' ? O : Awaited<O>;
-export type ModeOptions<M extends AcquisitionMode, Default extends AcquisitionMode = 'auto'> = Default extends M
-  ? { readonly acquisitionMode?: M } : { readonly acquisitionMode: M };
-export type StageOptions<M extends AcquisitionMode> = 'auto' extends M
-  ? [options?: { readonly acquisitionMode: M }] : [options: { readonly acquisitionMode: M }];
-export type NativeOutput<O, M extends AcquisitionMode> = 'nativePromise' extends M
-  ? [O] extends [Promise<unknown>] ? unknown : Unsatisfied<'nativePromise acquisition requires a Promise output', {}>
+export type Acquired<Output, ReturnKind extends FactoryReturnKind> =
+  ReturnKind extends 'sync-value' | 'uninspected' ? Output : Awaited<Output>;
+export type ReturnKindOptions<ReturnKind extends FactoryReturnKind, Default extends FactoryReturnKind = 'auto-detect'> =
+  Default extends ReturnKind ? { readonly factoryReturnKind?: ReturnKind } : { readonly factoryReturnKind: ReturnKind };
+export type StageOptions<ReturnKind extends FactoryReturnKind> = 'auto-detect' extends ReturnKind
+  ? [options?: { readonly factoryReturnKind: ReturnKind }] : [options: { readonly factoryReturnKind: ReturnKind }];
+export type NativeOutput<Output, ReturnKind extends FactoryReturnKind> = 'native-promise' extends ReturnKind
+  ? [Output] extends [Promise<unknown>] ? unknown : Unsatisfied<'native-promise factory return kind requires a Promise output', {}>
   : unknown;
-/** Reject a structural thenable output when the stage would classify it automatically. */
-export type AutoOutput<O, M extends AcquisitionMode> = 'auto' extends M
-  ? true extends StructuralThenable<O>
-    ? Unsatisfied<`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, {}>
+export type AutoOutput<Output, ReturnKind extends FactoryReturnKind> = 'auto-detect' extends ReturnKind
+  ? true extends StructuralThenable<Output>
+    ? Unsatisfied<`factory output is a structural thenable; return a native Promise or select factoryReturnKind 'uninspected' or 'native-promise'${SeeErrors<'structural-thenable'>}`, {}>
     : unknown
   : unknown;
-type PromiseOutput<O> = O extends infer T & {} ? T extends Promise<unknown> ? true : false : false;
-/** Reject a Promise or thenable output where the helper declares the stage synchronous; `any` is exempt. */
-export type SyncOutput<O> = IsAny<O> extends true ? unknown
-  : true extends PromiseOutput<O> | StructuralThenable<O>
-    ? Unsatisfied<`fromSyncFactory output must not be a Promise or thenable; use fromAsyncFactory for a Promise, or fromFactory with acquisitionMode raw to make the Promise object the service${SeeErrors<'portable-factory-output'>}`, {}>
-    : unknown;
-/** Require a Promise output where the helper declares the stage asynchronous. */
-export type AsyncOutput<O> = [O] extends [Promise<unknown>] ? unknown
-  : Unsatisfied<`fromAsyncFactory requires a Promise output; use fromSyncFactory for a synchronous value${SeeErrors<'portable-factory-output'>}`, {}>;
-export function acquisitionMode(options: { readonly acquisitionMode?: AcquisitionMode } | undefined, fallback: AcquisitionMode = 'auto'): AcquisitionMode {
-  if (options === undefined) return fallback;
-  if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisition options', { option: 'acquisitionMode' });
-  const selected = options.acquisitionMode;
-  const mode = selected === undefined ? fallback : selected;
-  if (mode !== 'auto' && mode !== 'raw' && mode !== 'nativePromise') throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisitionMode: use auto, raw, or nativePromise', { option: 'acquisitionMode' });
-  return mode;
+type PromiseOutput<Output> = Output extends infer Value & {} ? Value extends Promise<unknown> ? true : false : false;
+export type SyncOutput<Output, ReturnKind extends FactoryReturnKind = 'sync-value'> = 'sync-value' extends ReturnKind
+  ? IsAny<Output> extends true ? unknown
+    : true extends PromiseOutput<Output> | StructuralThenable<Output>
+      ? Unsatisfied<`sync-value output must not be a Promise or thenable; use factoryReturnKind 'native-promise' for a Promise, or 'uninspected' to make the Promise object the service${SeeErrors<'portable-factory-output'>}`, {}>
+      : unknown
+  : unknown;
+export type AsyncOutput<Output> = [Output] extends [Promise<unknown>] ? unknown
+  : Unsatisfied<`native-promise factory return kind requires a Promise output; use 'sync-value' for a synchronous value${SeeErrors<'portable-factory-output'>}`, {}>;
+
+const returnKinds: readonly FactoryReturnKind[] = ['auto-detect', 'sync-value', 'native-promise', 'uninspected'];
+export function factoryReturnKind(value: unknown, operation: string, fallback: FactoryReturnKind = 'auto-detect', argument = 'factoryReturnKind'): FactoryReturnKind {
+  const selected = value === undefined ? fallback : value;
+  if (!returnKinds.includes(selected as FactoryReturnKind)) throw libraryError(
+    'DI_BAG_INVALID_ARGUMENT', `${operation} ${argument} must name a supported return policy`,
+    { operation, argument, expected: "one of: 'auto-detect', 'sync-value', 'native-promise', 'uninspected'" },
+  );
+  return selected as FactoryReturnKind;
 }
 /**
- * Read the host classifier through `process.getBuiltinModule` (Node, Bun, Deno). A call, not an
- * import, keeps `node:` specifiers out of the root entry's module graph for bundlers and browsers.
+ * The root entry self-configures through `process.getBuiltinModule` (Node, Bun, Deno). A call,
+ * not an import, keeps `node:` specifiers out of its module graph for bundlers and browsers.
  */
 function hostClassifier(): RuntimeOptions['isNativePromise'] | undefined {
   const host: unknown = (globalThis as { readonly process?: unknown }).process;
@@ -76,11 +78,11 @@ export function resolveClassifier(context: RuntimeContext): RuntimeContext | und
   return isNativePromise ? Object.freeze({ ...context, isNativePromise }) : undefined;
 }
 const namedBindings = 8;
-/** The graph has automatic stages and no classifier; `bindings` labels every such registration. */
+/** The graph has automatic stages and no classifier; `bindings` labels every affected provider. */
 export function classifierRequired(bindings: readonly string[]): Error {
   const sorted = [...bindings].sort();
   const shown = sorted.slice(0, namedBindings).map(label => JSON.stringify(label)).join(', ');
   const rest = sorted.length - Math.min(sorted.length, namedBindings);
-  const count = sorted.length === 1 ? '1 registration uses' : `${sorted.length} registrations use`;
-  return libraryError('DI_BAG_CLASSIFIER_REQUIRED', `this host has no process.getBuiltinModule; ${count} automatic acquisition: ${shown}${rest ? `, and ${rest} more` : ''}; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } })`, { option: 'runtime.isNativePromise', bindings: Object.freeze(sorted) });
+  const count = sorted.length === 1 ? '1 provider uses' : `${sorted.length} providers use`;
+  return libraryError('DI_BAG_CLASSIFIER_REQUIRED', `this host has no process.getBuiltinModule; ${count} auto-detect factory return kind: ${shown}${rest ? `, and ${rest} more` : ''}; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' }) or factoryReturnKind: 'native-promise' for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } })`, { option: 'runtime.isNativePromise', bindings: Object.freeze(sorted) });
 }

@@ -1,16 +1,16 @@
 import { DiBag } from '../../../src';
-const module = DiBag.createBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(module).build();
+const module = DiBag.createBuilder().withServices({ hidden: ({ external }: { external: number }) => external }).buildModule({ exportedServiceKeys: [] });
+// diagnostic: required services are missing
+DiBag.createBuilder().withInstalledModules([module]).buildContainer();
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(module).register({ external: () => 'wrong' });
-const left = DiBag.createBuilder().register({ hidden: ({ external }: { external: { mode: true } }) => external }).buildModule([]);
-const right = DiBag.createBuilder().register({ hidden: ({ external }: { external: { mode: false } }) => external }).buildModule([]);
+DiBag.createBuilder().withInstalledModules([module]).withServices({ external: () => 'wrong' });
+const left = DiBag.createBuilder().withServices({ hidden: ({ external }: { external: { mode: true } }) => external }).buildModule({ exportedServiceKeys: [] });
+const right = DiBag.createBuilder().withServices({ hidden: ({ external }: { external: { mode: false } }) => external }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(left).installModule(right).register({ external: () => ({ mode: true as const }) });
-const open = DiBag.createBuilder().register({
+DiBag.createBuilder().withInstalledModules([left]).withInstalledModules([right]).withServices({ external: () => ({ mode: true as const }) });
+const open = DiBag.createBuilder().withServices({
   service: () => ({ read() { return 1; }, extra() { return true; } }),
   hidden: ({ service }: { service: { extra(): boolean } }) => service.extra(),
 });
 // diagnostic: provided service does not satisfy its consumer dependency
-open.replace('service', () => ({ read() { return 2; } }));
+open.withReplacedService('service', () => ({ read() { return 2; } }));

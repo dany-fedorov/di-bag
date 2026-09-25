@@ -1,6 +1,6 @@
 import { DiBag } from '../../../src';
 // diagnostic: Type '({ clock }: { clock: { now(): number; }; }) => { stamp(): number; }' is not assignable to type
-DiBag.createBuilder().register({
+DiBag.createBuilder().withServices({
     clock: () => ({
       now() {
         return 'wrong';
@@ -11,7 +11,7 @@ DiBag.createBuilder().register({
         return 42;
       },
     }),
-  }).build().fork(['service'], {
+  }).buildContainer().createIndependentContainer(['service'], {
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp() {
         return clock.now();

@@ -1,6 +1,6 @@
-import { fromFunction } from '../src/composition';
+import { createProviderFromFunction } from '../src/composition';
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { withTokenBinding } from '../src/provider';
 import { normalize } from '../src/provider-operations';
 import { BindingGraph } from '../src/runtime';
@@ -9,11 +9,10 @@ import { readTokenKey, snapshotTokens } from '../src/tokens';
 
 test('token symbols participate in the same acquisition graph', async () => {
   const key = Symbol('resource');
-  const resource = DiBag.token(key).of<{ read(): number }>();
+  const resource = DiBag.createToken(key).forService<{ read(): number }>();
   const disposed: string[] = [];
-  const owned = DiBag.withDisposal(() => ({ read: () => 42 }), () => { disposed.push('resource'); });
-  const use = DiBag.withDisposal(fromFunction([resource], value => ({ read: () => value.read() })),
-    () => { disposed.push('consumer'); });
+  const owned = DiBag.providerWithDisposal({ provider: () => ({ read: () => 42 }), disposeService: () => { disposed.push('resource'); } });
+  const use = DiBag.providerWithDisposal({ provider: createProviderFromFunction({ dependencies: [resource], factoryFunction: value => ({ read: () => value.read() }) }), disposeService: () => { disposed.push('consumer'); } });
   const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, owned).withPublicRegistrations({ use }));
   expect((runtime.resolve('use') as { read(): number }).read()).toBe(42);
   await runtime.close();
@@ -22,25 +21,25 @@ test('token symbols participate in the same acquisition graph', async () => {
 
 test('handles authenticate identity and capture a receiver-free symbol', () => {
   const key = Symbol('same'); const other = Symbol('same');
-  const { of } = DiBag.token(key);
-  const token = of<number>(); const again = DiBag.token(key).of<number>();
+  const { forService } = DiBag.createToken(key);
+  const token = forService<number>(); const again = DiBag.createToken(key).forService<number>();
   expect(Object.isFrozen(token)).toBe(true);
   expect(readTokenKey(token)).toBe(key);
   expect(readTokenKey(again)).toBe(key);
-  expect(readTokenKey(DiBag.token(other).of<number>())).not.toBe(key);
+  expect(readTokenKey(DiBag.createToken(other).forService<number>())).not.toBe(key);
   for (const invalid of [{ ...token }, { key }, Object.create(token), new Proxy(token, {}), null, key]) {
     expect(() => readTokenKey(invalid)).toThrow('invalid token');
   }
-  expect(() => Reflect.apply(DiBag.token, undefined, ['fake'])).toThrow('symbol');
+  expect(() => Reflect.apply(DiBag.createToken, undefined, ['fake'])).toThrow('symbol');
 });
 
 test('indexed snapshots ignore iterators and caller mutations', async () => {
   const aKey = Symbol('a'); const bKey = Symbol('b');
-  const a = DiBag.token(aKey).of<number>(); const b = DiBag.token(bKey).of<number>();
+  const a = DiBag.createToken(aKey).forService<number>(); const b = DiBag.createToken(bKey).forService<number>();
   const selected: [typeof a, typeof b] = [a, b];
   selected[Symbol.iterator] = function* () { yield b; yield a; return undefined; };
   const order: string[] = [];
-  const use = fromFunction(selected, (first, second) => [first, second]);
+  const use = createProviderFromFunction({ dependencies: selected, factoryFunction: (first, second) => [first, second] });
   selected.reverse();
   const snapshot = snapshotTokens([a, b]);
   expect(Object.isFrozen(snapshot)).toBe(true);
@@ -51,10 +50,10 @@ test('indexed snapshots ignore iterators and caller mutations', async () => {
 });
 
 test('invalid selections fail before callbacks and binding transforms', () => {
-  const key = Symbol('value'); const token = DiBag.token(key).of<number>();
+  const key = Symbol('value'); const token = DiBag.createToken(key).forService<number>();
   let called = 0;
   for (const invalid of [[token, { ...token }], [token, undefined], { 0: token, length: 1 }, null]) {
-    expect(() => Reflect.apply(fromFunction, undefined, [invalid, () => { called++; }])).toThrow();
+    expect(() => Reflect.apply(createProviderFromFunction, undefined, [{ dependencies: invalid, factoryFunction: () => { called++; } }])).toThrow();
   }
   expect(() => Reflect.apply(withTokenBinding, undefined, [{ ...token }, () => { called++; }])).toThrow('invalid token');
   expect(called).toBe(0);
@@ -62,9 +61,9 @@ test('invalid selections fail before callbacks and binding transforms', () => {
 
 test('same actual symbols and repeated token reads reuse one cache slot', async () => {
   const key = Symbol.for('di-bag-test-resource'); const sameKey = Symbol.for('di-bag-test-resource');
-  const a = DiBag.token(key).of<object>(); const b = DiBag.token(sameKey).of<object>();
+  const a = DiBag.createToken(key).forService<object>(); const b = DiBag.createToken(sameKey).forService<object>();
   let calls = 0; const value = {};
-  const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, () => { calls++; return value; }).withPublicRegistrations({ use: fromFunction([a, b, a], (...values) => values) }));
+  const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, () => { calls++; return value; }).withPublicRegistrations({ use: createProviderFromFunction({ dependencies: [a, b, a], factoryFunction: (...values) => values }) }));
   const result = runtime.resolve('use') as object[];
   expect(result.every(item => item === value)).toBe(true);
   expect(runtime.resolve(sameKey)).toBe(value);
@@ -74,20 +73,20 @@ test('same actual symbols and repeated token reads reuse one cache slot', async 
 
 test('distinct symbols with the same description resolve independent slots', async () => {
   const firstKey = Symbol('same'); const secondKey = Symbol('same');
-  const first = DiBag.token(firstKey).of<number>(); const second = DiBag.token(secondKey).of<number>();
-  const runtime = new BagRuntime(new BindingGraph().withPublicBinding(firstKey, () => 1).withPublicBinding(secondKey, () => 2).withPublicRegistrations({ use: fromFunction([first, second], (a, b) => [a, b]) }));
+  const first = DiBag.createToken(firstKey).forService<number>(); const second = DiBag.createToken(secondKey).forService<number>();
+  const runtime = new BagRuntime(new BindingGraph().withPublicBinding(firstKey, () => 1).withPublicBinding(secondKey, () => 2).withPublicRegistrations({ use: createProviderFromFunction({ dependencies: [first, second], factoryFunction: (a, b) => [a, b] }) }));
   expect(runtime.resolve('use')).toEqual([1, 2]); await runtime.close();
 });
 
 test('symbol dependencies follow lexical private and public references', async () => {
   const localKey = Symbol('local'); const publicKey = Symbol('public');
-  const selected = DiBag.token(localKey).of<number>();
+  const selected = DiBag.createToken(localKey).forService<number>();
   const privateId = Symbol('private'); const consumerId = Symbol('consumer');
   for (const ref of [{ kind: 'private' as const, id: privateId }, { kind: 'public' as const, key: publicKey }]) {
     const runtime = new BagRuntime(new BindingGraph({
       bindings: new Map([
         [privateId, { id: privateId, label: 'private', registration: () => 41, localNames: new Map() }],
-        [consumerId, { id: consumerId, label: 'consumer', registration: fromFunction([selected], value => value + 1), localNames: new Map([[localKey, ref]]) }],
+        [consumerId, { id: consumerId, label: 'consumer', registration: createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value + 1 }), localNames: new Map([[localKey, ref]]) }],
       ]), publicSlots: new Map([['consumer', consumerId]]),
     }).withPublicBinding(publicKey, () => 9));
     expect(runtime.resolve('consumer')).toBe(ref.kind === 'private' ? 42 : 10);
@@ -96,8 +95,8 @@ test('symbol dependencies follow lexical private and public references', async (
 });
 
 test('token and named cycles report symbol labels in both entry orders', async () => {
-  const key = Symbol('cycle'); const token = DiBag.token(key).of<number>();
-  const graph = new BindingGraph().withPublicBinding(key, ({ named }: { named: number }) => named).withPublicRegistrations({ named: fromFunction([token], value => value) });
+  const key = Symbol('cycle'); const token = DiBag.createToken(key).forService<number>();
+  const graph = new BindingGraph().withPublicBinding(key, ({ named }: { named: number }) => named).withPublicRegistrations({ named: createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }) });
   for (const start of [key, 'named']) {
     const runtime = new BagRuntime(graph);
     expect(() => runtime.resolve(start)).toThrow(/cycle:.*Symbol\(cycle\)/);
@@ -107,11 +106,11 @@ test('token and named cycles report symbol labels in both entry orders', async (
 });
 
 test('rejected token acquisitions retry without awaiting callback arguments', async () => {
-  const key = Symbol('promise'); const token = DiBag.token(key).of<Promise<number>>();
+  const key = Symbol('promise'); const token = DiBag.createToken(key).forService<Promise<number>>();
   let calls = 0; let selected: Promise<number> | undefined;
   const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, () => {
     calls++; return calls === 1 ? Promise.reject(new Error('retry')) : Promise.resolve(42);
-  }).withPublicRegistrations({ use: fromFunction([token], value => { selected = value; return value; }) }));
+  }).withPublicRegistrations({ use: createProviderFromFunction({ dependencies: [token], factoryFunction: value => { selected = value; return value; } }) }));
   const first = runtime.resolve('use'); expect(first).toBe(selected);
   await expect(first).rejects.toThrow('retry');
   await Promise.resolve();
@@ -121,13 +120,13 @@ test('rejected token acquisitions retry without awaiting callback arguments', as
 });
 
 test('late named reads from a token-bound source retain close permission and disposal order', async () => {
-  const key = Symbol('late'); const token = DiBag.token(key).of<Promise<number>>();
+  const key = Symbol('late'); const token = DiBag.createToken(key).forService<Promise<number>>();
   const disposed: string[] = [];
   let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
-  const late = DiBag.withDisposal(async (deps: { resource: number }) => { await gate; return deps.resource; }, () => { disposed.push('late'); });
+  const late = DiBag.providerWithDisposal({ provider: async (deps: { resource: number }) => { await gate; return deps.resource; }, disposeService: () => { disposed.push('late'); } });
   const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, late).withPublicRegistrations({
-    resource: DiBag.withDisposal(() => 42, () => { disposed.push('resource'); }),
-    use: DiBag.withDisposal(fromFunction([token], value => value), () => { disposed.push('use'); }),
+    resource: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { disposed.push('resource'); } }),
+    use: DiBag.providerWithDisposal({ provider: createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), disposeService: () => { disposed.push('use'); } }),
   }));
   const result = runtime.resolve('use'); const closing = runtime.close(); release();
   expect(await result).toBe(42); await closing;
@@ -142,10 +141,10 @@ test('undeclared well-known symbol reads remain undefined', async () => {
 });
 
 test('binding views and transformations retain frozen source selection without mutating inputs', async () => {
-  const key = Symbol('value'); const token = DiBag.token(key).of<number>();
-  const boundKey = Symbol('bound'); const bound = DiBag.token(boundKey).of<number>();
-  const source = fromFunction([token], value => value);
-  const mapped = DiBag.transformService(DiBag.withMetadata(DiBag.withDisposal(source, () => {}), { static: { owner: 'test' } }), { mode: 'direct', transform: value => value + 1 });
+  const key = Symbol('value'); const token = DiBag.createToken(key).forService<number>();
+  const boundKey = Symbol('bound'); const bound = DiBag.createToken(boundKey).forService<number>();
+  const source = createProviderFromFunction({ dependencies: [token], factoryFunction: value => value });
+  const mapped = DiBag.providerWithTransformedService({ provider: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: source, disposeService: () => {} }), registrationMetadata: { owner: 'test' } }), transformService: value => value + 1, callbackReceives: 'exposed-service' });
   const view = withTokenBinding(bound, mapped);
   expect(normalize(view).tokenKeys).toEqual([key]);
   expect(Object.isFrozen(normalize(view).tokenKeys)).toBe(true);

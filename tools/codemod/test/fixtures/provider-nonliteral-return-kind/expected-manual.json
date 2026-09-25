@@ -1,0 +1,6 @@
+[
+  { "line": 4, "reason": "fromFactory acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand" },
+  { "line": 5, "reason": "fromFunction acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand" },
+  { "line": 6, "reason": "fromClass acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand" },
+  { "line": 7, "reason": "fromPlugin acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand" }
+]

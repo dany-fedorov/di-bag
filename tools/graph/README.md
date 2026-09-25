@@ -2,11 +2,18 @@
 
 Static check for [DI Bag](https://github.com/dany-fedorov/di-bag) builder
 chains. It reads a TypeScript project, finds every `DiBag.createBuilder()`
-chain that ends in `build()`, `buildAndStart()`, or `buildModule()`, and reports
-dependency cycles and unresolved names before any factory runs.
+chain that ends in `buildContainer()` or
+`buildModule({ exportedServiceKeys, moduleLabel })`; a `buildContainer()`
+followed by `ensureServicesReady()` counts.
+It reports dependency cycles and unresolved names before any factory runs.
+The established schema remains version 1: a source `buildContainer()` unit is
+emitted with `kind: "bag"`.
+
+Version 0.2 reads DI Bag 0.5 projects. Migrate 0.4 builder and provider calls
+before analyzing them with this release.
 
 It is a merge-review and CI tool, not a code map. To find code, read the module
-directories; to check wiring types, use `verifyGraph()`.
+directories; to check wiring types, use `verifyGraphAtCompileTime()`.
 
 ## Commands
 
@@ -32,16 +39,29 @@ usage or tsconfig error.
 
 - **cycle**: a dependency path returns to its start. Cycles through installed
   modules are found: a module's private nodes appear as `<label>/<key>`, where
-  the label is `buildModule(keys, { label })` when given, as in runtime
-  messages, and otherwise the expression passed to `installModule`. A cycle
-  inside one module is reported once, on that module.
-- **unresolved**: a bag (`build()` or `buildAndStart()`) has a declared
+  the label is `buildModule({ exportedServiceKeys, moduleLabel })` when given,
+  as in runtime messages, and otherwise the expression passed to the module
+  install call. `withInstalledModules([...])` expands modules in list order. A
+  cycle inside one module is reported once, on that module.
+- **unresolved**: a container built with `buildContainer()` has a declared
   dependency that no registration, alias, installed module export, or its
   requirement supplier provides. A module's unmet names are not issues; they are
   its `requirements`.
 
-It does not fail on type mismatches (`tsc` and `verifyGraph()` do) and it does
+It does not fail on type mismatches (`tsc` and `verifyGraphAtCompileTime()` do) and it does
 not run factories.
+
+It reads providers built with `DiBag.createProvider`,
+`DiBag.createProviderFromFunction({ dependencies, factoryFunction })`,
+`DiBag.createProviderFromClass({ dependencies, serviceClass })`, and
+`DiBag.createProviderFromPlugin({ dependencies, pluginDescriptor, ... })`.
+The five `DiBag.providerWith*` modifier functions are recognized. The extractor
+reads the wrapped factory's dependencies. Lifetime extraction recognizes the
+three full 0.5 literals: `singleton:one-per-container-tree`,
+`scoped:one-per-container`, and `transient:one-per-resolve`; other values are
+reported as `dynamic`. Named
+factory dependencies appear as edges; positional symbol-token dependencies do
+not acquire invented string labels.
 
 ## JSON
 
@@ -51,16 +71,18 @@ not run factories.
 
 - `Unit`: one builder chain.
   - `id`: `<file>:<line>` of the chain start, relative to the working directory.
-  - `kind`: `bag` or `module`.
+  - `kind`: `bag` for a container unit, or `module`. The `bag` value is retained by schema version 1.
   - `label` (modules only, when given): the `buildModule` label.
   - `exports`: keys passed to `buildModule`.
   - `installs`: ids of installed module units, or the source text of an
     install the tool cannot trace to a `buildModule` chain.
   - `requirements` (modules only): names the installing host must supply.
-  - `nodes`: `{ key, line, dependencies, async, lifetime, owned }` per
+  - `nodes`: `{ key, line, dependencies, async, lifetime, isOwnedByContainer }` per
     registration. `dependencies` are the property names of the factory's first
     parameter type; `async` means the factory returns a `Promise`; `lifetime`
-    is `root`, `scoped`, or `transient`; `owned` means `withDisposal`.
+    is a full lifetime value, or `dynamic` when the extractor cannot statically
+    read the argument. Unmarked providers are `scoped:one-per-container`.
+    `isOwnedByContainer` means a disposal stage.
   - `edges`: `{ from, to }` for the unit's own registrations, sorted.
 - `Issue`: `{ kind: 'cycle', unit, path }` or
   `{ kind: 'unresolved', unit, consumer, dependency }`.
@@ -73,6 +95,7 @@ not run factories.
   contributes no edges.
 - An install that is not a traceable module variable (for example a function
   call) may supply any name, so its host reports no unresolved names.
+- Collection contribution providers and their dependencies are omitted.
 
 ## TypeScript
 

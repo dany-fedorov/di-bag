@@ -1,56 +1,61 @@
-import { DiBag, type AcquisitionContext, type DisposerContext } from '../../../src';
+import { DiBag, type FactoryContext, type DisposerContext } from '../../../src';
 
-const builder = DiBag.createBuilder().register({ value: () => 1 });
-// diagnostic: buildAndStart accepts existing names or typed tokens only
-builder.buildAndStart(['missing']);
+const builder = DiBag.createBuilder().withServices({ value: () => 1 });
+const ready = builder.buildContainer();
+// diagnostic: ensureServicesReady accepts existing names or typed tokens only
+ready.ensureServicesReady(['missing']);
 const widened: string[] = ['value'];
-// diagnostic: buildAndStart requires a finite tuple
-builder.buildAndStart(widened);
+// diagnostic: ensureServicesReady requires a finite tuple
+ready.ensureServicesReady(widened);
 declare const optional: readonly ['value'?];
-// diagnostic: buildAndStart requires a finite tuple
-builder.buildAndStart(optional);
+// diagnostic: ensureServicesReady requires a finite tuple
+ready.ensureServicesReady(optional);
 // diagnostic: Expected 1-2 arguments
-builder.buildAndStart();
+ready.ensureServicesReady();
 // diagnostic: not assignable
-builder.buildAndStart(['value'], { startupOrder: 'serial' });
+ready.ensureServicesReady(['value'], { maxConcurrentServiceKeys: 'serial' });
 // diagnostic: not assignable
-builder.buildAndStart(['value'], { startupOrder: true });
+ready.ensureServicesReady(['value'], { maxConcurrentServiceKeys: true });
 // diagnostic: not assignable
-builder.buildAndStart(['value'], { timeoutMs: '1' });
+ready.ensureServicesReady(['value'], { totalTimeoutMs: '1' });
 // diagnostic: missing the following properties from type 'AbortSignal'
-builder.buildAndStart(['value'], { signal: {} });
-// diagnostic: does not exist in type 'StartupOptions'
-builder.buildAndStart(['value'], { extra: true });
-const missing = DiBag.createBuilder().register({ value: DiBag.fromFactory((deps: { absent: number }, _factoryCtx) => deps.absent, { context: 'acquisition' }) });
-// diagnostic: required service registrations are missing
-missing.buildAndStart([]);
-const captive = DiBag.createBuilder().register({
+ready.ensureServicesReady(['value'], { abortSignal: {} });
+// diagnostic: does not exist in type 'EnsureServicesReadyOptions'
+ready.ensureServicesReady(['value'], { extra: true });
+// diagnostic: does not exist in type 'EnsureServicesReadyOptions'
+ready.ensureServicesReady(['value'], { timeoutMs: 1 });
+// diagnostic: does not exist in type 'EnsureServicesReadyOptions'
+ready.ensureServicesReady(['value'], { startupOrder: 'sequential' });
+const missing = DiBag.createBuilder().withServices({ value: DiBag.createProvider((deps: { absent: number }, _factoryCtx) => deps.absent, { factoryReceivesContext: true }) });
+// diagnostic: required services are missing
+missing.buildContainer().ensureServicesReady([]);
+const captive = DiBag.createBuilder().withServices({
   scoped: () => 1,
-  root: DiBag.withLifetime(DiBag.fromFactory((deps: { scoped: number }, _factoryCtx) => deps.scoped, { context: 'acquisition' }), 'root'),
+  root: DiBag.providerWithLifetime({ provider: DiBag.createProvider((deps: { scoped: number }, _factoryCtx) => deps.scoped, { factoryReceivesContext: true }), lifetime: 'singleton:one-per-container-tree' }),
 });
-// diagnostic: root lifetime cannot capture scoped dependency
-captive.buildAndStart(['root']);
-const exportless = DiBag.createBuilder().register({ hidden: (deps: { missing: number }) => deps.missing }).buildModule([]);
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(exportless).buildAndStart([]);
+// diagnostic: singleton lifetime cannot capture scoped dependency
+captive.buildContainer().ensureServicesReady(['root']);
+const exportless = DiBag.createBuilder().withServices({ hidden: (deps: { missing: number }) => deps.missing }).buildModule({ exportedServiceKeys: [] });
+// diagnostic: required services are missing
+DiBag.createBuilder().withInstalledModules([exportless]).buildContainer().ensureServicesReady([]);
 const key: unique symbol = Symbol('token');
 const otherKey: unique symbol = Symbol('token');
-const token = DiBag.token(key).of<number>();
-const other = DiBag.token(otherKey).of<number>();
-// diagnostic: buildAndStart accepts existing names or typed tokens only
-DiBag.createBuilder().register(token, () => 1).buildAndStart([other]);
+const token = DiBag.createToken(key).forService<number>();
+const other = DiBag.createToken(otherKey).forService<number>();
+// diagnostic: ensureServicesReady accepts existing names or typed tokens only
+DiBag.createBuilder().withTokenService(token, () => 1).buildContainer().ensureServicesReady([other]);
 // diagnostic: not assignable
-DiBag.fromFactory(function (this: { required: true }, _deps: {}, _factoryCtx) { return 1; }, { context: 'acquisition' });
+DiBag.createProvider(function (this: { required: true }, _deps: {}, _factoryCtx) { return 1; }, { factoryReceivesContext: true });
 // diagnostic: Target signature provides too few arguments
-DiBag.fromFactory((_deps: {}, _factoryCtx: AcquisitionContext, extra: number) => extra, { context: 'acquisition' });
+DiBag.createProvider((_deps: {}, _factoryCtx: FactoryContext, extra: number) => extra, { factoryReceivesContext: true });
 // diagnostic: not assignable
-DiBag.fromFactory((_deps: {}, _factoryCtx) => 1, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
-DiBag.fromFactory((_deps: {}, factoryCtx) => {
-  // diagnostic: Cannot assign to 'signal' because it is a read-only property
-  factoryCtx.signal = new AbortController().signal;
-  // diagnostic: Property 'abort' does not exist on type 'AcquisitionContext'
+DiBag.createProvider((_deps: {}, _factoryContext) => 1, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } });
+DiBag.createProvider((_deps: {}, factoryCtx) => {
+  // diagnostic: Cannot assign to 'abortSignal' because it is a read-only property
+  factoryCtx.abortSignal = new AbortController().signal;
+  // diagnostic: Property 'abort' does not exist on type 'FactoryContext'
   factoryCtx.abort();
-  // diagnostic: Argument of type 'number' is not assignable to parameter of type '(this: void, disposerCtx: DisposerContext) => void | Promise<void>'
+  // diagnostic: Argument of type 'number' is not assignable to parameter of type '(this: void, disposerContext: DisposerContext) => void | Promise<void>'
   factoryCtx.pushDisposer(1);
   // diagnostic: Target signature provides too few arguments. Expected 2 or more, but got 1.
   factoryCtx.pushDisposer((_disposerCtx: DisposerContext, extra: number) => extra);
@@ -60,15 +65,19 @@ DiBag.fromFactory((_deps: {}, factoryCtx) => {
     // diagnostic: have no overlap
     if (disposerCtx.reason === 'disposed') return;
   });
-}, { context: 'acquisition' });
-const closable = DiBag.createBuilder().register({ value: () => 1 }).build();
+}, { factoryReceivesContext: true });
+const closable = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 // diagnostic: not assignable
-closable.close({ timeoutMs: '1' });
+closable.close({ waitTimeoutMs: '1' });
 // diagnostic: does not exist in type 'CloseOptions'
-closable.close({ startupOrder: 'sequential' });
+closable.close({ maxConcurrentServiceKeys: 1 });
 // diagnostic: missing the following properties from type 'AbortSignal'
-closable.close({ signal: {} });
+closable.close({ abortSignal: {} });
+// diagnostic: does not exist in type 'CloseOptions'
+closable.close({ timeoutMs: 1 });
+// diagnostic: does not exist in type 'CloseOptions'
+closable.close({ signal: new AbortController().signal });
 // diagnostic: not assignable
-DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'], { label: 1 });
-// diagnostic: does not exist in type 'ModuleOptions'
-DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'], { name: 'x' });
+DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'], moduleLabel: 1 });
+// diagnostic: 'name' does not exist in type 'ModuleOptions &
+DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'], name: 'x' });

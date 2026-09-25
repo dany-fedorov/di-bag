@@ -1,10 +1,14 @@
 import { normalize } from './registration';
-import type { Registration } from './registration';
-import { readTokenKey } from './tokens';
+import type { ProviderOrFactory } from './registration';
+import { readToken, wrongTokenKind } from './tokens';
 
 /** Authenticate and snapshot one entry before creating its independent binding. */
-export function contributionEntry(token: unknown, registration: Registration): readonly [symbol, Registration] {
-  const key = readTokenKey(token);
-  normalize(registration);
-  return Object.freeze([key, registration]);
+export function contributionEntry(collectionToken: unknown, provider: ProviderOrFactory): readonly [symbol, ProviderOrFactory] {
+  const operation = 'withCollectionContribution';
+  const { key, kind } = readToken(collectionToken);
+  if (kind !== 'collection') {
+    throw wrongTokenKind(operation, 'collection', key);
+  }
+  normalize(provider, operation);
+  return Object.freeze([key, provider]);
 }

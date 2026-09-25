@@ -1,17 +1,17 @@
 import { libraryError, libraryTypeError } from './errors';
 import type { normalize } from './provider-operations';
 import type { AcquisitionMetadataPresence, Presence } from './inspection';
-import type { AcquisitionMode, RuntimeContext } from './acquisition-mode';
-import type { AcquisitionContext, DisposerContext } from './acquisition-context';
+import type { FactoryReturnKind, RuntimeContext } from './acquisition-mode';
+import type { DisposerContext, FactoryContext } from './acquisition-context';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
-type PushedDisposer = (this: void, disposerCtx: DisposerContext) => void | Promise<void>;
+type PushedDisposer = (this: void, disposerContext: DisposerContext) => void | Promise<void>;
 
 /**
  * One factory's pushed disposers. It is held by the frozen acquisition context
  * handed to that factory, so it deliberately references neither the execution
- * nor its scope: a context the application retains must keep nothing but its
+ * nor its owning container: a context the application retains must keep nothing but its
  * own registrations alive.
  */
 export class DisposerStack {
@@ -20,9 +20,9 @@ export class DisposerStack {
 
   /** Own a resource the running factory already holds. */
   push(disposer: PushedDisposer): void {
-    if (typeof disposer !== 'function') throw libraryError('DI_BAG_INVALID_CLEANUP', 'pushDisposer requires a function', { operation: 'pushDisposer', provided: typeof disposer });
+    if (typeof disposer !== 'function') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'pushDisposer requires a function', { operation: 'pushDisposer', argument: 'disposer', expected: 'a function', provided: typeof disposer });
     // A retained context is a leak, not a stack: registration closes with the factory.
-    if (this.settled) throw libraryError('DI_BAG_CLEANUP_AFTER_FACTORY', 'pushDisposer is only available while its factory is running', { operation: 'pushDisposer' });
+    if (this.settled) throw libraryError('DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY', 'pushDisposer is only available while its factory is running', { operation: 'pushDisposer' });
     this.disposers.push(disposer);
   }
 
@@ -97,7 +97,7 @@ export class ProviderExecution {
   private readonly stages: AcceptedStage[] = [];
   /** Allocated only for a context-aware factory, which is the only source that can push disposers. */
   readonly disposers: DisposerStack | undefined;
-  // The factory returned, so the bag owns what it pushed, below every accepted stage.
+  // The factory returned, so the container owns what it pushed, below every accepted stage.
   private disposersOwned = false;
   // The failure-path run of the stack, while it is in flight.
   private rollback: Promise<void> | undefined;
@@ -110,7 +110,7 @@ export class ProviderExecution {
   constructor(private readonly events: ExecutionEvents, description: RegistrationDescription, private readonly context: RuntimeContext) {
     // Reserve every metadata frame before the source can reenter inspection.
     this.frames = description.operations.filter(operation => operation.kind === 'frame-sync' || operation.kind === 'frame-async')
-      .map(() => Object.freeze({ present: false as const }));
+      .map(() => Object.freeze({ isPresent: false as const }));
     if (description.contextual) this.disposers = new DisposerStack();
   }
 
@@ -124,7 +124,7 @@ export class ProviderExecution {
 
   /**
    * The source stage settles the stack. A factory that returned hands what it
-   * pushed to the bag; a failed one releases it at once, as pending work of this
+   * pushed to the container; a failed one releases it at once, as pending work of this
    * execution. Anchoring on the source rather than on the attempt's result covers
    * a direct projection that is already ready while its source is still running,
    * which no retirement reaches.
@@ -160,12 +160,12 @@ export class ProviderExecution {
 
   /** Run every pushed disposer, last pushed first, all attempted; true when one threw. */
   private async runDisposers(reason: DisposerContext['reason']): Promise<boolean> {
-    const disposerCtx: DisposerContext = Object.freeze({ reason });
+    const disposerContext: DisposerContext = Object.freeze({ reason });
     let failed = false;
     for (const disposer of this.disposers?.drain() ?? []) {
       const sequence = this.events.invoking();
       try {
-        await disposer(disposerCtx);
+        await disposer(disposerContext);
       } catch (error) {
         failed = true;
         this.events.cleanupFailed(sequence, error);
@@ -194,24 +194,24 @@ export class ProviderExecution {
 
   /** Classify/own only after the direct operation-free source call has returned. */
   publishSource(value: unknown, description: RegistrationDescription): void {
-    if (description.acquisitionMode === 'raw') {
+    if (description.factoryReturnKind === 'uninspected' || description.factoryReturnKind === 'sync-value') {
       this.sourceInFlight = false;
       this.result = { exposed: undefined, consumed: true, state: 'ready', value: undefined, error: undefined, owners: [] };
       if (description.dispose) this.accept(0, value, description.dispose, true);
       return;
     }
-    const stage = this.capture(() => value, true, description.acquisitionMode);
+    const stage = this.capture(() => value, true, description.factoryReturnKind);
     if (description.dispose) this.own(stage, 0, description.dispose, true);
     this.result = stage;
     this.consume(stage);
     if (stage.state === 'failed') throw stage.error;
   }
 
-  evaluate(description: RegistrationDescription, deps: unknown, context: AcquisitionContext | undefined): unknown {
+  evaluate(description: RegistrationDescription, dependencyProxy: unknown, context: FactoryContext | undefined): unknown {
     const { create, dispose } = description;
     let current = this.capture(() => description.contextual
-      ? Reflect.apply(create, undefined, [deps, context])
-      : create(deps as never), true, description.acquisitionMode);
+      ? Reflect.apply(create, undefined, [dependencyProxy, context])
+      : create(dependencyProxy as never), true, description.factoryReturnKind);
     // A pending source settles its own rollback list from the promise handler.
     if (current.state !== 'pending') this.settleDisposers(current.state);
     let nextFrame = 0;
@@ -229,7 +229,7 @@ export class ProviderExecution {
         if (current.state !== 'failed') {
           const input = current.exposed;
           const { project } = operation;
-          current = this.capture(() => project(input as never), false, operation.acquisitionMode);
+          current = this.capture(() => project(input as never), false, operation.factoryReturnKind);
         }
       } else if (operation.kind === 'map-async') {
         returned = false;
@@ -238,23 +238,23 @@ export class ProviderExecution {
         current = this.capture(async () => {
           if (input.state === 'failed') throw input.error;
           return project(await input.exposed as never);
-        }, false, 'nativePromise');
+        }, false, 'native-promise');
       } else if (operation.kind === 'frame-sync' || operation.kind === 'frame-async') {
         const frameIndex = nextFrame++;
         const input = current;
         const { project } = operation;
         const apply = (value: unknown) => {
           const projected = project(value as never);
-          this.frames[frameIndex] = Object.freeze({ present: true, value: projected.frame });
+          this.frames[frameIndex] = Object.freeze({ isPresent: true, value: projected.frame });
           return projected.value;
         };
         if (operation.kind === 'frame-async') {
           current = this.capture(async () => {
             if (input.state === 'failed') throw input.error;
             return apply(await input.exposed);
-          }, false, 'nativePromise');
+          }, false, 'native-promise');
         } else if (input.state !== 'failed') {
-          current = this.capture(() => apply(input.exposed), false, operation.acquisitionMode);
+          current = this.capture(() => apply(input.exposed), false, operation.factoryReturnKind);
         }
       }
       if (current !== inputStage) this.consume(inputStage);
@@ -274,22 +274,22 @@ export class ProviderExecution {
     stage.value = undefined;
   }
 
-  private capture(create: () => unknown, source: boolean, mode: AcquisitionMode): ValueStage {
+  private capture(create: () => unknown, source: boolean, factoryReturnKind: FactoryReturnKind): ValueStage {
     try {
       const exposed = create();
       const stage: ValueStage = { exposed, consumed: false, state: 'ready', value: exposed, error: undefined, owners: [] };
-      let native = mode === 'nativePromise';
-      if (mode === 'auto') {
+      let native = factoryReturnKind === 'native-promise';
+      if (factoryReturnKind === 'auto-detect') {
         const { isNativePromise } = this.context;
         // Whole-graph preflight establishes capability before invoking this factory.
         const classified = isNativePromise!(exposed);
         if (typeof classified !== 'boolean') throw libraryError('DI_BAG_INVALID_CLASSIFIER_RESULT', 'isNativePromise must return a boolean', { option: 'isNativePromise', provided: classified });
         native = classified;
       }
-      if (mode !== 'raw' && exposed !== null && (typeof exposed === 'object' || typeof exposed === 'function') && 'then' in exposed) {
+      if (factoryReturnKind !== 'uninspected' && factoryReturnKind !== 'sync-value' && exposed !== null && (typeof exposed === 'object' || typeof exposed === 'function') && 'then' in exposed) {
         // Preserve original getter failures, but never use callability as native branding.
         const then = Reflect.get(exposed, 'then');
-        if (!native && typeof then === 'function') throw libraryTypeError('DI_BAG_STRUCTURAL_THENABLE', 'Structural thenables require explicit native Promise conversion or raw acquisitionMode', { acquisitionMode: mode });
+        if (!native && typeof then === 'function') throw libraryTypeError('DI_BAG_STRUCTURAL_THENABLE', "Structural thenables require a native Promise or factoryReturnKind 'uninspected'", { factoryReturnKind });
       }
       if (native) {
         let settled!: () => void;
@@ -377,7 +377,7 @@ export class ProviderExecution {
     // Pushed disposers are the bottom of the ownership stack: they run after every
     // accepted stage and are told how the returned value's own disposer went. A
     // projection owner belongs to whoever transformed the value; its outcome is
-    // reported through cleanup-failed, not through the reason.
+    // reported through disposal-failed, not through the reason.
     if (this.disposersOwned) {
       const reason = !returnedOwned ? 'no-service-disposer' : returnedFailed ? 'service-disposal-failed' : 'service-disposed';
       if (await this.runDisposers(reason)) failed = true;

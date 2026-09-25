@@ -5,7 +5,7 @@
 DI Bag's documentation starts with ordinary Markdown. The README introduces the
 library, the tutorial teaches its APIs, and the server guide shows how to use
 those APIs in applications. TypeDoc generates the exact API reference from the
-two public TypeScript entry points. VitePress publishes these pages as a
+public TypeScript entry point. VitePress publishes these pages as a
 searchable website at [dany-fedorov.github.io/di-bag](https://dany-fedorov.github.io/di-bag/).
 
 ## Work locally
@@ -47,18 +47,19 @@ npm run docs:preview
 | A rule a coding agent must follow, the per-module check, the fast check | [AGENTS.md](../../AGENTS.md) |
 | The recommended module layout | [examples-modularity.md](examples-modularity.md#recommended-module-layout); copy the block byte for byte into `AGENTS.md` |
 | How to do one agent task | [recipes.md](../agent/recipes.md) |
-| A compile-time message family or a `DI_BAG_*` code: when, cause, fix | [errors.md](../agent/errors.md); add the section in the change that adds the code |
+| A compile-time message group or a `DI_BAG_*` code: when, cause, fix | [errors.md](../agent/errors.md); add the section in the change that adds the code |
+| The name of a public method, option, string value, error code, or type | [api-naming.md](api-naming.md); `tests/api-naming.test.ts` enforces the mechanical rules |
 | Site navigation and appearance | [VitePress configuration](../../tools/docs/vitepress.config.mjs) and [theme](../../tools/docs/theme) |
 | The list of guides and contributor documents | [Documentation map](../README.md) |
 
 Keep `docs/reference/` generated. Its Markdown is committed so it can be reviewed
 in pull requests and read directly on GitHub. Edit source comments instead of
 patching generated pages. Use `import type` for type-only API exports; the
-reference must never suggest that `Bag`, `Builder`, or `Provider` are public
+reference must never suggest that `Container`, `Builder`, or `Provider` are public
 runtime constructors.
 
 Write examples with enough context to reproduce them. State whether a snippet
-continues an earlier example. Keep acquisition, cancellation, and cleanup rules
+continues an earlier example. Keep acquisition, cancellation, and disposal rules
 close to the code they explain. Link to the tutorial for a learning path and to
 the generated reference for exact overloads and generic constraints.
 
@@ -66,12 +67,12 @@ Keep comparison claims specific and link to the other library's official docs or
 source. Distinguish a typed lookup from checks across the dependency graph, a
 Promise-valued service from automatically awaited dependencies, and feature
 availability from stability or performance. Explain when an alternative is a
-good fit. Record version-sensitive scope and review dates in the comparison guide.
+good fit. Record version-sensitive lifetime and review dates in the comparison guide.
 
 ## How generation is checked
 
 `npm run docs:generate` uses TypeDoc, its Markdown plugin, and its VitePress theme.
-It reads only `src/index.ts` and `src/node.ts`.
+It reads only `src/index.ts`.
 The rendering extension prints declarations with TypeScript so constructor
 constraints, grouping, readonly fields, and const type parameters retain their
 meaning. TypeDoc supplies the prose, navigation, and source links.
@@ -82,7 +83,7 @@ links, and rejects internal compiler
 witness fields in the public output.
 
 Generation also writes `docs/agent/api-card.md` from the JSDoc of the runtime
-surface (`DiBag` facade members, `Builder` and `Bag` methods, the error classes)
+surface (`DiBag` facade members, `Builder` and `Container` methods, the error classes)
 and the task table in `tools/docs/api-card-tasks.json`. Each call gets its first
 summary sentence, the `DI_BAG_*` codes named in its `@throws`, and its
 `@example`. Generation fails when a runtime call has no `@example`, a task names
@@ -95,7 +96,7 @@ count as drift. It then checks the agent documentation:
 - **Snippets.** Every `ts` block in `AGENTS.md` and `docs/agent/*.md`, and every
   `@example` in `src/`, is type-checked in one strict program against
   declarations emitted from `src/` into a temporary `node_modules/di-bag`, so
-  `di-bag` and `di-bag/node` resolve as in a consumer project. No prior build is
+`di-bag` resolves as in a consumer project. No prior build is
   needed. Leading comment lines are markers: `// src/features/x/module.ts` makes
   the block that file, so blocks on one page can import each other;
   `// continues: <heading-id>` prepends the last block under that heading on the
@@ -108,7 +109,7 @@ count as drift. It then checks the agent documentation:
 - **Errors page.** The `DI_BAG_*` codes in `src/` and the code sections of
   `docs/agent/errors.md` are the same set; every heading there has an explicit
   `{#id}`, a code section's id is the code lower-cased with `_` replaced by `-`,
-  and the six compile-time family sections exist.
+  and the six compile-time message sections exist.
 - **Message URLs.** Every `https://dany-fedorov.github.io/di-bag/...` URL in
   `src/` names an existing page and heading. `docs:build` checks them again
   against the rendered HTML.

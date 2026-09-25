@@ -1,6 +1,6 @@
 import { DiBag } from '../../../src';
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({
+DiBag.createBuilder().withServices({
     clock: () => ({
       now() {
         return 42;
@@ -11,7 +11,7 @@ DiBag.createBuilder().register({
         return clock.now();
       },
     }),
-  }).replace('clock', () => ({
+  }).withReplacedService('clock', () => ({
     now() {
       return 'wrong';
     },

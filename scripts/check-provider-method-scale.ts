@@ -1,0 +1,11 @@
+import ts from 'typescript';
+import { performance } from 'node:perf_hooks';
+import { compilerProgram, describeDiagnostic, providerMethodScalePath, providerMethodScaleSource } from '../tests/compiler.ts';
+const shape = process.argv[2];
+if (shape !== 'old' && shape !== 'new') throw new Error('usage: check-provider-method-scale.ts old|new');
+const source = providerMethodScaleSource(shape);
+const started = performance.now();
+const program = compilerProgram(providerMethodScalePath, source);
+const diagnostics = ts.getPreEmitDiagnostics(program).map(describeDiagnostic);
+console.log(JSON.stringify({ case: `provider-methods-${shape}`, accepted: diagnostics.length === 0, typescript: ts.version, node: process.version, milliseconds: Math.round(performance.now() - started), maxRssMiB: Math.round(process.resourceUsage().maxRSS / 1024), diagnostics, instantiations: program.getInstantiationCount() }));
+process.exitCode = diagnostics.length === 0 ? 0 : 1;

@@ -2,15 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ProviderOutput
 
-# Type Alias: ProviderOutput\<R *extends* [`Registration`](Registration.md)\>
+# Type Alias: ProviderOutput\<R *extends* [`ProviderOrFactory`](ProviderOrFactory.md)\>
 
 ```ts
-type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
+type ProviderOutput<R extends ProviderOrFactory> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
 ```
 
-Defined in: [provider.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L68)
+Defined in: [provider.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L82)
 
-Extract the exact service value exposed by a registration, including Promise identity.
+Extract the exact service value exposed by a provider, including Promise identity.
 
 ## Type Parameters
 

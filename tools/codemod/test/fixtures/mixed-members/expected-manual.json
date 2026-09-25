@@ -1,0 +1,30 @@
+[
+  {
+    "line": 12,
+    "reason": "resolve resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  },
+  {
+    "line": 13,
+    "reason": "resolve resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  },
+  {
+    "line": 14,
+    "reason": "resolve resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  },
+  {
+    "line": 21,
+    "reason": "present resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  },
+  {
+    "line": 28,
+    "reason": "kind resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  },
+  {
+    "line": 32,
+    "reason": "resolve resolves to declarations with incompatible rename-map entries; migrate this use by hand"
+  },
+  {
+    "line": 35,
+    "reason": "cleanupPromise resolves to declarations with incompatible rename-map entries; migrate this use by hand"
+  }
+]

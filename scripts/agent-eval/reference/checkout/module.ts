@@ -5,12 +5,12 @@ import type { Notifier } from '../notifications/contract.js';
 import type { Checkout, PaymentGateway } from './contract.js';
 
 export const checkoutModule = DiBag.createBuilder()
-  .register({
-    orderIds: DiBag.withLifetime(() => {
+  .withServices({
+    orderIds: DiBag.providerWithLifetime({ provider: () => {
       let last = 0;
       return { next: () => `order-${++last}` };
-    }, 'root'),
-    checkout: ({ catalog, inventory, payments, notifier, orderIds }: {
+    }, lifetime: 'singleton:one-per-container-tree' }),
+    checkout: DiBag.providerWithLifetime({ provider: ({ catalog, inventory, payments, notifier, orderIds }: {
       catalog: Catalog;
       inventory: Inventory;
       payments: PaymentGateway;
@@ -32,6 +32,6 @@ export const checkoutModule = DiBag.createBuilder()
         await notifier.orderPlaced({ orderId, totalCents });
         return { orderId, totalCents, chargeId };
       },
-    }),
+    }), lifetime: 'scoped:one-per-container' }),
   })
-  .buildModule(['checkout'], { label: 'checkout' });
+  .buildModule({ exportedServiceKeys: ['checkout'], moduleLabel: 'checkout' });

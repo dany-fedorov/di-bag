@@ -4,39 +4,31 @@ import { DiBag } from '../src';
 async function main() {
   const released: string[] = [];
   const root = await DiBag.createBuilder()
-    .register({
-      config: DiBag.withLifetime(() => ({ region: 'eu' }), 'root'),
-      client: DiBag.withLifetime(
-        DiBag.withDisposal(
-          ({ config }: { config: { region: string } }) => ({ region: config.region }),
-          () => {
+    .withServices({
+      config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'scoped:one-per-container' }),
+      client: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
             released.push('client');
-          },
-        ),
-        'root',
-      ),
-      session: DiBag.withDisposal(
-        ({ config }: { config: { region: string } }) => ({ region: config.region }),
-        () => {
+          } }), lifetime: 'scoped:one-per-container' }),
+      session: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
           released.push('session');
-        },
-      ),
+        } }), lifetime: 'scoped:one-per-container' }),
     })
-    .buildAndStart(['client']);
+    .buildContainer()
+    .ensureServicesReady(['client']);
 
-  const child = root.createScope(
+  const child = root.createChildContainer(
     ['config'],
     {
       config: () => ({ region: 'us' }),
     },
-    { share: ['session'] },
+    { sharedParentServiceKeys: ['client', 'session'] },
   );
   assert.equal(child.resolve('config').region, 'us');
   assert.equal(child.resolve('client').region, 'eu');
   assert.equal(child.resolve('session').region, 'eu');
   assert.equal(child.resolve('session'), root.resolve('session'));
 
-  const grandchild = child.createScope({ share: ['session'] });
+  const grandchild = child.createChildContainer({ sharedParentServiceKeys: ['session'] });
   assert.equal(grandchild.resolve('session'), root.resolve('session'));
   await child.close();
   assert.deepEqual(released, []);

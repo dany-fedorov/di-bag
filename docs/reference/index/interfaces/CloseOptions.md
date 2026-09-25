@@ -4,9 +4,9 @@
 
 # Interface: CloseOptions
 
-Defined in: [startup.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L26)
+Defined in: [startup.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L10)
 
-Bounds the wait of [Bag.close](Bag.md#close); cleanup itself keeps running after either fires.
+Bounds the wait of [Container.close](Container.md#close); disposal itself keeps running after either fires.
 
 ## See
 
@@ -14,24 +14,24 @@ https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
 
 ## Properties
 
-### signal?
+### abortSignal?
 
 ```ts
-readonly signal?: AbortSignal;
+readonly abortSignal?: AbortSignal;
 ```
 
-Defined in: [startup.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L28)
+Defined in: [startup.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L12)
 
-An external signal that stops the wait promptly.
+Aborting it stops the wait promptly. Disposal keeps running.
 
 ***
 
-### timeoutMs?
+### waitTimeoutMs?
 
 ```ts
-readonly timeoutMs?: number;
+readonly waitTimeoutMs?: number;
 ```
 
-Defined in: [startup.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L30)
+Defined in: [startup.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L14)
 
-A finite positive deadline in milliseconds.
+A finite positive deadline in milliseconds for the wait, not for the disposal.

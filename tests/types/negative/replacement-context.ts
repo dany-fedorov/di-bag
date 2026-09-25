@@ -1,80 +1,80 @@
-import { DiBag } from '../../../src';
+import { DiBag, type ProviderOrFactory } from '../../../src';
 const consumers = {
   clock: () => ({ now: () => 1, zone: () => 'utc' }),
   first: ({ clock }: { clock: { now(): number } }) => clock.now(),
   second: ({ clock }: { clock: { zone(): string } }) => clock.zone(),
 };
-const builder = DiBag.createBuilder().register(consumers);
-const module = DiBag.createBuilder().register(consumers);
+const builder = DiBag.createBuilder().withServices(consumers);
+const module = DiBag.createBuilder().withServices(consumers);
 // diagnostic: provided service does not satisfy its consumer dependency
-builder.replace('clock', () => ({ now() { return 2; } }));
+builder.withReplacedService('clock', () => ({ now() { return 2; } }));
 // diagnostic: provided service does not satisfy its consumer dependency
-builder.replace('clock', () => ({ zone() { return 'new'; } }));
+builder.withReplacedService('clock', () => ({ zone() { return 'new'; } }));
 // diagnostic: provided service does not satisfy its consumer dependency
-module.replace('clock', () => ({ now() { return 2; } }));
+module.withReplacedService('clock', () => ({ now() { return 2; } }));
 // diagnostic: provided service does not satisfy its consumer dependency
-module.replace('clock', () => ({ zone() { return 'new'; } }));
-const privateModule = DiBag.createBuilder().register({ hidden: ({ clock }: { clock: { now(): number } }) => clock.now() }).buildModule([]);
-const host = DiBag.createBuilder().installModule(privateModule).register({ clock: () => ({ now: () => 1 }) });
+module.withReplacedService('clock', () => ({ zone() { return 'new'; } }));
+const privateModule = DiBag.createBuilder().withServices({ hidden: ({ clock }: { clock: { now(): number } }) => clock.now() }).buildModule({ exportedServiceKeys: [] });
+const host = DiBag.createBuilder().withInstalledModules([privateModule]).withServices({ clock: () => ({ now: () => 1 }) });
 // diagnostic: provided service does not satisfy its consumer dependency
-host.replace('clock', () => ({ other() { return true; } }));
-const sameLabel = DiBag.createBuilder().register({ clock: ({ clock }: { clock: { now(): number } }) => ({ now: () => clock.now() }) }).buildModule(['clock']);
+host.withReplacedService('clock', () => ({ other() { return true; } }));
+const sameLabel = DiBag.createBuilder().withServices({ clock: ({ clock }: { clock: { now(): number } }) => ({ now: () => clock.now() }) }).buildModule({ exportedServiceKeys: ['clock'] });
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(sameLabel).replace('clock', () => ({ other() { return true; } }));
+DiBag.createBuilder().withInstalledModules([sameLabel]).withReplacedService('clock', () => ({ other() { return true; } }));
 const optional = { value: () => ({ read: () => 1 }), consumer: ({ value }: { value?: { read(): number } }) => value?.read() };
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().register(optional).replace('value', () => undefined);
+DiBag.createBuilder().withServices(optional).withReplacedService('value', () => undefined);
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().register(optional).replace('value', () => undefined);
-type Registration = Parameters<typeof DiBag.withMetadata>[0];
+DiBag.createBuilder().withServices(optional).withReplacedService('value', () => undefined);
+type Registration = ProviderOrFactory;
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaque: Opaque;
 declare const broad: (this: void, deps: never) => unknown;
-const broadOwned = DiBag.withDisposal(broad, () => {});
+const broadOwned = DiBag.providerWithDisposal({ provider: broad, disposeService: () => {} });
 // diagnostic: factory dependencies must be finite
-builder.replace('clock', opaque);
+builder.withReplacedService('clock', opaque);
 // diagnostic: factory dependencies must be finite
-module.replace('clock', opaque);
+module.withReplacedService('clock', opaque);
 // diagnostic: factory dependencies must be finite
-builder.replace('clock', broad);
+builder.withReplacedService('clock', broad);
 // diagnostic: factory dependencies must be finite
-module.replace('clock', broadOwned);
+module.withReplacedService('clock', broadOwned);
 // diagnostic: does not satisfy the constraint
-builder.replace<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'utc' }));
+builder.withReplacedService<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'utc' }));
 // diagnostic: does not satisfy the constraint
-module.replace<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'utc' }));
+module.withReplacedService<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'utc' }));
 
-const needsBuilder = DiBag.createBuilder().register({ value: () => 0 });
-const needsModule = DiBag.createBuilder().register({ value: () => 0 });
-// diagnostic: required service registrations are missing
-needsBuilder.replace('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).build();
-// diagnostic: required service registrations are missing
-needsBuilder.replace('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).build();
-// diagnostic: required service registrations are missing
-needsBuilder.replace('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).build();
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(needsModule.replace('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).buildModule(['value'])).build();
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(needsModule.replace('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).buildModule(['value'])).build();
-// diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(needsModule.replace('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).buildModule(['value'])).build();
+const needsBuilder = DiBag.createBuilder().withServices({ value: () => 0 });
+const needsModule = DiBag.createBuilder().withServices({ value: () => 0 });
+// diagnostic: required services are missing
+needsBuilder.withReplacedService('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).buildContainer();
+// diagnostic: required services are missing
+needsBuilder.withReplacedService('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).buildContainer();
+// diagnostic: required services are missing
+needsBuilder.withReplacedService('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).buildContainer();
+// diagnostic: required services are missing
+DiBag.createBuilder().withInstalledModules([needsModule.withReplacedService('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).buildModule({ exportedServiceKeys: ['value'] })]).buildContainer();
+// diagnostic: required services are missing
+DiBag.createBuilder().withInstalledModules([needsModule.withReplacedService('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).buildModule({ exportedServiceKeys: ['value'] })]).buildContainer();
+// diagnostic: required services are missing
+DiBag.createBuilder().withInstalledModules([needsModule.withReplacedService('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).buildModule({ exportedServiceKeys: ['value'] })]).buildContainer();
 
-const wrongOptionalBuilder = DiBag.createBuilder().register({ dep: () => 1, service: () => 0 });
-const wrongOptionalModule = DiBag.createBuilder().register({ dep: () => 1, service: () => 0 });
+const wrongOptionalBuilder = DiBag.createBuilder().withServices({ dep: () => 1, service: () => 0 });
+const wrongOptionalModule = DiBag.createBuilder().withServices({ dep: () => 1, service: () => 0 });
 type WrongOptionalFactory = (deps?: { dep: string }) => number;
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalBuilder.replace('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+wrongOptionalBuilder.withReplacedService('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalBuilder.replace('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+wrongOptionalBuilder.withReplacedService('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalBuilder.replace<'service', WrongOptionalFactory>('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+wrongOptionalBuilder.withReplacedService<'service', WrongOptionalFactory>('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalBuilder.replace<'service', WrongOptionalFactory>('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+wrongOptionalBuilder.withReplacedService<'service', WrongOptionalFactory>('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalModule.replace('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+wrongOptionalModule.withReplacedService('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalModule.replace('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+wrongOptionalModule.withReplacedService('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalModule.replace<'service', WrongOptionalFactory>('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+wrongOptionalModule.withReplacedService<'service', WrongOptionalFactory>('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
 // diagnostic: provided service does not satisfy its consumer dependency
-wrongOptionalModule.replace<'service', WrongOptionalFactory>('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+wrongOptionalModule.withReplacedService<'service', WrongOptionalFactory>('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
