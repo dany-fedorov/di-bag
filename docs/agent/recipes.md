@@ -105,36 +105,50 @@ test('closing a child container flushes what it recorded', async () => {
 
 Run it with the module's [fast check](../../AGENTS.md#fast-check).
 
-## Build one composite from collection members
+## Build one composite from collection members {#composite-service}
 
-Use separate identities for the composite service and its ordered members. A collection token supplies a fresh frozen list directly in a positional dependency.
+Give the composite logger a service token and its ordered sinks a collection token.
+The factory receives the collection as a positional dependency.
 
 ```ts
+// src/features/logging/contract.ts
 import { DiBag } from 'di-bag';
 
-type Logger = { log(message: string): void };
-
-const loggerKey = Symbol('logger');
-const loggerSinksKey = Symbol('logger sinks');
-const logger = DiBag.createToken(loggerKey).forService<Logger>();
-const loggerSinks = DiBag.createToken(loggerSinksKey).forCollectionOf<Logger>();
-
-const container = DiBag.createBuilder()
-  .withCollectionContribution({ collectionToken: loggerSinks, provider: (): Logger => ({ log: message => console.log(message) }) })
-  .withCollectionContribution({ collectionToken: loggerSinks, provider: (): Logger => ({ log: message => { process.stderr.write(`${message}\n`); } }) })
-  .withTokenService(
-    logger,
-    DiBag.createProviderFromFunction({ dependencies: [loggerSinks], factoryFunction: sinks => ({
-      log(message: string) { for (const sink of sinks) sink.log(message); },
-    }) }),
-  )
-  .buildContainer();
-
-container.resolve(logger).log('ready');
-await container.close();
+export type Logger = { log(line: string): void };
+const loggerSymbol = Symbol('logger');
+const loggerSinksSymbol = Symbol('logger sinks');
+export const loggerToken = DiBag.createToken(loggerSymbol).forService<Logger>();
+export const loggerSinksToken = DiBag.createToken(loggerSinksSymbol).forCollectionOf<Logger>();
 ```
 
-A token created with `.forService<Service>()` cannot receive contributions, and a token created with `.forCollectionOf<Item>()` cannot hold the composite service.
+```ts
+// src/features/logging/module.ts
+import { DiBag } from 'di-bag';
+import { loggerSinksToken, loggerToken, type Logger } from './contract.js';
+
+export const loggingModule = DiBag.createBuilder()
+  .withCollectionContribution({ collectionToken: loggerSinksToken, provider: (): Logger => ({ log: line => console.log(line) }) })
+  .withCollectionContribution({ collectionToken: loggerSinksToken, provider: (): Logger => ({ log: line => { process.stderr.write(`${line}\n`); } }) })
+  .withTokenService(loggerToken, DiBag.createProviderFromFunction({
+    dependencies: [loggerSinksToken],
+    factoryFunction: (sinks: readonly Logger[]): Logger => ({ log: line => { for (const sink of sinks) sink.log(line); } }),
+  }))
+  .buildModule({ exportedServiceKeys: [loggerToken], moduleLabel: 'logging' });
+```
+
+```ts
+// src/features/logging/check.ts
+import { DiBag } from 'di-bag';
+import { loggerToken } from './contract.js';
+import { loggingModule } from './module.js';
+
+const app = DiBag.createBuilder().withInstalledModules([loggingModule]).buildContainer();
+app.resolve(loggerToken).log('ready');
+await app.close();
+```
+
+Another module can contribute a sink without changing the composite factory.
+The collection keeps contribution order.
 
 ## Split a feature into a module with private services {#split-module}
 
@@ -143,7 +157,7 @@ A token created with `.forService<Service>()` cannot receive contributions, and 
 2. Move helpers into private files. Their registration names stay inside the
    module, so another module may also define a `store`.
 3. Register the factories in `module.ts`, export only the entry points, and pass
-   `{ label: 'billing' }` so runtime messages name private services `billing/store`.
+   `moduleLabel: 'billing'` so runtime messages name private services `billing/store`.
 4. Add `check.ts` and `tsconfig.json`, run the per-module check, then replace
    the old registrations in `src/app.ts` with `.withInstalledModules([billingModule])`.
 
@@ -450,30 +464,48 @@ composition.verifyGraphAtCompileTime() satisfies void;
 
 ## Install modules that both require `config` {#rename-module-requirements}
 
-Rename each module value at the install site. The factories still read `config`;
-the host supplies the new names.
+Rename each module value at the install site. Both factories still read `config`.
+The host supplies separate values and gives the colliding `handler` exports distinct names.
 
 ```ts
+// src/features/orders-and-billing/contract.ts
+export type OrdersConfig = { currency: string };
+export type BillingConfig = { vatRate: number };
+```
+
+```ts
+// src/features/orders-and-billing/modules.ts
 import { DiBag } from 'di-bag';
-type OrdersConfig = { currency: string };
-type BillingConfig = { vatRate: number };
-const ordersModule = DiBag.createBuilder().withServices({
-  orders: ({ config }: { config: OrdersConfig }) => config.currency,
-}).buildModule({ exportedServiceKeys: ['orders'] });
-const billingModule = DiBag.createBuilder().withServices({
-  billing: ({ config }: { config: BillingConfig }) => config.vatRate,
-}).buildModule({ exportedServiceKeys: ['billing'] });
+import type { BillingConfig, OrdersConfig } from './contract.js';
+
+export const ordersModule = DiBag.createBuilder()
+  .withServices({ handler: ({ config }: { config: OrdersConfig }) => () => config.currency })
+  .buildModule({ exportedServiceKeys: ['handler'], moduleLabel: 'orders' });
+export const billingModule = DiBag.createBuilder()
+  .withServices({ handler: ({ config }: { config: BillingConfig }) => () => config.vatRate })
+  .buildModule({ exportedServiceKeys: ['handler'], moduleLabel: 'billing' });
+```
+
+```ts
+// src/features/orders-and-billing/check.ts
+import { DiBag } from 'di-bag';
+import type { BillingConfig, OrdersConfig } from './contract.js';
+import { billingModule, ordersModule } from './modules.js';
 
 const app = DiBag.createBuilder()
   .withInstalledModules([
-    ordersModule.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' }),
-    billingModule.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' }),
+    ordersModule
+      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
+      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
+    billingModule
+      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
+      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
   ])
   .withServices({
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
   })
   .buildContainer();
-console.log(app.resolve('orders'), app.resolve('billing'));
+console.log(app.resolve('ordersHandler')(), app.resolve('billingHandler')());
 await app.close();
 ```
