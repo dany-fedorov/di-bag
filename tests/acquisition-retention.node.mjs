@@ -233,7 +233,7 @@ test('pushed disposer closures live until close and are collectible afterwards e
   assert.notEqual(refs[0].deref(), undefined, 'the bag owns the pushed disposer until close');
   await bag.close();
   await collected(refs);
-  assert.throws(() => kept.pushDisposer(() => {}), /CLEANUP_AFTER_FACTORY/);
+  assert.throws(() => kept.pushDisposer(() => {}), /DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY/);
 });
 
 // A payload reachable only through the bag's graph: a factory closure and a
