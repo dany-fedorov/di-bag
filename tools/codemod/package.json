@@ -1,7 +1,6 @@
 {
   "name": "di-bag-codemod",
   "version": "0.1.0",
-  "private": true,
   "description": "Type-aware DI Bag 0.4-to-0.5 codemod for checker-authenticated API uses and explicit runtime-code and import rules.",
   "keywords": ["di-bag", "codemod", "migration", "typescript", "dependency-injection", "agents", "coding-agents"],
   "license": "MIT",

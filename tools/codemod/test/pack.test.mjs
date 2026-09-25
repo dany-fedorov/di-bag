@@ -1,10 +1,19 @@
 // tools/codemod/test/pack.test.mjs
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 
 const directory = resolve(import.meta.dirname, '..');
+
+test('the package is public release metadata, not a private workspace package', () => {
+  const manifest = JSON.parse(readFileSync(resolve(directory, 'package.json'), 'utf8'));
+  const lock = JSON.parse(readFileSync(resolve(directory, 'package-lock.json'), 'utf8'));
+  assert.equal(manifest.private, undefined);
+  assert.equal(lock.packages[''].version, manifest.version);
+  assert.equal(lock.packages[''].private, undefined);
+});
 
 test('the package contains only the CLI, the library, the map, its schema and its documents', () => {
   const result = spawnSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {

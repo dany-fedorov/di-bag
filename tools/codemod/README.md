@@ -10,7 +10,13 @@ such as `text.replace(...)`, `Promise.all(...)`, and your own `register` method
 are left alone.
 
 Run it **before** you upgrade, while `di-bag` 0.4 is still installed: every
-type-based decision reads the old declarations.
+type-based decision reads the old declarations. Runs are dry by default;
+`--write` applies the changes, and `--report <file>` records every item left
+for a person. Scoped remains the default lifetime in 0.5, so no blanket
+lifetime pinning is needed. Proven child-replacement lifetime adjustments are
+automatic; ambiguous cases stay unchanged as manual items. See the
+[0.5 migration guide](https://github.com/dany-fedorov/di-bag/blob/main/docs/guides/migrating-to-0.5.md)
+for the complete upgrade sequence.
 
 ## Commands
 

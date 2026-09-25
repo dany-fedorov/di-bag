@@ -121,6 +121,30 @@ independently. Record a tool release in the `CHANGELOG.md` section of the
    same registry check, public access, and provenance as `di-bag`, only in a
    separately authorized session.
 
+## Releasing di-bag-codemod
+
+`tools/codemod` is the separate package `di-bag-codemod`, with its own version,
+lockfile, and `typescript` dependency. It migrates code against installed DI Bag
+0.4 declarations, so its version moves independently. Record a tool release in
+the `CHANGELOG.md` section of the `di-bag` release it accompanies, naming the
+tool version.
+
+1. Set `version` in `tools/codemod/package.json`; run
+   `npm install --prefix tools/codemod` to update its lockfile.
+2. Run `npm ci --prefix tools/codemod`, `npm run codemod:check`, and
+   `npm run codemod:acceptance`. The pack test asserts the exact archive file
+   surface.
+3. Run the CI step "Smoke-test the packed codemod" locally: it installs the
+   packed tool into a fresh consumer, copies the vendored 0.4 declarations into
+   `node_modules/di-bag`, and verifies the `withServices` and `buildContainer`
+   rewrites.
+4. `npm pack ./tools/codemod --pack-destination /tmp/di-bag-release-candidate`
+   and inspect the archive.
+5. Publication of that archive falls under the authorization rule below. The
+   controller publishes the verified local archive with `--access public` and
+   a scratch `--userconfig`; do not use `--provenance`, which requires a CI
+   identity.
+
 ## DO NOT RUN without fresh explicit authorization
 
 ```bash
