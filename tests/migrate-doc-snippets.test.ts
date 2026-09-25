@@ -67,10 +67,12 @@ test('the historical migration guide is never sent to the codemod, even when nam
     const defaultRun = run();
     expect(defaultRun.status).toBe(0);
     expect(defaultRun.stdout).toContain('2 standalone blocks from 1 pages');
-    const explicitRun = run('--write', 'docs/guides/migrating-to-0.5.md');
-    expect(explicitRun.status).toBe(0);
-    expect(explicitRun.stdout).toContain('0 standalone blocks from 0 pages');
-    expect(readFileSync(join(root, 'docs/guides/migrating-to-0.5.md'), 'utf8')).toBe(historical);
+    for (const spelling of ['docs/guides/migrating-to-0.5.md', './docs/guides/migrating-to-0.5.md', join(root, 'docs/guides/migrating-to-0.5.md')]) {
+      const explicitRun = run('--write', spelling);
+      expect(explicitRun.status).toBe(0);
+      expect(explicitRun.stdout).toContain('0 standalone blocks from 0 pages');
+      expect(readFileSync(join(root, 'docs/guides/migrating-to-0.5.md'), 'utf8')).toBe(historical);
+    }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

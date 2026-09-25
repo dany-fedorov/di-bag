@@ -2,7 +2,7 @@
 // Usage: node scripts/migrate-doc-snippets.mjs [--write] [--root dir] [--command "codemod command"] [page.md ...]
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { isStandaloneProgram, parseMarkdown } from '../tools/docs/lib/agent-docs.mjs';
 
 const args = process.argv.slice(2);
@@ -10,8 +10,10 @@ const take = name => { const index = args.indexOf(name); return index === -1 ? u
 const root = resolve(take('--root') ?? '.');
 const command = (take('--command') ?? 'node tools/codemod/cli.mjs').split(' ');
 const write = args.includes('--write') && args.splice(args.indexOf('--write'), 1).length > 0;
+const canonical = page => relative(root, resolve(root, page)).split(sep).join('/');
 const pages = (args.length ? args : [...(existsSync(join(root, 'README.md')) ? ['README.md'] : []),
   ...(existsSync(join(root, 'docs/guides')) ? readdirSync(join(root, 'docs/guides')).filter(file => file.endsWith('.md')).sort().map(file => `docs/guides/${file}`) : [])])
+  .map(canonical)
   .filter(page => page !== 'docs/guides/migrating-to-0.5.md');
 
 const work = join(root, 'tools/codemod/.doc-snippets');

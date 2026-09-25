@@ -47,7 +47,7 @@ test('a removed call, type, code, value, import and each retired word are report
 test('without file arguments it reads the guides of the root', () => {
   const result = run();
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('finding(s) in 4 file(s)');
+  expect(result.stderr).toContain('finding(s) in 5 file(s)');
 });
 
 test('fences suppress retired prose words but retain removed API findings', () => {
@@ -66,13 +66,32 @@ test('the naming guide preserves its historical vocabulary table without exempti
   const result = run('docs/guides/api-naming.md');
   expect(result.status).toBe(1);
   expect(result.stdout.trim().split('\n')).toEqual([
-    'docs/guides/api-naming.md:13: retired word cleanup',
-    'docs/guides/api-naming.md:14: retired call build',
+    'docs/guides/api-naming.md:10: retired name DI_BAG_CYCLE',
+    'docs/guides/api-naming.md:10: retired word cleanup',
+    'docs/guides/api-naming.md:14: retired word cleanup',
+    'docs/guides/api-naming.md:15: retired call build',
+    'docs/guides/api-naming.md:22: retired name DI_BAG_CYCLE',
+    'docs/guides/api-naming.md:22: retired word cleanup',
+    'docs/guides/api-naming.md:28: retired name DI_BAG_CYCLE',
+    'docs/guides/api-naming.md:28: retired word cleanup',
+    'docs/guides/api-naming.md:32: retired word bag',
   ]);
 });
 
 test('the historical migration guide is excluded consistently, even when named', () => {
-  const result = run('docs/guides/migrating-to-0.5.md');
-  expect(result.status).toBe(0);
-  expect(result.stdout).toBe('');
+  for (const spelling of ['docs/guides/migrating-to-0.5.md', './docs/guides/migrating-to-0.5.md', resolve(root, 'docs/guides/migrating-to-0.5.md')]) {
+    const result = run(spelling);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('');
+  }
+});
+
+test('only valid closers end tilde and blockquote fences before prose scanning resumes', () => {
+  const result = run('docs/guides/fence-containers.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim().split('\n')).toEqual([
+    'docs/guides/fence-containers.md:8: retired word cleanup',
+    'docs/guides/fence-containers.md:15: retired word family',
+    'docs/guides/fence-containers.md:17: retired word cleanup',
+  ]);
 });
