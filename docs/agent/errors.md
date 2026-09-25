@@ -943,6 +943,10 @@ not have: `resolve`, `ensureServicesReady`, `withServiceAlias` (the target),
 `withRenamedRequirement` (the current key). `details.operation` names the call
 and `details.serviceKey` the key.
 
+For `withRenamedRequirement`, runtime validation covers known exports and
+recorded requirement renames. An unseen absent requirement may pass an untyped
+call; type-check the requirement name against the module to catch it.
+
 **Cause:** the key is misspelled, was never registered, or is private to a
 module. The compiler reports this first; the runtime error is what an untyped
 call gets.
