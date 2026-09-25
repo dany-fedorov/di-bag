@@ -48,10 +48,18 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(cleanup.failures.map((failure: { bindingLabel: string }) => failure.bindingLabel)).toEqual(['value']);
   expect(cleanup.failures[0]).not.toHaveProperty('label');
 
-  const readiness = await DiBag.createBuilder().withServices({ slow: () => new Promise(() => {}) }).buildContainer().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
+  const controller = new AbortController();
+  const abortReason = new Error('readiness cancelled');
+  let slowEntered = false;
+  const readinessPromise = DiBag.createBuilder().withServices({
+    slow: () => { slowEntered = true; return new Promise(() => {}); },
+  }).buildContainer().ensureServicesReady(['slow'], { abortSignal: controller.signal }).catch(error => error);
+  expect(slowEntered).toBe(true);
+  controller.abort(abortReason);
+  const readiness = await readinessPromise;
   expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
-  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this container is closing; see ${page}#di-bag-service-readiness-cancelled`);
-  expect(readiness.cause.message).toBe(`DI_BAG_SERVICE_READINESS_TIMEOUT: The listed services were not ready before the deadline; see ${page}#di-bag-service-readiness-timeout`);
+  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait was aborted; acquisitions still pending: slow; this container is closing; see ${page}#di-bag-service-readiness-cancelled`);
+  expect(readiness.cause).toBe(abortReason);
 });
 
 test('application errors keep their message untouched', () => {
