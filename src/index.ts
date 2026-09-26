@@ -18,7 +18,7 @@ export type { ReboundProviders, ReboundSelection } from './types';
 export type { CanonicalLifetime, ChildReplacementAdmission, CheckedChildContainerLifetimes, CheckedLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 export type { DiBagPolicy } from './types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';
-export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, GraphSnapshot } from './inspection';
+export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, ModuleInstallationSnapshot, GraphSnapshot } from './inspection';
 export type { PositionalFactoryArguments, PositionalFactoryFunction } from './composition';
 export type { OptionalDependency, LazyDependency, DependencyReference } from './dependency-references';
 export type { PluginOutputValidator, PluginProvider } from './plugins';

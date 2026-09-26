@@ -50,6 +50,8 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
+  /** Innermost module installation that introduced this binding; absent for host declarations and replacements. */
+  readonly moduleInstallationId: symbol | undefined;
   /** Public names or token symbols that select this binding, in service key order; empty for a private module binding. */
   readonly serviceKeys: readonly (string | symbol)[];
   readonly lifetime: Lifetime;
@@ -60,6 +62,16 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
   readonly tokenDependencies: readonly { readonly tokenSymbol: symbol; readonly dependencyKind: 'required' | 'optional' | 'lazy' }[];
 }
 
+/** One occurrence of a sealed module in a container graph. */
+export interface ModuleInstallationSnapshot {
+  /** Stable identity for this occurrence in the graph. */
+  readonly installationId: symbol;
+  /** Exact label supplied when the module was sealed, if any. */
+  readonly moduleLabel: string | undefined;
+  /** Enclosing installation, if this module was installed inside another module. */
+  readonly parentInstallationId: symbol | undefined;
+}
+
 /**
  * A frozen description of every binding a container can resolve, plus the edges observed so far.
  * Named dependencies read from a factory's object parameter are not knowable until the factory
@@ -68,6 +80,8 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
  */
 export interface GraphSnapshot {
   readonly containerId: symbol;
+  /** Module occurrences in installation order, with each parent preceding its contiguous descendants. */
+  readonly moduleInstallations: readonly ModuleInstallationSnapshot[];
   /** Public bindings in service key order, then contributions in group order, then remaining private bindings. */
   readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
   readonly contributions: readonly { readonly collectionTokenSymbol: symbol; readonly bindingIds: readonly symbol[] }[];
