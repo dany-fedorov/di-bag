@@ -29,8 +29,6 @@ const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), '
 
 const packageNames = ['di-bag'] as const;
 const releasePackages = (libraryVersion: string) => [
-  { name: 'di-bag-graph', version: '0.2.0', archive: '/tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz' },
-  { name: 'di-bag-codemod', version: '0.1.0', archive: '/tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz' },
   { name: 'di-bag', version: libraryVersion, archive: `/tmp/di-bag-release-candidate/di-bag-${libraryVersion}.tgz` },
 ] as const;
 const authorizationHeading = '## DO NOT RUN without fresh explicit authorization';
@@ -130,13 +128,11 @@ describe('release documentation contract', () => {
   test('release documents match the frozen package and gate every online command', () => {
     const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.5.0' });
+    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.5.1' });
     expect(changelog.match(new RegExp(`^## ${packageManifest.version}$`, 'gm'))).toHaveLength(1);
     expect(changelog).not.toContain('## Unreleased');
     expect(releasePackages(packageManifest.version)).toEqual([
-      { name: 'di-bag-graph', version: '0.2.0', archive: '/tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz' },
-      { name: 'di-bag-codemod', version: '0.1.0', archive: '/tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz' },
-      { name: 'di-bag', version: '0.5.0', archive: '/tmp/di-bag-release-candidate/di-bag-0.5.0.tgz' },
+      { name: 'di-bag', version: '0.5.1', archive: '/tmp/di-bag-release-candidate/di-bag-0.5.1.tgz' },
     ]);
     expect(validatePublishingDocument(publishing, packageManifest.version)).toEqual([]);
     expect(appendixCommands(publishing)).toEqual(authorizedReleaseCommands(packageManifest.version));
