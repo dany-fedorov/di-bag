@@ -66,6 +66,16 @@ installing builder must satisfy. Modules install into builders, including
 builders that seal further modules.
 _Avoid_: Container when referring to a reusable declaration; Builder when referring to the sealed value
 
+**Module label**:
+Optional, non-unique descriptive text attached to a module. It helps people
+recognize its bindings but does not identify the module or an installation.
+_Avoid_: Module name or module ID when identity is intended
+
+**Module installation**:
+One occurrence of a module in a builder's service graph, possibly within
+another installation. Each occurrence is distinct even when it uses the same module.
+_Avoid_: Module when referring to one occurrence in a graph
+
 **Registration**:
 A provider stored under a service key in a builder.
 _Avoid_: Registration when the provider itself is meant

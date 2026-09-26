@@ -694,7 +694,9 @@ const reports = DiBag.createBuilder()
       },
     }),
   })
-  .buildModule({ exportedServiceKeys: ['service'] });
+  .buildModule({ exportedServiceKeys: ['service'], moduleLabel: 'reports' });
+
+reports.moduleLabel; // 'reports'; reading it does not acquire a service
 
 const app = DiBag.createBuilder()
   .withInstalledModules([reports])
@@ -725,7 +727,10 @@ bindings `reports/connection` in error messages, cycle paths, `graphSnapshot()`,
 and observer events. Exported bindings keep their bare key. Labels compose when
 modules nest: a private `state` of an `inner` module installed in an `outer`
 module appears as `outer/inner/state`. Without a label, bindings keep their bare
-key.
+key. `module.moduleLabel` returns the exact label supplied at sealing, or
+`undefined`; renaming exports or requirements preserves it. A supplied label
+must be a non-empty string. Labels may repeat or contain `/`, so neither a
+label nor a binding-label prefix identifies an installation.
 
 Private providers keep their external requirements, including requirements from
 providers that are not currently reachable from an export. The host may satisfy
@@ -1117,18 +1122,53 @@ Metadata wrappers add frames as described under
 
 `graphSnapshot()` describes the whole container at once: every binding with its public
 keys, label, lifetime, factory return kind, ownership, typed-token dependencies,
-registration metadata, and current attempts; every contribution group; and the
-consumer-to-dependency edges observed during acquisition so far. Private
-bindings from installed modules appear with an empty key list. Nothing is
-acquired, and the snapshot is frozen. Named dependencies read from a factory's
-object parameter are unknown until that factory runs, so the edge list grows as
-services are acquired; the static graph tool reports declared edges from source.
+registration metadata, and current attempts; every contribution group; every
+module installation; and the consumer-to-dependency edges observed during
+acquisition so far. Private bindings from installed modules appear with an empty
+key list. Nothing is acquired, and the snapshot is frozen. Named dependencies
+read from a factory's object parameter are unknown until that factory runs, so
+the edge list grows as services are acquired; the static graph tool reports
+declared edges from source.
 
 ```ts
 const graph = app.graphSnapshot();
 graph.bindings.map(binding => [binding.serviceKeys, binding.lifetime]);
 graph.observedEdges; // [] before any resolve
 ```
+
+Each `moduleInstallations` record has a symbolic `installationId`, its exact
+`moduleLabel` (possibly `undefined`), and the enclosing installation's
+`parentInstallationId` (also `undefined` at the top level). Records appear in
+installation order, with parents before their nested installations. A binding's
+`moduleInstallationId` points to the innermost installation that introduced it;
+follow parent IDs for the full ancestry. For a container with an `answer` service:
+
+```ts
+const graph = container.graphSnapshot();
+const installations = new Map(graph.moduleInstallations.map(record => [record.installationId, record]));
+const binding = graph.bindings.find(binding => binding.serviceKeys.includes('answer'))!;
+const installation = binding.moduleInstallationId === undefined
+  ? undefined : installations.get(binding.moduleInstallationId);
+console.log(installation?.moduleLabel);
+
+for (let current = installation; current !== undefined;
+  current = current.parentInstallationId === undefined
+    ? undefined : installations.get(current.parentInstallationId)) {
+  console.log(current.moduleLabel);
+}
+```
+
+Host declarations have `moduleInstallationId: undefined`. Unlabelled and empty
+modules still have installation records, as do installations whose original
+bindings were all replaced. Every installation of the same module receives new
+IDs, including its nested installations. Further snapshots and containers built
+from the same builder preserve inherited IDs; child and independent containers
+also preserve them. Exports, token bindings, and contributions retain their
+installation origin. An alias records where the alias itself was declared,
+independently of its target. A replacement records where its new binding was
+declared: a host replacement has no module installation ID, while bindings
+retained for lexical dependencies keep their original origin. The installation
+array and its records are frozen descriptions, not live module objects.
 
 ## Observe lifecycle transitions
 

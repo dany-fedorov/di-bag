@@ -150,6 +150,8 @@ controller handles full-suite validation and independent review.
 - Modify `tools/docs/api-card-tasks.json` if the card needs a label-read task;
   inspect the renderer's supported property shapes before adding one.
 - Regenerate `docs/reference/**` and `docs/agent/api-card.md` via the generator.
+- Modify `tools/docs/test/api-card.test.mjs`: its method-coverage check must classify callable members rather than treating the new getter as a method; keep the getter out of the callable-only card.
+- Modify the `BindingSnapshot.moduleInstallationId` comment in `src/inspection.ts` to say host replacements lack origin; replacements sealed into a module gain that installation's origin.
 
 **Interfaces:**
 - Consumes Task 1's exact public contract and source comments.

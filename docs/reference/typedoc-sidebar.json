@@ -131,6 +131,10 @@
             "link": "/reference/index/interfaces/Module.md"
           },
           {
+            "text": "ModuleInstallationSnapshot",
+            "link": "/reference/index/interfaces/ModuleInstallationSnapshot.md"
+          },
+          {
             "text": "ModuleOptions",
             "link": "/reference/index/interfaces/ModuleOptions.md"
           },

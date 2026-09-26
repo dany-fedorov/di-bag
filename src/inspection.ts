@@ -50,7 +50,7 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
-  /** Innermost module installation that introduced this binding; absent for host declarations and replacements. */
+  /** Innermost module installation that introduced this binding; absent for host declarations and host replacements. */
   readonly moduleInstallationId: symbol | undefined;
   /** Public names or token symbols that select this binding, in service key order; empty for a private module binding. */
   readonly serviceKeys: readonly (string | symbol)[];

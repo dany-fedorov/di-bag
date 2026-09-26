@@ -38,6 +38,7 @@
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [LifecycleObserver](interfaces/LifecycleObserver.md)
 - [Module](interfaces/Module.md)
+- [ModuleInstallationSnapshot](interfaces/ModuleInstallationSnapshot.md)
 - [ModuleOptions](interfaces/ModuleOptions.md)
 - [ObserverFailure](interfaces/ObserverFailure.md)
 - [Provider](interfaces/Provider.md)
