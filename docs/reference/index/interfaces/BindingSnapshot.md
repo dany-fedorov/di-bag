@@ -110,7 +110,7 @@ Human-readable binding label.
 readonly factoryReturnKind: FactoryReturnKind;
 ```
 
-Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
+Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
 
 ***
 
@@ -120,7 +120,7 @@ Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/
 readonly isOwnedByContainer: boolean;
 ```
 
-Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
+Defined in: [inspection.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L60)
 
 True when some stage of the provider accepts ownership through a disposer.
 
@@ -132,7 +132,19 @@ True when some stage of the provider accepts ownership through a disposer.
 readonly lifetime: Lifetime;
 ```
 
-Defined in: [inspection.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L55)
+Defined in: [inspection.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L57)
+
+***
+
+### moduleInstallationId
+
+```ts
+readonly moduleInstallationId: symbol | undefined;
+```
+
+Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
+
+Innermost module installation that introduced this binding; absent for host declarations and host replacements.
 
 ***
 
@@ -158,7 +170,7 @@ Static registration metadata; application-owned payload values retain their iden
 readonly serviceKeys: readonly (string | symbol)[];
 ```
 
-Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
+Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
 
 Public names or token symbols that select this binding, in service key order; empty for a private module binding.
 
@@ -173,6 +185,6 @@ readonly tokenDependencies: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L60)
+Defined in: [inspection.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L62)
 
 Typed-token dependencies declared positionally through service tokens, collection tokens, `optional`, or `lazy` references.

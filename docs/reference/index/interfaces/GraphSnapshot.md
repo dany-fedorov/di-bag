@@ -4,7 +4,7 @@
 
 # Interface: GraphSnapshot
 
-Defined in: [inspection.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L69)
+Defined in: [inspection.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L81)
 
 A frozen description of every binding a container can resolve, plus the edges observed so far.
 Named dependencies read from a factory's object parameter are not knowable until the factory
@@ -22,7 +22,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-i
 readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
 ```
 
-Defined in: [inspection.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L72)
+Defined in: [inspection.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L86)
 
 Public bindings in service key order, then contributions in group order, then remaining private bindings.
 
@@ -34,7 +34,7 @@ Public bindings in service key order, then contributions in group order, then re
 readonly containerId: symbol;
 ```
 
-Defined in: [inspection.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L70)
+Defined in: [inspection.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L82)
 
 ***
 
@@ -47,7 +47,19 @@ readonly contributions: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L73)
+Defined in: [inspection.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L87)
+
+***
+
+### moduleInstallations
+
+```ts
+readonly moduleInstallations: readonly ModuleInstallationSnapshot[];
+```
+
+Defined in: [inspection.ts:84](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L84)
+
+Module occurrences in installation order, with each parent preceding its contiguous descendants.
 
 ***
 
@@ -60,6 +72,6 @@ readonly observedEdges: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L75)
+Defined in: [inspection.ts:89](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L89)
 
 Consumer-to-dependency edges recorded by acquisitions in this container's ownership family.

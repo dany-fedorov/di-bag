@@ -7,7 +7,7 @@ import { DiBagDisposalError } from './errors';
 import type { DisposalFailure } from './errors';
 import { normalize } from './registration';
 import type { ProviderOrFactory, Registrations } from './registration';
-import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
+import type { GraphSnapshot, ModuleInstallationSnapshot, RegistrationSnapshot } from './inspection';
 import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 import { wrongTokenKind, type TokenKind } from './tokens';
@@ -25,6 +25,7 @@ export interface BindingDescription {
   readonly label: string;
   readonly registration: ProviderOrFactory;
   readonly localNames: ReadonlyMap<BindingKey, BindingRef>;
+  readonly moduleInstallationId?: symbol;
 }
 
 export interface GraphDescription {
@@ -32,6 +33,7 @@ export interface GraphDescription {
   readonly publicSlots: ReadonlyMap<BindingKey, BindingId>;
   readonly contributions?: ReadonlyMap<symbol, readonly BindingId[]>;
   readonly tokenKinds?: ReadonlyMap<symbol, TokenKind>;
+  readonly moduleInstallations?: readonly ModuleInstallationSnapshot[];
 }
 
 type Normalized = Readonly<ReturnType<typeof normalize>>;
@@ -48,6 +50,7 @@ type BindingEntry = {
 };
 const emptyContributions: readonly BindingId[] = Object.freeze([]);
 const emptyNames: ReadonlyMap<BindingKey, BindingRef> = new Map();
+const emptyModuleInstallations: readonly ModuleInstallationSnapshot[] = Object.freeze([]);
 
 /** Immutable descriptions and path-copied lookup storage. Retained maps never escape. */
 export class BindingGraph {
@@ -69,6 +72,7 @@ export class BindingGraph {
   // First public registration order by key, for module snapshots. Keys are
   // never unregistered, so this retains nothing a graph would otherwise drop.
   #publicOrder: Sequence<BindingKey> | undefined;
+  #moduleInstallations: Sequence<ModuleInstallationSnapshot> | undefined;
   readonly #bindingCache = new Map<BindingId, BindingDescription>();
   readonly #registrationCache = new Map<BindingId, Normalized>();
   readonly #publicCache = new Map<BindingKey, BindingId>();
@@ -76,6 +80,9 @@ export class BindingGraph {
   #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
+    if (description.moduleInstallations?.length) {
+      this.#moduleInstallations = { values: Object.freeze(description.moduleInstallations.map(record => Object.freeze({ ...record }))) };
+    }
     const declaredKinds = description.tokenKinds ?? new Map<symbol, TokenKind>();
     const lexicalSnapshots = new Map<BindingDescription['localNames'], LexicalSnapshot>();
     for (const [id, binding] of description.bindings) {
@@ -95,7 +102,10 @@ export class BindingGraph {
       this.#lexicalUsers = this.#lexicalUsers.set(lexical.id, (this.#lexicalUsers.get(lexical.id) ?? 0) + 1);
       const entry: BindingEntry = {
         lexical,
-        description: Object.freeze({ id: binding.id, label: binding.label, registration: binding.registration, localNames: lexical.names }),
+        description: Object.freeze({
+          id: binding.id, label: binding.label, registration: binding.registration, localNames: lexical.names,
+          ...(binding.moduleInstallationId === undefined ? {} : { moduleInstallationId: binding.moduleInstallationId }),
+        }),
         normalized: Object.freeze(normalize(binding.registration)),
       };
       this.retainBindingTokenKinds(entry, 'withInstalledModules');
@@ -133,6 +143,7 @@ export class BindingGraph {
     graph.#tokenKindOwners = this.#tokenKindOwners;
     graph.#directTokenKinds = this.#directTokenKinds;
     graph.#publicOrder = this.#publicOrder;
+    graph.#moduleInstallations = this.#moduleInstallations;
     return graph;
   }
 
@@ -327,6 +338,14 @@ export class BindingGraph {
 
   label(id: BindingId): string { return (this.#bindingCache.get(id) ?? this.entry(id)?.description)?.label ?? String(id); }
 
+  moduleInstallationId(id: BindingId): symbol | undefined {
+    return (this.#bindingCache.get(id) ?? this.entry(id)?.description)?.moduleInstallationId;
+  }
+
+  moduleInstallations(): readonly ModuleInstallationSnapshot[] {
+    return this.#moduleInstallations ? materialize(this.#moduleInstallations) : emptyModuleInstallations;
+  }
+
   withPublicRegistrations(
     registrations: Registrations,
     operation = 'register',
@@ -432,7 +451,7 @@ export class BindingGraph {
     for (const [key, kind] of this.#tokenKinds) {
       tokenKinds.set(key as symbol, kind);
     }
-    return { bindings, publicSlots, contributions, tokenKinds };
+    return { bindings, publicSlots, contributions, tokenKinds, moduleInstallations: this.moduleInstallations() };
   }
 
   /** Every retained binding in `describe()` order, with the public keys that select it. */
@@ -466,6 +485,9 @@ export class BindingGraph {
       this.assertTokenKind(key as symbol, kind, operation);
     }
     const graph = this.copy();
+    if (description.moduleInstallations?.length) {
+      graph.#moduleInstallations = append(graph.#moduleInstallations, installation.#moduleInstallations!);
+    }
     const pending: BindingId[] = [];
     // Publish all incoming protection before releasing overwritten descriptions.
     for (const [id, count] of installation.#lexicalUsers) graph.#lexicalUsers = graph.#lexicalUsers.set(id, count);
@@ -565,6 +587,7 @@ export class BagRuntime {
       const description = this.graph.registration(id);
       return Object.freeze({
         ...this.inspectBinding(id),
+        moduleInstallationId: this.graph.moduleInstallationId(id),
         serviceKeys: keys,
         lifetime: publicLifetime(description.lifetime.kind),
         factoryReturnKind: description.factoryReturnKind,
@@ -574,6 +597,7 @@ export class BagRuntime {
     });
     return Object.freeze({
       containerId: this.acquisitions.ownerId,
+      moduleInstallations: this.graph.moduleInstallations(),
       bindings: Object.freeze(bindings),
       contributions: this.graph.contributionGroups(),
       observedEdges: this.acquisitions.observedEdges(),

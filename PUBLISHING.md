@@ -15,7 +15,7 @@ tool versions, native diagnostic inventory, build output, dry-run and actual pac
 JSON, archive bytes and hashes, and every supervised command record.
 
 Verify the public API and inferred consumer declarations in the packed
-archive. The documented local version is `0.5.0`; select and verify each
+archive. The documented local version is `0.5.1`; select and verify each
 subsequent version before publication.
 
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
@@ -151,9 +151,9 @@ The login is interactive and writes credentials only to a newly created,
 mode-700 user-config directory; the exit trap removes that file and directory.
 Never put a registry token in an argument, this document, or a retained log.
 Confirm `npm whoami` names the intended publisher.
-Each version check must report that the exact version is absent; an existing
-version, unexpected owner, or failed login stops the release. Publish the two
-tools before the library from the exact verified candidate archives. Provenance
+The version check must report that the exact version is absent; an existing
+version, unexpected owner, or failed login stops the release. This 0.5.1
+candidate publishes only `di-bag` from its exact verified archive. Provenance
 is omitted because this is a local-token publication rather than a CI identity.
 
 ```bash
@@ -162,13 +162,7 @@ chmod 700 "$release_scratch"
 trap 'rm -f "$release_scratch/publish.npmrc"; rmdir "$release_scratch"' EXIT
 npm login --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
 npm whoami --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm view di-bag-graph@0.2.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm view di-bag-codemod@0.1.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm view di-bag@0.5.0 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm publish /tmp/di-bag-release-candidate/di-bag-graph-0.2.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
-npm publish /tmp/di-bag-release-candidate/di-bag-codemod-0.1.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
-npm publish /tmp/di-bag-release-candidate/di-bag-0.5.0.tgz --access public --userconfig "$release_scratch/publish.npmrc"
-npm dist-tag add di-bag-graph@0.2.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm dist-tag add di-bag-codemod@0.1.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm dist-tag add di-bag@0.5.0 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag@0.5.1 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-0.5.1.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag@0.5.1 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
 ```

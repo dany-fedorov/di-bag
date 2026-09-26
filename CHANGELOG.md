@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.1
+
+### Added
+
+- The read-only `module.moduleLabel` getter exposes the exact label supplied at
+  sealing, or `undefined`. Renaming a module's exports or requirements preserves
+  that value.
+- `graphSnapshot().moduleInstallations` records every installation, including
+  empty and unlabelled modules, with a unique `installationId`, its exact label,
+  and its parent installation. Each binding's `moduleInstallationId` identifies
+  the installation that introduced it. These IDs distinguish repeated installs
+  and make ancestry available without parsing binding labels.
+
+### Compatibility
+
+- Existing string keys and module labels containing `/` remain valid. A slash
+  in a binding label is not an installation identifier; use the snapshot IDs
+  to determine origin.
+
+This patch releases `di-bag` only. `di-bag-graph` remains at 0.2.0 and
+`di-bag-codemod` remains at 0.1.0.
+
 ## 0.5.0
 
 The API is pre-1.0. This release renames almost every public name, so that a

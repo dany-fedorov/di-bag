@@ -23,6 +23,22 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
 | `Constraints` | The checks retained from the sealed graph and applied again at installation. |
 | `PublicProviders` | The provider contract of each export, as the installing builder sees it. |
 
+## Accessors
+
+### moduleLabel
+
+#### Get Signature
+
+```ts
+get moduleLabel(): string | undefined {
+    return descriptions.get(this)!.label;
+}
+```
+
+Defined in: [module.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L62)
+
+The exact label supplied when this module was sealed, if any. Reading it never acquires a service.
+
 ## Methods
 
 ### withRenamedExport()
@@ -34,7 +50,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 }): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L73)
+Defined in: [module.ts:78](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L78)
 
 Return a module view with one string-named export renamed through an options object.
 
@@ -78,7 +94,7 @@ withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequ
 }): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>>;
 ```
 
-Defined in: [module.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L132)
+Defined in: [module.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L137)
 
 Return a module view that asks its host for a requirement under a new name.
 Factory parameter names and private bindings retain their lexical meaning.

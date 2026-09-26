@@ -49,7 +49,7 @@ test('failures and events use the 0.5.0 field names and kinds', async () => {
   expect(error).toBeInstanceOf(DiBagDisposalError);
   expect((error as DiBagDisposalError).failures.map(failure => failure.bindingLabel)).toEqual(['Symbol(clock)']);
   expect(Object.keys((error as DiBagDisposalError).failures[0]!).sort()).toEqual(['acquisitionId', 'bindingId', 'bindingLabel', 'error']);
-  expect(Object.keys(app.graphSnapshot()).sort()).toEqual(['bindings', 'containerId', 'contributions', 'observedEdges']);
+  expect(Object.keys(app.graphSnapshot()).sort()).toEqual(['bindings', 'containerId', 'contributions', 'moduleInstallations', 'observedEdges']);
   expect([...new Set(events.map(event => event.kind))].sort()).toEqual(['acquisition-ready', 'acquisition-started', 'container-close-failed', 'container-closed', 'container-closing', 'container-opened', 'disposal-completed', 'disposal-failed', 'disposal-started']);
   const opened = events.filter(event => event.kind === 'container-opened');
   expect(opened.map(event => Object.keys(event).sort())).toEqual([['containerId', 'kind'], ['containerId', 'kind', 'parentContainerId']]);

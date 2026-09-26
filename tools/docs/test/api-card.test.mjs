@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import { Application } from 'typedoc';
+import { Application, ReflectionKind } from 'typedoc';
 import { renderApiCard, runtimeSurface } from '../lib/api-card.mjs';
 import { cardBudget, parseMarkdown } from '../lib/agent-docs.mjs';
 
@@ -103,7 +103,7 @@ test('every public Module method is classified for the API card', () => {
   const included = new Set(['withRenamedRequirement']);
   const excluded = new Set(['withRenamedExport']);
   const module = project.children.find(child => child.name === 'index').children.find(child => child.name === 'Module');
-  const reflected = module.children.filter(child => child.name !== 'constructor').map(child => child.name);
+  const reflected = module.children.filter(child => child.kind === ReflectionKind.Method).map(child => child.name);
   const checkClassification = names => {
     assert.deepEqual([...included].filter(name => excluded.has(name)), [], 'included and excluded Module methods must be disjoint');
     assert.deepEqual([...names].sort(), [...included, ...excluded].sort(), 'every reflected public Module method must be classified');

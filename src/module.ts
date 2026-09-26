@@ -58,6 +58,11 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     Object.freeze(this);
   }
 
+  /** The exact label supplied when this module was sealed, if any. Reading it never acquires a service. */
+  get moduleLabel(): string | undefined {
+    return descriptions.get(this)!.label;
+  }
+
   /**
    * Return a module view with one string-named export renamed through an options object.
    * @param options - The current export and its noncolliding new name.
@@ -214,6 +219,18 @@ export function moduleGraph(value: unknown, index?: number): GraphDescription {
     throw libraryError('DI_BAG_INVALID_MODULE', `withInstalledModules requires genuine modules: element ${index} is not one`, { operation: 'withInstalledModules', index });
   }
   const { graph, exports, label, requirementRenames } = description;
+  const installationId = Symbol('module installation');
+  const remapped = new Map<symbol, symbol>();
+  for (const nested of graph.moduleInstallations ?? []) remapped.set(nested.installationId, Symbol('module installation'));
+  const moduleInstallations = [
+    { installationId, moduleLabel: label, parentInstallationId: undefined },
+    ...(graph.moduleInstallations ?? []).map(nested => ({
+      installationId: remapped.get(nested.installationId)!,
+      moduleLabel: nested.moduleLabel,
+      parentInstallationId: nested.parentInstallationId === undefined
+        ? installationId : remapped.get(nested.parentInstallationId)!,
+    })),
+  ];
   const exported = new Set<BindingId>();
   for (const localKey of exports.values()) exported.add(graph.publicSlots.get(localKey)!);
   const labelOf = (id: BindingId, binding: BindingDescription) =>
@@ -257,6 +274,8 @@ export function moduleGraph(value: unknown, index?: number): GraphDescription {
     bindings.set(fresh, {
       id: fresh, label: labelOf(id, binding), registration: binding.registration,
       localNames: localNamesFor(binding),
+      moduleInstallationId: binding.moduleInstallationId === undefined
+        ? installationId : remapped.get(binding.moduleInstallationId)!,
     });
   }
   const publicSlots = new Map<BindingKey, BindingId>();
@@ -268,6 +287,7 @@ export function moduleGraph(value: unknown, index?: number): GraphDescription {
     publicSlots,
     contributions,
     tokenKinds: new Map(graph.tokenKinds ?? []),
+    moduleInstallations,
   };
 }
 

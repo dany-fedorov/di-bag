@@ -69,6 +69,7 @@ next call; they do not mutate the original.
 | `verifyGraphAtCompileTime()` | Builder | Report an incomplete graph through its TypeScript return type. |
 | `buildModule({ exportedServiceKeys, moduleLabel? })` | Builder | Seal public exports; unmet dependencies become module requirements. |
 | `buildContainer()` | Builder | Check graph completeness and create a lazy owning container. |
+| `moduleLabel` | Sealed Module | Read the exact optional label supplied at sealing without acquiring a service; rename views preserve it. |
 | `withRenamedExport({ currentExportKey, newExportKey })` | Sealed Module | Return a module view with a renamed string export. |
 | `withRenamedRequirement({ currentRequirementKey, newRequirementKey })` | Sealed Module | Return a module view that asks its host for a renamed string requirement. |
 
@@ -86,7 +87,7 @@ close it after the response. Unmarked providers are scoped to each container.
 | `resolve(serviceKey)` | Lazily acquire a single service with its inferred return type. |
 | `resolveCollection(token)` | Resolve [ordered contributions](tutorial.md#compose-an-ordered-collection) as a frozen readonly list. |
 | `serviceSnapshot(serviceKey)` | Inspect [service or collection metadata and acquisition state](tutorial.md#attach-metadata-and-inspect-without-resolving) without acquiring anything. |
-| `graphSnapshot()` | Describe every binding and dependency edge observed so far. |
+| `graphSnapshot()` | Describe every binding, module installation, and dependency edge observed so far. |
 | `createChildContainer(options?)` / `createChildContainer(keys, providers, options?)` | Create a tracked [child container](tutorial.md#create-child-containers) with optional sharing and checked scoped or transient replacements. |
 | `createIndependentContainer()` / `createIndependentContainer(keys, providers)` | Create an [independent container](tutorial.md#create-an-independent-container) with fresh instances and optional checked replacements. |
 | `ensureServicesReady(serviceKeys, options?)` | Wait for selected services to become [ready](tutorial.md#make-selected-services-ready). |
@@ -180,7 +181,7 @@ retain private-consumer, token, lifetime, and ownership contracts.
 | [`ConfigurationOptions`](../reference/index/interfaces/ConfigurationOptions.md) | Runtime classification and observer options for `withConfiguration`. |
 | [`Builder`](../reference/index/interfaces/Builder.md), [`Container`](../reference/index/interfaces/Container.md) | A checked immutable builder and a resolving, owning container. |
 | [`Module`](../reference/index/interfaces/Module.md) | A sealed export view of a builder graph, installable in other builders. |
-| [`ModuleOptions`](../reference/index/interfaces/ModuleOptions.md) | Optional `moduleLabel` for naming private bindings of a sealed module. |
+| [`ModuleOptions`](../reference/index/interfaces/ModuleOptions.md) | Optional non-empty `moduleLabel` for naming private bindings; labels are descriptive and may repeat or contain `/`. |
 | [`ProviderOrFactory`](../reference/index/type-aliases/ProviderOrFactory.md) | Accepted provider or factory shapes. |
 | [`Provider`](../reference/index/interfaces/Provider.md) | A provider description retaining its factory, metadata, frames, graph contracts, and acquired-value type. |
 | [`FactoryReturnKind`](../reference/index/type-aliases/FactoryReturnKind.md), [`RuntimeOptions`](../reference/index/interfaces/RuntimeOptions.md) | Factory return-kind literals and the `isNativePromise` configuration callback. |
@@ -195,7 +196,7 @@ retain private-consumer, token, lifetime, and ownership contracts.
 | [`PositionalFactoryArguments`](../reference/index/type-aliases/PositionalFactoryArguments.md), [`PositionalFactoryFunction`](../reference/index/type-aliases/PositionalFactoryFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
 | [`Presence`](../reference/index/type-aliases/Presence.md) | `{ isPresent: false }` or `{ isPresent: true, value }`, including a present `undefined` value. |
 | [`AcquisitionMetadataPresence`](../reference/index/type-aliases/AcquisitionMetadataPresence.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`RegistrationSnapshot`](../reference/index/interfaces/RegistrationSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
-| [`GraphSnapshot`](../reference/index/interfaces/GraphSnapshot.md), [`BindingSnapshot`](../reference/index/interfaces/BindingSnapshot.md) | The frozen result of `graphSnapshot()` and its per-binding entries. |
+| [`GraphSnapshot`](../reference/index/interfaces/GraphSnapshot.md), [`BindingSnapshot`](../reference/index/interfaces/BindingSnapshot.md), [`ModuleInstallationSnapshot`](../reference/index/interfaces/ModuleInstallationSnapshot.md) | The frozen graph description, per-binding origin, and installation records with parent IDs. |
 | [`DisposalFailure`](../reference/index/interfaces/DisposalFailure.md) | The detached acquisition identity, label, and original disposal error. |
 | [`DiBagErrorCode`](../reference/index/type-aliases/DiBagErrorCode.md), [`DiBagDiagnostic`](../reference/index/interfaces/DiBagDiagnostic.md) | Stable library error codes and their structured diagnostic fields. |
 | [`LifecycleObserver`](../reference/index/interfaces/LifecycleObserver.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |
