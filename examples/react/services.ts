@@ -1,6 +1,6 @@
 /**
  * The narrow interfaces the React tree sees. Components receive these through
- * Context; they never receive a bag, a builder, or a `resolve` function.
+ * Context; they never receive a container, a builder, or a `resolve` function.
  */
 
 export type DocumentRecord = { readonly id: string; readonly title: string };
@@ -27,7 +27,7 @@ export interface Storage {
   lock(projectId: string): Promise<ProjectLock>;
 }
 
-/** App-level network client, e.g. `fetch` with auth. Owned by the app bag, borrowed by project runtimes. */
+/** App-level network client, e.g. `fetch` with auth. Owned by the app container, borrowed by project runtimes. */
 export interface Transport {
   fetchManifest(projectId: string, signal: AbortSignal): Promise<{ readonly name: string }>;
   close(): Promise<void>;

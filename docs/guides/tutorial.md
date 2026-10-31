@@ -1384,7 +1384,7 @@ The stage rules are precise:
 
 Automatic or native observation tracks fulfillment for ownership and readiness
 without replacing the exposed Promise. An uninspected Promise is an immediate value. See
-the [server guide's Deno section](server-integration.md#deno-and-portable-acquisition)
+the [server guide's portable `application.ts`](server-integration.md#browsers-workers-and-other-hosts-without-process-getbuiltinmodule)
 for a full portable-host composition.
 
 ## Represent acquisition values and metadata natively

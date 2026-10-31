@@ -39,7 +39,7 @@ export async function bootstrap(container: HTMLElement, adapters: AppAdapters, o
   const root = createRoot(container);
   root.render(<StrictMode><App owner={owner} projects={options.projects} initial={options.initial} /></StrictMode>);
   let shuttingDown: Promise<void> | undefined;
-  // Project runtimes borrow the app's transport, so they close before the app bag does.
+  // Project runtimes borrow the app's transport, so they close before the app container does.
   const shutdown = () => shuttingDown ??= (async () => { root.unmount(); await owner.close(); await app.close(); })();
   // A dev server with HMR replaces this module: close what this instance owns before the next one boots.
   options.hot?.dispose(() => { void shutdown(); });

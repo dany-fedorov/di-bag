@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { DiBag, DiBagDisposalError, DiBagServiceReadinessError } from '../src';
-import { withOwnedScope } from '../examples/integration/owned-scope';
+import { withOwnedContainer } from '../examples/integration/owned-container';
 
-test('overlapping requests isolate private dependencies and release scopes before the shared root', async () => {
+test('overlapping requests isolate private dependencies and release containers before the shared root', async () => {
   const released: string[] = [];
   const signals: AbortSignal[] = [];
   let roots = 0;
@@ -22,10 +22,10 @@ test('overlapping requests isolate private dependencies and release scopes befor
   let entered = 0;
   let release!: () => void;
   const bothEntered = new Promise<void>(resolve => { release = resolve; });
-  const run = (id: string) => withOwnedScope(
+  const run = (id: string) => withOwnedContainer(
     () => root.createChildContainer(['request'], { request: () => ({ id }) }),
-    async scope => {
-      const handler = scope.resolve('handler');
+    async container => {
+      const handler = container.resolve('handler');
       if (++entered === 2) release();
       await bothEntered;
       expect(signals.every(signal => !signal.aborted)).toBe(true);
@@ -46,15 +46,15 @@ test('overlapping requests isolate private dependencies and release scopes befor
   expect(released[2]).toBe('database');
 });
 
-test('owned-scope fixture preserves handler and cleanup failures without closing twice', async () => {
+test('owned-container fixture preserves handler and cleanup failures without closing twice', async () => {
   const handlerFailure = new Error('handler');
   const cleanupFailure = new Error('cleanup');
   let closes = 0;
   const builder = DiBag.createBuilder().withServices({
     resource: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { closes++; throw cleanupFailure; } }),
   });
-  const result = await withOwnedScope(() => builder.buildContainer(), scope => {
-    scope.resolve('resource');
+  const result = await withOwnedContainer(() => builder.buildContainer(), container => {
+    container.resolve('resource');
     throw handlerFailure;
   }).catch(error => error);
   expect(result).toBeInstanceOf(AggregateError);
@@ -74,21 +74,40 @@ test('test substitutions retain private module contracts and fresh transient ins
     clock: () => ({ now: () => Date.now() }),
     attempt: DiBag.providerWithLifetime({ provider: () => ({ id: ++created }), lifetime: 'transient:one-per-resolve' }),
   });
-  await withOwnedScope(() => builder.withReplacedService('clock', () => ({ now: () => 7 })).buildContainer(), scope => {
-    const value: number = scope.resolve('result');
+  await withOwnedContainer(() => builder.withReplacedService('clock', () => ({ now: () => 7 })).buildContainer(), container => {
+    const value: number = container.resolve('result');
     expect(value).toBe(7);
-    expect(scope.resolve('attempt')).not.toBe(scope.resolve('attempt'));
+    expect(container.resolve('attempt')).not.toBe(container.resolve('attempt'));
   });
+});
+
+test('an independent test container replaces a private module dependency and both owners close', async () => {
+  const feature = DiBag.createBuilder().withServices({
+    privateRead: ({ clock }: { clock: { now(): number } }) => clock.now(),
+    result: ({ privateRead }: { privateRead: number }) => privateRead,
+  }).buildModule({ exportedServiceKeys: ['result'] });
+  const original = DiBag.createBuilder().withInstalledModules([feature]).withServices({
+    clock: () => ({ now: () => 1000 }),
+  }).buildContainer();
+  const fixture = original.createIndependentContainer(['clock'], { clock: () => ({ now: () => 7 }) });
+  try {
+    const value: number = fixture.resolve('result');
+    expect(value).toBe(7);
+    expect(original.resolve('result')).toBe(1000);
+  } finally {
+    await fixture.close();
+    await original.close();
+  }
 });
 
 test('a dynamically imported module starts private providers and unloads contributions exactly once', async () => {
   const { feature, steps, reset, disposals } = await import('./fixtures/enterprise-feature.ts');
   reset();
-  const result = await withOwnedScope(
+  const result = await withOwnedContainer(
     () => DiBag.createBuilder().withInstalledModules([feature]).buildContainer().ensureServicesReady(['handler']),
-    scope => {
-      expect(scope.resolveCollection(steps).map(step => step('x'))).toEqual(['private:x', 'x!']);
-      return scope.resolve('handler')('ok');
+    container => {
+      expect(container.resolveCollection(steps).map(step => step('x'))).toEqual(['private:x', 'x!']);
+      return container.resolve('handler')('ok');
     },
   );
   expect(result).toBe('private:OK!');
@@ -96,11 +115,11 @@ test('a dynamically imported module starts private providers and unloads contrib
   expect([...disposals].sort()).toEqual(['handler', 'plugin', 'private']);
 });
 
-test('owned-scope fixture preserves a thrown undefined value and cleanup-only failure', async () => {
+test('owned-container fixture preserves a thrown undefined value and cleanup-only failure', async () => {
   let closes = 0;
   let caught = false;
   try {
-    await withOwnedScope(() => ({ async close() { closes++; } }), () => { throw undefined; });
+    await withOwnedContainer(() => ({ async close() { closes++; } }), () => { throw undefined; });
   } catch (error) {
     caught = true;
     expect(error).toBeUndefined();
@@ -108,18 +127,18 @@ test('owned-scope fixture preserves a thrown undefined value and cleanup-only fa
   expect(caught).toBe(true);
   expect(closes).toBe(1);
   const cleanupFailure = new Error('cleanup-only');
-  const result = await withOwnedScope(
+  const result = await withOwnedContainer(
     () => ({ async close() { throw cleanupFailure; } }), () => 42,
   ).catch(error => error);
   expect(result).toBe(cleanupFailure);
 });
 
-test('owned-scope work result types follow explicit awaiting of structural thenables', async () => {
+test('owned-container work result types follow explicit awaiting of structural thenables', async () => {
   const thenable: PromiseLike<number> = {
     then: (fulfilled, rejected) => Promise.resolve(42).then(fulfilled, rejected),
   };
   let closed = false;
-  const result: Promise<number> = withOwnedScope(
+  const result: Promise<number> = withOwnedContainer(
     () => ({ async close() { closed = true; } }), () => thenable,
   );
   await result.then(value => {
@@ -140,7 +159,7 @@ test('a fixture whose startup fails releases acquired resources without admittin
       throw failure;
     },
   });
-  const result = await withOwnedScope(() => builder.buildContainer().ensureServicesReady(['handler']), () => { work++; }).catch(error => error);
+  const result = await withOwnedContainer(() => builder.buildContainer().ensureServicesReady(['handler']), () => { work++; }).catch(error => error);
   expect(result).toBeInstanceOf(DiBagServiceReadinessError);
   expect(result.cause).toBe(failure);
   expect(released).toBe(1);

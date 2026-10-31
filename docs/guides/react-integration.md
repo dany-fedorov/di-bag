@@ -2,16 +2,18 @@
 
 [← README](../../README.md) · [Server recipes](server-integration.md) · [Complete API guide](api-reference.md)
 
-This guide connects DI Bag's ownership primitives to React's lifecycle in a
-browser application: one application runtime built at bootstrap, project
-runtimes that start and stop as the user switches projects, narrow services in
-Context, and an external store bridged through `useSyncExternalStore`. The
-complete recipe is in [`examples/react`](../../examples/react). Every claim
-below is pinned by `tests/react` (Bun, no React) and by a run of the example in
-a real Chromium (`npm run check:react-browser`).
+A project switch in a React app has to stop the old project's work, release its lock,
+and only then open the next one, even when Strict Mode mounts every effect twice in development.
+This guide does that with a framework-free `RuntimeOwner` of about 190 lines and a 49-line hook file.
+In development, the browser lane checks that Strict Mode's setup, effect disposal, and setup
+sequence ends at generation 2 with no console warning.
 
-The package stays React-free. There is no `useResolve()` hook here and none is
-needed: components ask for services, not for a container.
+The complete recipe is in [`examples/react`](../../examples/react). The owner's guarantees
+are pinned by `tests/react` (Bun, no React). The composition is exercised in a real Chromium
+by `npm run check:react-browser`, in development and production builds. The user-session pattern, the SSR advice, the HMR and pagehide hooks, and the comparison with other libraries are guidance and are not tested.
+
+The package stays React-free: components receive narrow services through Context,
+never a container.
 
 ## Contents
 
@@ -26,6 +28,7 @@ needed: components ask for services, not for a container.
 - [Development HMR and navigation](#development-hmr-and-navigation)
 - [Test without React, then in a browser](#test-without-react-then-in-a-browser)
 - [Compared with Obsidian, inversify-react, and react-ioc](#compared-with-obsidian-inversify-react-and-react-ioc)
+- [Beyond this recipe (not tested)](#beyond-this-recipe-not-tested)
 - [When this becomes a package](#when-this-becomes-a-package)
 
 ## Who owns what
@@ -33,10 +36,9 @@ needed: components ask for services, not for a container.
 | Runtime | Lives for | Created by | Typically holds | Closed by |
 | --- | --- | --- | --- | --- |
 | Application | The page | `bootstrap()`, before `createRoot` | Configuration, transport, storage, anything every project shares | `shutdown()` on HMR dispose; best effort on `pagehide` |
-| User session | One signed-in user | The same owner pattern keyed by user id, if a session acquires resources | Token refresh, per-user caches, a presence socket | Sign-out, before the next session starts |
 | Project | One selected project | `RuntimeOwner.select(projectId)` from an effect | The project lock, its document store, its manifest | Switching projects, unmount, `owner.close()` |
 
-Three rules follow from [ownership](../../README.md#give-resources-a-clear-owner):
+Two rules follow from [ownership](../../README.md#give-resources-a-clear-owner):
 
 - **Shared means owned once, borrowed everywhere else.** The app container owns the
   transport with `DiBag.providerWithDisposal`; a project runtime registers the same transport
@@ -46,11 +48,6 @@ Three rules follow from [ownership](../../README.md#give-resources-a-clear-owner
 - **No container per component.** A container owns services and their disposal;
   a component is a render function. Give each *lifetime* one runtime
   and pass its narrow services down through Context.
-- **No user singletons at module import.** A runtime created at module import time
-  is shared by every request in a server-rendered process. This recipe has no
-  SSR example; if you render on the server, create the app runtime per request
-  or per worker, never per module, and keep user state in a session runtime.
-  See [lifetime rules](tutorial.md#choose-a-lifetime).
 
 ## When props and Context are enough
 
@@ -93,6 +90,13 @@ type Transport = {
 type AppServices = { readonly storage: Storage; readonly transport: Transport };
 type AppAdapters = AppServices;
 type AppRuntime = { readonly services: AppServices; close(options?: CloseOptions): Promise<void> };
+type DocumentsStore = {
+  subscribe(this: void, listener: () => void): () => void;
+  getSnapshot(this: void): readonly DocumentRecord[];
+  add(title: string): Promise<void>;
+};
+type ProjectServices = { readonly projectId: string; readonly name: string; readonly documents: DocumentsStore };
+type ProjectRuntime = { readonly services: ProjectServices; close(options?: CloseOptions): Promise<void> };
 
 export function createAppBuilder(adapters: AppAdapters) {
   return DiBag.createBuilder().withServices({
@@ -108,19 +112,7 @@ export async function createAppRuntime(adapters: AppAdapters, options?: EnsureSe
   const services: AppServices = { storage: container.resolve('storage'), transport: container.resolve('transport') };
   return { services, close: closeOptions => container.close(closeOptions) };
 }
-```
 
-The runtime object exposes `services` and `close`; nothing in React sees the container.
-
-## A project runtime borrows and owns {#a-project-runtime-borrows-and-owns}
-
-A project runtime builds an independent container. It borrows the app's storage
-and transport by value with no disposer. It owns the exclusive project lock,
-the manifest, and the document store. `ensureServicesReady` makes the selected
-services ready. The caller's `abortSignal` cancels the wait. Failure disposes
-what the project container acquired.
-
-```ts
 export function createProjectBuilder(app: AppServices, projectId: string) {
   return DiBag.createBuilder().withServices({
     projectId: DiBag.createProvider(() => projectId, { factoryReturnKind: 'sync-value' }),
@@ -157,11 +149,22 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
 
 export async function createProjectRuntime(app: AppServices, projectId: string, options?: EnsureServicesReadyOptions): Promise<ProjectRuntime> {
   const container = await createProjectBuilder(app, projectId).buildContainer().ensureServicesReady(['lock', 'manifest', 'documents'], options);
-  const manifest = await container.resolve('manifest');
-  const documents = await container.resolve('documents');
+  const [manifest, documents] = await Promise.all([container.resolve('manifest'), container.resolve('documents')]);
   return { services: { projectId, name: manifest.name, documents }, close: closeOptions => container.close(closeOptions) };
 }
 ```
+
+The runtime object exposes `services` and `close`; nothing in React sees the container.
+The same block continues with the project runtime, explained in the next section.
+
+## A project runtime borrows and owns {#a-project-runtime-borrows-and-owns}
+
+A project runtime builds an independent container. It borrows the app's storage
+and transport by value with no disposer. It owns the exclusive project lock,
+the manifest, and the document store. `ensureServicesReady` makes the selected
+services ready. The caller's `abortSignal` cancels the wait. Failure disposes
+what the project container acquired. The code is the second half of the block
+above: `createProjectBuilder` and `createProjectRuntime`.
 
 When the manifest fetch fails, `ensureServicesReady` rejects with
 `DiBagServiceReadinessError` after releasing the lock it had already acquired.
@@ -284,6 +287,7 @@ and `getState`, a Redux store, or your own. DI Bag adds no observable system.
 `container.close({ waitTimeoutMs })` gives a bounded wait at the library level.
 The error names the disposers still running in `error.details.disposersStillRunning`.
 See [disposal waits for your work by default](../../README.md#tradeoffs-and-limits).
+A container tracks acquisition work and disposal, not every later method call; see [Disconnects, streaming, and WebSockets](server-integration.md#disconnects-streaming-and-websockets).
 
 ## Development HMR and navigation
 
@@ -340,6 +344,8 @@ and any console `error` or `warning`, so React's own warnings are assertions.
 
 ## Compared with Obsidian, inversify-react, and react-ioc
 
+Reviewed against each project's documentation on 2026-10-31: Obsidian 2.33.0 (npm `react-obsidian`), inversify-react 1.2.0, react-ioc 1.0.0.
+
 | Idea | [Obsidian](https://wix-incubator.github.io/obsidian/docs/documentation/) | [inversify-react](https://github.com/Kukkimonsuta/inversify-react) | [react-ioc](https://github.com/gnaeus/react-ioc) | This recipe |
 | --- | --- | --- | --- | --- |
 | Lifetime and ownership | `@graph` classes with `@singleton` or `@lifecycleBound` lifetimes; a bound graph is destroyed when its last requester unmounts | A `Provider` per subtree; providers form a container hierarchy | `@provider` per component subtree; nested providers form ownership levels | One independent container per project runtime; the owner closes it when its selection is released |
@@ -354,14 +360,23 @@ away (Obsidian); a provider per ownership level and a hierarchy of them
 (inversify-react); disposal when the provider unmounts (react-ioc). Left out
 deliberately: decorators and metadata, a generic injection hook, a
 library-owned observable system, and constructing containers during render.
-None of the three models asynchronous service readiness, cancellation of a replaced
+None of the three documents asynchronous service readiness, cancellation of a replaced
 readiness attempt, or teardown that outlives effect disposal, which is what this
 recipe is for. The precedents are React-container designs to compare against,
 not endorsements, and their documented behavior was not re-tested here.
 
+## Beyond this recipe (not tested)
+
+- **A user session.** Use a second `RuntimeOwner` keyed by user id when a session acquires
+  resources such as token refresh or a presence socket. Close it on sign-out, before the next session starts.
+- **Server rendering.** A runtime created at module import time is shared by every request
+  in a server-rendered process. Create the app runtime per request or per worker, never per module.
+  See [lifetime rules](tutorial.md#choose-a-lifetime).
+- **HMR and page unload.** The `hot.dispose` and `pagehide` hooks in the development section are shown, not tested; the browser lane runs each built page once.
+
 ## When this becomes a package
 
-The owner is ~200 lines you copy. It becomes an optional package only when a
+The owner is about 190 lines you copy. It becomes an optional package only when a
 second application in another repository adopts `runtime-owner.ts` unchanged
 and the React layer needs a change that would otherwise be copied into both.
 Until then, a peer dependency costs more than the copy.

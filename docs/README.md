@@ -11,9 +11,9 @@ The guides below describe the current public API.
 | [Tutorial](guides/tutorial.md) | Build a first graph, then learn ownership, child containers, modules, tokens, and advanced APIs. |
 | [Migrating from 0.4 to 0.5](guides/migrating-to-0.5.md) | Run the codemod, review behavior changes, and map every old public name to its replacement. |
 | [Comparison with alternatives](guides/comparison.md) | Assess DI Bag alongside manual DI and other libraries, with primary sources and tradeoffs. |
-| [Server guide](guides/server-integration.md) | Connect application services to Node HTTP, Express, Fastify, Bun, and Deno. |
+| [Server guide](guides/server-integration.md) | Connect application services to Node HTTP, Express, Fastify, Bun, Elysia, and Deno. |
 | [React guide](guides/react-integration.md) | Own application and project runtimes from React effects in the browser: Strict Mode, cancellation, bounded teardown, and external stores. |
-| [Integration recipes](guides/enterprise-integration.md) | Own request containers, substitute test services, and manage dynamic features. |
+| [Integration patterns](guides/enterprise-integration.md) | Own request containers, substitute test services, and manage dynamic features. |
 | [Agent harnesses and graphs](guides/agent-harnesses-and-graphs.md) | One worked application of the module pattern: model and tool modules, metadata inspection, and node tests with typed fixtures. |
 | [Agent docs](../AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](agent/recipes.md) and [errors and messages](agent/errors.md). Shipped in the package. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |

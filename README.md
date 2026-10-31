@@ -237,7 +237,7 @@ An unmarked provider is scoped. Choose singleton explicitly when child container
 
 For request handling, checked test replacements, and loading dynamic features,
 see the [server guide](docs/guides/server-integration.md) and
-[integration recipes](docs/guides/enterprise-integration.md).
+[Integration patterns](docs/guides/enterprise-integration.md).
 
 The [tutorial](docs/guides/tutorial.md) also covers
 typed tokens, class and function adapters, optional and lazy dependencies,
@@ -327,7 +327,7 @@ Promise factories with `'native-promise'`. See
 - **Framework integration belongs to the application.** DI Bag provides the
   composition and ownership primitives; the host connects request, job, or UI
   lifecycles. The [server guide](docs/guides/server-integration.md) and the
-  [React guide](docs/guides/react-integration.md) are tested recipes for both.
+  [React guide](docs/guides/react-integration.md) are recipes for both; the React recipe runs in CI, the server recipes compile where they import only `di-bag` and `node:*`.
 
 ## Explore further
 
@@ -342,7 +342,7 @@ Promise factories with `'native-promise'`. See
 | [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | One worked application: model and tool modules, metadata inspection, and node tests with typed fixtures. |
 | [Static dependency graph](https://dany-fedorov.github.io/di-bag/agent/recipes.html#review-merge) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph` for merge review and CI. |
 | [Runnable examples](examples/README.md) | One program per topic: modules, tokens, composition, collections, plugins, observers, child containers, and provider metadata. |
-| [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
+| [Integration patterns](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/guides/comparison.md) | When DI Bag or another approach may be a better fit, with primary sources. |
 | [Development and verification](docs/guides/development.md) | Full checks, portable runtime testing, compiler scale, and performance evidence. |
 | [Documentation map](docs/README.md) | Every guide, the generated reference, and the contributor documents. |

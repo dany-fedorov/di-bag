@@ -7,7 +7,7 @@ import type { ProjectServices } from './services';
 
 export const projectServices = createServicesContext<ProjectServices>('project services');
 
-/** The startup error wraps the factory's failure; show the cause. */
+/** The readiness error wraps the factory's failure; show the cause. */
 export function failureMessage(error: unknown): string {
   const cause = error instanceof DiBagServiceReadinessError ? error.cause : error;
   return cause instanceof Error ? cause.message : String(cause);
