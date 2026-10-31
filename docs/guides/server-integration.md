@@ -1,6 +1,6 @@
 # Using DI Bag in a server
 
-[← README](../../README.md) · [Complete API guide](api-reference.md) · [Ownership recipes](enterprise-integration.md)
+[← README](../../README.md) · [Complete API guide](api-reference.md) · [Integration patterns](enterprise-integration.md)
 
 Each request gets a child container. Its request ID, caller, and transaction belong to that
 child and are released when the child closes. The connection pool is created once in the
@@ -170,7 +170,7 @@ and tests can use them too.
 
 ## Close each request container {#close-each-request-container}
 
-Save the following helper as `owned-container.ts`. It is application code.
+Save the following helper as `owned-container.ts`. It is a copy of [examples/integration/owned-container.ts](../../examples/integration/owned-container.ts), which `tests/enterprise-integration.test.ts` exercises.
 
 ```ts
 export async function withOwnedContainer<S extends { close(): Promise<void> }, R>(

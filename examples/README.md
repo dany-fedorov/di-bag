@@ -18,7 +18,7 @@ bun run examples/composition.ts
 | [`plugins.ts`](plugins.ts) | A validated plugin descriptor admitted with `createProviderFromPlugin` and registered under a typed token. |
 | [`provider-metadata.ts`](provider-metadata.ts) | Acquisition metadata recorded by providers and inspected with `serviceSnapshot` after resolving. |
 | [`wbs-scope.ts`](wbs-scope.ts) | A work-breakdown-structure application whose per-change containers come from `createIndependentContainer` and own their resources with `providerWithDisposal`; `npm run example:wbs`. |
-| [`integration/owned-scope.ts`](integration/owned-scope.ts) | The acquire, work, close helper used by the integration guide. |
+| [`integration/owned-container.ts`](integration/owned-container.ts) | The `withOwnedContainer` helper the server and integration guides teach; `tests/enterprise-integration.test.ts` exercises it. |
 | [`react/`](react) | A browser application whose `main.tsx` calls `bootstrap` in `bootstrap.tsx` to own application and project runtimes outside React components; `npm run example:react` builds the page. |
 
 The guides contain further complete programs that run against the published
