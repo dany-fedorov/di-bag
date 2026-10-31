@@ -58,7 +58,15 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     Object.freeze(this);
   }
 
-  /** The exact label supplied when this module was sealed, if any. Reading it never acquires a service. */
+  /**
+   * Return the exact label supplied when this module was sealed, if any. Reading it never acquires a service.
+   * @example
+   * ```ts
+   * const feature = DiBag.createBuilder().withServices({ answer: () => 42 })
+   *   .buildModule({ exportedServiceKeys: ['answer'], moduleLabel: 'answers' });
+   * const label: string | undefined = feature.moduleLabel; // 'answers'
+   * ```
+   */
   get moduleLabel(): string | undefined {
     return descriptions.get(this)!.label;
   }
@@ -73,6 +81,9 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
    * const feature = DiBag.createBuilder().withServices({ service: () => 1 })
    *   .buildModule({ exportedServiceKeys: ['service'] });
    * const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+   * const app = DiBag.createBuilder().withInstalledModules([renamed]).buildContainer();
+   * const value: number = app.resolve('featureService');
+   * await app.close();
    * ```
    */
   withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>(

@@ -828,7 +828,7 @@ functions that only throw. `details.removed` names the old call and
 
 **Fix:** write the replacement. For a whole project, run `npx di-bag-codemod`
 BEFORE upgrading, while the 0.4.0 types are still installed; see the
-[migration guide](../guides/migrating-to-0.5.md).
+[migration guide](https://dany-fedorov.github.io/di-bag/guides/migrating-to-0.5.html).
 
 ```ts
 import { DiBag } from 'di-bag';

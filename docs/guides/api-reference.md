@@ -280,7 +280,7 @@ also preserve existing bookmarks into the earlier combined guide.
 
 [Read the tutorial section](tutorial.md#compose-services).
 
-### Reuse named modules
+### Build modules as units of work {#reuse-named-modules}
 
 [Read the tutorial section](tutorial.md#reuse-named-modules).
 

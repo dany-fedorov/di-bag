@@ -12,9 +12,14 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
 | Register services by name | [`builder.withServices(providersByName)`](#builder-withservices) |
+| Register the service of a typed token | [`builder.withTokenService(token, provider)`](#builder-withtokenservice) |
 | Create a collection token | [`DiBag.createToken(symbol)`](#dibag-createtoken) |
 | Contribute a collection member | [`builder.withCollectionContribution(options)`](#builder-withcollectioncontribution) |
+| Give a service a second name | [`builder.withServiceAlias(options)`](#builder-withservicealias) |
+| Replace a provider in a builder | [`builder.withReplacedService(serviceKey, provider)`](#builder-withreplacedservice) |
 | Register a portable factory | [`DiBag.createProvider(factory, options)`](#dibag-createprovider) |
+| Adapt a class to positional dependencies | [`DiBag.createProviderFromClass(options)`](#dibag-createproviderfromclass) |
+| Adapt a positional function | [`DiBag.createProviderFromFunction(options)`](#dibag-createproviderfromfunction) |
 | Attach disposal | [`DiBag.providerWithDisposal(options)`](#dibag-providerwithdisposal) |
 | Choose a lifetime | [`DiBag.providerWithLifetime(options)`](#dibag-providerwithlifetime) |
 | Attach registration metadata | [`DiBag.providerWithRegistrationMetadata(options)`](#dibag-providerwithregistrationmetadata) |
@@ -23,6 +28,8 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Seal a module | [`builder.buildModule(options)`](#builder-buildmodule) |
 | Install modules | [`builder.withInstalledModules(modules)`](#builder-withinstalledmodules) |
 | Rename a module requirement | [`module.withRenamedRequirement(options)`](#module-withrenamedrequirement) |
+| Rename a module export | [`module.withRenamedExport(options)`](#module-withrenamedexport) |
+| Read the label a module was sealed with | [`module.moduleLabel`](#module-modulelabel) |
 | Check the graph on its own line | [`builder.verifyGraphAtCompileTime()`](#builder-verifygraphatcompiletime) |
 | Build a container | [`builder.buildContainer()`](#builder-buildcontainer) |
 | Wait for services before accepting work | [`container.ensureServicesReady(serviceKeys, options?)`](#container-ensureservicesready) |
@@ -30,7 +37,11 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Open a child container | [`container.createChildContainer(options?)`](#container-createchildcontainer) |
 | Resolve | [`container.resolve(token)`](#container-resolve) |
 | Resolve a collection | [`container.resolveCollection(token)`](#container-resolvecollection) |
+| Inspect one service without resolving it | [`container.serviceSnapshot(serviceKey)`](#container-servicesnapshot) |
+| Inspect every binding and module installation | [`container.graphSnapshot()`](#container-graphsnapshot) |
 | Close | [`container.close(options?)`](#container-close) |
+| Own a resource acquired inside a factory | [`factoryContext.pushDisposer(disposer)`](#factorycontext-pushdisposer) |
+| Stop factory work when the container closes | [`factoryContext.abortSignal`](#factorycontext-abortsignal) |
 
 ## DiBag facade {#dibag-facade}
 
@@ -203,6 +214,25 @@ await app.close();
 
 ## Module {#module}
 
+### `module.moduleLabel` {#module-modulelabel}
+Return the exact label supplied when this module was sealed, if any.
+```ts
+const feature = DiBag.createBuilder().withServices({ answer: () => 42 })
+  .buildModule({ exportedServiceKeys: ['answer'], moduleLabel: 'answers' });
+const label: string | undefined = feature.moduleLabel; // 'answers'
+```
+
+### `module.withRenamedExport(options)` {#module-withrenamedexport}
+Return a module view with one string-named export renamed through an options object. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key).
+```ts
+const feature = DiBag.createBuilder().withServices({ service: () => 1 })
+  .buildModule({ exportedServiceKeys: ['service'] });
+const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+const app = DiBag.createBuilder().withInstalledModules([renamed]).buildContainer();
+const value: number = app.resolve('featureService');
+await app.close();
+```
+
 ### `module.withRenamedRequirement(options)` {#module-withrenamedrequirement}
 Return a module view that asks its host for a requirement under a new name. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key).
 ```ts
@@ -239,14 +269,19 @@ Inspect a service binding through any supported public key without resolving it.
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
 const snapshot = container.serviceSnapshot('greeting');
+console.log(snapshot.bindingLabel, snapshot.acquisitions.length); // greeting 0
 await container.close();
 ```
 
 ### `container.graphSnapshot()` {#container-graphsnapshot}
 Describe every resolvable binding and the dependency edges observed so far.
 ```ts
-const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-const labels = container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
+const billing = DiBag.createBuilder().withServices({ ledger: () => new Map<string, number>() })
+  .buildModule({ exportedServiceKeys: ['ledger'], moduleLabel: 'billing' });
+const container = DiBag.createBuilder().withInstalledModules([billing]).buildContainer();
+const graph = container.graphSnapshot();
+const installation = graph.moduleInstallations[0]!; // { installationId, moduleLabel: 'billing', parentInstallationId: undefined }
+const owned = graph.bindings.filter(binding => binding.moduleInstallationId === installation.installationId).map(binding => binding.bindingLabel); // ['ledger']
 await container.close();
 ```
 
@@ -286,6 +321,30 @@ Close this container, drain in-flight work, and dispose owned resources once. Th
 ```ts
 const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
+```
+
+## Factory context {#factory-context}
+
+### `factoryContext.abortSignal` {#factorycontext-abortsignal}
+Return the signal that aborts when the acquisition's owning container begins closing.
+```ts
+declare function fetchCatalog(signal: AbortSignal): Promise<string[]>;
+const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) => fetchCatalog(factoryContext.abortSignal), {
+  factoryReceivesContext: true, factoryReturnKind: 'native-promise',
+});
+```
+
+### `factoryContext.pushDisposer(disposer)` {#factorycontext-pushdisposer}
+Attach a disposer for a resource acquired during this factory call; pushed disposers run once in reverse order. Throws: [`DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY`](errors.md#di-bag-disposer-pushed-after-factory).
+```ts
+declare function openLock(name: string): Promise<{ release(): Promise<void> }>;
+declare function verify(name: string): Promise<void>;
+const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryContext) => {
+  const lock = await openLock(name);
+  factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if verify() rejects
+  await verify(name);
+  return { name };
+}, { factoryReceivesContext: true });
 ```
 
 ## Errors {#errors}

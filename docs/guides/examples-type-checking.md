@@ -2,27 +2,13 @@
 
 [Why DI Bag?](../../README.md#why-di-bag) · [Comparison](comparison.md)
 
-For agentic development, compile-time composition checks are an early evaluation
-step. A coding agent can propose a wiring change, run the type checker, and use
-its diagnostics to revise the composition without starting the application or
-external services. These checks avoid that setup, but their cost depends on
-compiler launch and inference; they do not replace an integration-test run.
-
-For an LLM harness, that means checking the dependencies of agent graph nodes
-before spending a model call, then substituting typed model and tool fixtures for
-local behavioral evals. The [harness example](agent-harnesses-and-graphs.md) shows
-both steps; LLM output quality still needs its own evaluations.
-
-This evaluates declared composition, not business behavior: keep behavioral and
-integration tests too. Compiler cost depends on graph size and composition style;
-see the [compiler evidence](../benchmarks/typescript.md) for measured costs and limits.
-
-These three independent TypeScript programs run in Node or Bun after following
-the [installation instructions](../../README.md#install). Save each block in its
-own `.mts` file. Enable TypeScript `strict` checking and Node types; type-check
-before running with Node 24 or Bun, because those runtimes do not type-check code.
-Every adapter below is an in-memory demonstration with no external service or
-network dependency.
+Three independent programs. Each one builds a graph, then shows the wiring the
+compiler rejects: a missing mailer, an adapter that no longer satisfies its
+consumers, and a test replacement that breaks checkout. Save each block in its
+own `.mts` file after following the [installation instructions](../../README.md#install),
+enable TypeScript `strict` checking and Node types, and type-check before
+running with Node 24 or Bun, because those runtimes do not type-check code.
+Every adapter is an in-memory demonstration with no external service.
 
 Each program contains an uncalled `rejectedWiring` function. Its
 `@ts-expect-error` directives document deliberately invalid composition and make
@@ -328,3 +314,21 @@ integration would also need idempotency, durable receipt storage, and recovery f
 a successful charge followed by a failed write; static wiring checks cannot prove
 those behaviors. See the [comparison guide](comparison.md#what-type-safe-means-here)
 for the broader limits of compile-time composition.
+
+## Where this fits in agentic development
+
+Compile-time composition checks are an early evaluation step. A coding agent
+can propose a wiring change, run the type checker, and use its diagnostics to
+revise the composition without starting the application or external services.
+Their cost depends on compiler launch and inference; they do not replace an
+integration-test run.
+
+For an LLM harness, that means checking the dependencies of agent graph nodes
+before spending a model call, then substituting typed model and tool fixtures
+for local behavioral evals. The [harness example](agent-harnesses-and-graphs.md)
+shows both steps; LLM output quality still needs its own evaluations.
+
+This evaluates declared composition, not business behavior: keep behavioral and
+integration tests too. Compiler cost depends on graph size and composition
+style; see the [compiler evidence](../benchmarks/typescript.md) for measured
+costs and limits.

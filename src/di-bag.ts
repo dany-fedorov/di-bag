@@ -191,6 +191,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * ```ts
    * const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
    * const snapshot = container.serviceSnapshot('greeting');
+   * console.log(snapshot.bindingLabel, snapshot.acquisitions.length); // greeting 0
    * await container.close();
    * ```
    */
@@ -249,8 +250,12 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @returns A frozen point-in-time graph snapshot without acquiring services.
    * @example
    * ```ts
-   * const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-   * const labels = container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
+   * const billing = DiBag.createBuilder().withServices({ ledger: () => new Map<string, number>() })
+   *   .buildModule({ exportedServiceKeys: ['ledger'], moduleLabel: 'billing' });
+   * const container = DiBag.createBuilder().withInstalledModules([billing]).buildContainer();
+   * const graph = container.graphSnapshot();
+   * const installation = graph.moduleInstallations[0]!; // { installationId, moduleLabel: 'billing', parentInstallationId: undefined }
+   * const owned = graph.bindings.filter(binding => binding.moduleInstallationId === installation.installationId).map(binding => binding.bindingLabel); // ['ledger']
    * await container.close();
    * ```
    */

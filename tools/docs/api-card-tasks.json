@@ -1,9 +1,14 @@
 [
   { "task": "Start a graph", "call": "DiBag.createBuilder" },
   { "task": "Register services by name", "call": "builder.withServices" },
+  { "task": "Register the service of a typed token", "call": "builder.withTokenService" },
   { "task": "Create a collection token", "call": "DiBag.createToken" },
   { "task": "Contribute a collection member", "call": "builder.withCollectionContribution" },
+  { "task": "Give a service a second name", "call": "builder.withServiceAlias" },
+  { "task": "Replace a provider in a builder", "call": "builder.withReplacedService" },
   { "task": "Register a portable factory", "call": "DiBag.createProvider" },
+  { "task": "Adapt a class to positional dependencies", "call": "DiBag.createProviderFromClass" },
+  { "task": "Adapt a positional function", "call": "DiBag.createProviderFromFunction" },
   { "task": "Attach disposal", "call": "DiBag.providerWithDisposal" },
   { "task": "Choose a lifetime", "call": "DiBag.providerWithLifetime" },
   { "task": "Attach registration metadata", "call": "DiBag.providerWithRegistrationMetadata" },
@@ -12,6 +17,8 @@
   { "task": "Seal a module", "call": "builder.buildModule" },
   { "task": "Install modules", "call": "builder.withInstalledModules" },
   { "task": "Rename a module requirement", "call": "module.withRenamedRequirement" },
+  { "task": "Rename a module export", "call": "module.withRenamedExport" },
+  { "task": "Read the label a module was sealed with", "call": "module.moduleLabel" },
   { "task": "Check the graph on its own line", "call": "builder.verifyGraphAtCompileTime" },
   { "task": "Build a container", "call": "builder.buildContainer" },
   { "task": "Wait for services before accepting work", "call": "container.ensureServicesReady" },
@@ -19,5 +26,9 @@
   { "task": "Open a child container", "call": "container.createChildContainer" },
   { "task": "Resolve", "call": "container.resolve" },
   { "task": "Resolve a collection", "call": "container.resolveCollection" },
-  { "task": "Close", "call": "container.close" }
+  { "task": "Inspect one service without resolving it", "call": "container.serviceSnapshot" },
+  { "task": "Inspect every binding and module installation", "call": "container.graphSnapshot" },
+  { "task": "Close", "call": "container.close" },
+  { "task": "Own a resource acquired inside a factory", "call": "factoryContext.pushDisposer" },
+  { "task": "Stop factory work when the container closes", "call": "factoryContext.abortSignal" }
 ]

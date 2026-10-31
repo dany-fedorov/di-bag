@@ -1,7 +1,7 @@
 # Learn DI Bag
 
 [Install DI Bag](../../README.md#install) · [API reference](api-reference.md) ·
-[Server integration](server-integration.md) · [Runnable examples](../../examples)
+[Server integration](server-integration.md) · [Runnable examples](../../examples/README.md)
 
 DI Bag connects ordinary TypeScript factories, checks their dependency shapes,
 creates services when they are first requested, and releases the resources that
@@ -17,13 +17,14 @@ Run repository examples from the repository root with `bun run examples/<name>.t
 ## Learning path
 
 1. [Compose and resolve services](#compose-services).
-2. Learn how [async work](#async-edges-are-explicit), [ownership](#attach-disposal-with-providerwithdisposal), and [failures](#errors-and-recovery) behave.
-3. Choose between [child containers](#create-child-containers), [independent containers](#create-an-independent-container), and [lifetimes](#choose-a-lifetime).
-4. Package a feature as a [module](#reuse-named-modules).
-5. Use [typed tokens and positional adapters](#use-typed-tokens-for-explicit-positional-injection) when names and object parameters do not fit.
-6. Add [optional or lazy dependencies](#declare-optional-and-lazy-dependencies), [aliases](#give-a-dependency-another-lookup-name), and [ordered collections](#compose-an-ordered-collection).
-7. Introduce [projections](#project-services-explicitly), [metadata and inspection](#attach-metadata-and-inspect-without-resolving), [observers](#observe-lifecycle-transitions), or [plugin validation](#admit-an-application-selected-plugin) at explicit boundaries.
-8. Read the [portable runtime](#portable-mode) and [native provider metadata](#represent-acquisition-values-and-metadata-natively) rules when those environments apply.
+2. Learn how [async work](#async-edges-are-explicit) and [ownership](#attach-disposal-with-providerwithdisposal) behave.
+3. Package a feature as a [module](#reuse-named-modules): private services and named exports. The per-module check file is in the [modules guide](examples-modularity.md#recommended-module-layout).
+4. Read how [failures](#errors-and-recovery) and [compile-time rejections](#read-compile-time-rejections) are reported.
+5. Choose between [child containers](#create-child-containers), [independent containers](#create-an-independent-container), and [lifetimes](#choose-a-lifetime).
+6. Use [typed tokens and positional adapters](#use-typed-tokens-for-explicit-positional-injection) when names and object parameters do not fit.
+7. Add [optional or lazy dependencies](#declare-optional-and-lazy-dependencies), [aliases](#give-a-dependency-another-lookup-name), and [ordered collections](#compose-an-ordered-collection).
+8. Introduce [projections](#project-services-explicitly), [metadata and inspection](#attach-metadata-and-inspect-without-resolving), [observers](#observe-lifecycle-transitions), or [plugin validation](#admit-an-application-selected-plugin) at explicit boundaries.
+9. Read the [portable runtime](#portable-mode) and [native provider metadata](#represent-acquisition-values-and-metadata-natively) rules when those environments apply.
 
 The [API reference](api-reference.md) is the compact source for exact signatures,
 error fields, and exported TypeScript types. This guide concentrates on when to
@@ -346,6 +347,106 @@ Uninspected ownership does not wait for the Promise; native ownership transfers 
 after fulfillment. A factory
 must release anything it acquires before it successfully returns an owned value.
 
+## Build modules as units of work {#reuse-named-modules}
+
+Modules group a feature's private services and publish only the entry points an
+application needs. There is no separate module builder: any `Builder` seals into
+a module with `buildModule({ exportedServiceKeys })`, and any builder installs modules.
+
+**Standalone example:**
+
+```ts
+import { DiBag } from 'di-bag';
+
+const reports = DiBag.createBuilder()
+  .withServices({
+    connection: () => ({ open: true }),
+    service: ({
+      connection,
+      logger,
+    }: {
+      connection: { open: boolean };
+      logger: { log(message: string): void };
+    }) => ({
+      read() {
+        logger.log('read');
+        return connection.open;
+      },
+    }),
+  })
+  .buildModule({ exportedServiceKeys: ['service'], moduleLabel: 'reports' });
+
+reports.moduleLabel; // 'reports'; reading it does not acquire a service
+
+const app = DiBag.createBuilder()
+  .withInstalledModules([reports])
+  .withServices({ logger: () => ({ log: console.log }) })
+  .buildContainer();
+
+app.resolve('service').read();
+await app.close();
+```
+
+`buildModule({ exportedServiceKeys })` seals the builder's graph and chooses its public string
+names and typed tokens. An empty export tuple is valid; contributions are still
+installed. Where `buildContainer()` rejects a missing dependency, `buildModule` records
+it as a requirement the installing host must satisfy. A sealed module cannot
+resolve, start, or close anything; `withInstalledModules([module])` gives module
+acquisitions an owning container.
+
+Modules nest. A builder that has installed modules can seal into a module of its
+own. Names resolve lexically: an inner module's own registrations first, then
+the enclosing module's, then the host's. Each installation, at every depth,
+receives fresh private identities and separate disposal ownership. Requirements
+an inner module leaves unmet pass outward unless the enclosing module satisfies
+them; a requirement satisfied by an enclosing export stays checked when the host
+replaces that export, while one satisfied privately is final.
+
+`buildModule({ exportedServiceKeys, moduleLabel: 'reports' })` names each installation's private
+bindings `reports/connection` in error messages, cycle paths, `graphSnapshot()`,
+and observer events. Exported bindings keep their bare key. Labels compose when
+modules nest: a private `state` of an `inner` module installed in an `outer`
+module appears as `outer/inner/state`. Without a label, bindings keep their bare
+key. `module.moduleLabel` returns the exact label supplied at sealing, or
+`undefined`; renaming exports or requirements preserves it. A supplied label
+must be a non-empty string. Labels may repeat or contain `/`, so neither a
+label nor a binding-label prefix identifies an installation.
+
+Private providers keep their external requirements, including requirements from
+providers that are not currently reachable from an export. The host may satisfy
+them later with `withServices`, another installation, or a forward registration before
+`buildContainer()`. Each installation gets fresh private binding identities and ownership.
+
+`module.withRenamedExport({ currentExportKey, newExportKey })` returns a new export view. It changes a public
+string lookup name without changing the name used inside factory dependency
+parameters. Typed-token exports retain their symbol identity and cannot be
+renamed. Renaming every string export lets an application install the same module
+twice under distinct public names.
+
+**Continuation of the preceding module example:**
+
+```ts
+const eastReports = reports.withRenamedExport({ currentExportKey: 'service', newExportKey: 'eastReports' });
+const westReports = reports.withRenamedExport({ currentExportKey: 'service', newExportKey: 'westReports' });
+
+const regionalApp = DiBag.createBuilder()
+  .withInstalledModules([eastReports, westReports])
+  .withServices({ logger: () => ({ log: console.log }) })
+  .buildContainer();
+await regionalApp.close();
+```
+
+Use `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })`
+when a string requirement needs a different host key. Internal dependency names
+stay the same. Token requirements keep their global symbol identity.
+
+Host `withReplacedService` and selected container replacements are visible to consumers inside the
+installed module, including its
+private providers. Module constraints keep those replacements checked. Preserve
+inferred module types with `typeof` or `ReturnType`; see the [exported type
+reference](api-reference.md#exported-typescript-types) when publishing these
+contracts from a library.
+
 ## Errors and recovery
 
 Factory and projection failures keep their original identity. DI Bag errors expose a stable `code` and frozen `details` for recovery and
@@ -666,106 +767,6 @@ value. Capture options are valid only for an
 individually known `'singleton:one-per-container-tree'` lifetime. An outer lifetime wrapper replaces an
 earlier caching policy. Graph completion and selected container replacements
 recheck captive dependencies.
-
-## Reuse named modules
-
-Modules group a feature's private services and publish only the entry points an
-application needs. There is no separate module builder: any `Builder` seals into
-a module with `buildModule({ exportedServiceKeys })`, and any builder installs modules.
-
-**Standalone example:**
-
-```ts
-import { DiBag } from 'di-bag';
-
-const reports = DiBag.createBuilder()
-  .withServices({
-    connection: () => ({ open: true }),
-    service: ({
-      connection,
-      logger,
-    }: {
-      connection: { open: boolean };
-      logger: { log(message: string): void };
-    }) => ({
-      read() {
-        logger.log('read');
-        return connection.open;
-      },
-    }),
-  })
-  .buildModule({ exportedServiceKeys: ['service'], moduleLabel: 'reports' });
-
-reports.moduleLabel; // 'reports'; reading it does not acquire a service
-
-const app = DiBag.createBuilder()
-  .withInstalledModules([reports])
-  .withServices({ logger: () => ({ log: console.log }) })
-  .buildContainer();
-
-app.resolve('service').read();
-await app.close();
-```
-
-`buildModule({ exportedServiceKeys })` seals the builder's graph and chooses its public string
-names and typed tokens. An empty export tuple is valid; contributions are still
-installed. Where `buildContainer()` rejects a missing dependency, `buildModule` records
-it as a requirement the installing host must satisfy. A sealed module cannot
-resolve, start, or close anything; `withInstalledModules([module])` gives module
-acquisitions an owning container.
-
-Modules nest. A builder that has installed modules can seal into a module of its
-own. Names resolve lexically: an inner module's own registrations first, then
-the enclosing module's, then the host's. Each installation, at every depth,
-receives fresh private identities and separate disposal ownership. Requirements
-an inner module leaves unmet pass outward unless the enclosing module satisfies
-them; a requirement satisfied by an enclosing export stays checked when the host
-replaces that export, while one satisfied privately is final.
-
-`buildModule({ exportedServiceKeys, moduleLabel: 'reports' })` names each installation's private
-bindings `reports/connection` in error messages, cycle paths, `graphSnapshot()`,
-and observer events. Exported bindings keep their bare key. Labels compose when
-modules nest: a private `state` of an `inner` module installed in an `outer`
-module appears as `outer/inner/state`. Without a label, bindings keep their bare
-key. `module.moduleLabel` returns the exact label supplied at sealing, or
-`undefined`; renaming exports or requirements preserves it. A supplied label
-must be a non-empty string. Labels may repeat or contain `/`, so neither a
-label nor a binding-label prefix identifies an installation.
-
-Private providers keep their external requirements, including requirements from
-providers that are not currently reachable from an export. The host may satisfy
-them later with `withServices`, another installation, or a forward registration before
-`buildContainer()`. Each installation gets fresh private binding identities and ownership.
-
-`module.withRenamedExport({ currentExportKey, newExportKey })` returns a new export view. It changes a public
-string lookup name without changing the name used inside factory dependency
-parameters. Typed-token exports retain their symbol identity and cannot be
-renamed. Renaming every string export lets an application install the same module
-twice under distinct public names.
-
-**Continuation of the preceding module example:**
-
-```ts
-const eastReports = reports.withRenamedExport({ currentExportKey: 'service', newExportKey: 'eastReports' });
-const westReports = reports.withRenamedExport({ currentExportKey: 'service', newExportKey: 'westReports' });
-
-const regionalApp = DiBag.createBuilder()
-  .withInstalledModules([eastReports, westReports])
-  .withServices({ logger: () => ({ log: console.log }) })
-  .buildContainer();
-await regionalApp.close();
-```
-
-Use `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })`
-when a string requirement needs a different host key. Internal dependency names
-stay the same. Token requirements keep their global symbol identity.
-
-Host `withReplacedService` and selected container replacements are visible to consumers inside the
-installed module, including its
-private providers. Module constraints keep those replacements checked. Preserve
-inferred module types with `typeof` or `ReturnType`; see the [exported type
-reference](api-reference.md#exported-typescript-types) when publishing these
-contracts from a library.
 
 ## Use typed tokens for explicit positional injection
 

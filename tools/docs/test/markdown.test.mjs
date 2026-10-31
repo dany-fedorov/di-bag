@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { compareTrees, rewriteMarkdownLinks } from '../lib/markdown.mjs';
+import { compareTrees, homePage, rewriteMarkdownLinks } from '../lib/markdown.mjs';
 
 test('hosted Markdown links stay local, while repository files link to GitHub', () => {
   const root = mkdtempSync(join(tmpdir(), 'di-bag-docs-links-'));
@@ -53,4 +53,16 @@ test('generated reference drift detects new, modified, and obsolete files', () =
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('the home page gets a hero and loses its duplicate title', () => {
+  const page = homePage('# DI Bag\n\nDependency injection for TypeScript.\n\n## Quickstart\n');
+  assert.match(page, /^---\nlayout: home\nhero:\n  name: DI Bag\n/);
+  assert.match(page, /text: Ordinary services\. Checked composition\. Explicit ownership\./);
+  assert.match(page, /link: \/#quickstart/);
+  assert.match(page, /link: \/guides\/examples-modularity/);
+  assert.match(page, /link: \/agent\/api-card/);
+  assert.doesNotMatch(page, /\n# DI Bag\n/);
+  assert.match(page, /---\n\nDependency injection for TypeScript\.\n\n## Quickstart\n$/);
+  assert.throws(() => homePage('No title\n'), /first line/);
 });

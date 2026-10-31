@@ -3,7 +3,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { checkMessageUrlsInBuild } from './lib/agent-docs.mjs';
-import { listFiles, rewriteMarkdownLinks, sitePages } from './lib/markdown.mjs';
+import { renderLlmsFull, renderLlmsIndex } from './lib/llms.mjs';
+import { homePage, listFiles, rewriteMarkdownLinks, sitePages } from './lib/markdown.mjs';
 import { verifyBuiltSite } from './lib/site-check.mjs';
 
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +24,8 @@ function prepare() {
   if (!existsSync(join(reference, 'index.md'))) throw new Error('Missing generated reference. Run npm run docs:generate first.');
   const pages = sitePages(root);
   for (const [source, route] of pages) {
-    const content = rewriteMarkdownLinks(readFileSync(join(root, source), 'utf8'), source, pages, root);
+    const rewritten = rewriteMarkdownLinks(readFileSync(join(root, source), 'utf8'), source, pages, root);
+    const content = source === 'README.md' ? homePage(rewritten) : rewritten;
     const settings = source.startsWith('docs/reference/') ? '---\neditLink: false\n---\n\n' : '';
     writeChanged(join(site, route), settings + content);
   }
@@ -36,6 +38,8 @@ function prepare() {
   for (const file of listFiles(join(directory, 'theme'))) {
     writeChanged(join(site, '.vitepress/theme', file), readFileSync(join(directory, 'theme', file)));
   }
+  writeChanged(join(site, 'public/llms.txt'), renderLlmsIndex(root));
+  writeChanged(join(site, 'public/llms-full.txt'), renderLlmsFull(root));
   return pages.size;
 }
 

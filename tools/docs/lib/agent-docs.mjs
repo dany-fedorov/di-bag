@@ -4,7 +4,7 @@ import ts from 'typescript';
 
 export const siteUrl = 'https://dany-fedorov.github.io/di-bag/';
 export const agentsBudget = 150;
-export const cardBudget = 400;
+export const cardBudget = 460;
 export const recipeBudget = 60;
 export const familyIds = ['missing-service', 'unsatisfied-consumer', 'singleton-captures-scoped', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
 

@@ -18,7 +18,7 @@ The guides below describe the current public API.
 | [Agent docs](../AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](agent/recipes.md) and [errors and messages](agent/errors.md). Shipped in the package. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |
 | [Generated reference](reference/index.md) | Read exact signatures and source comments for the package entry point. |
-| [Runnable examples](../examples) | Execute focused examples from the repository. |
+| [Runnable examples](../examples/README.md) | Execute focused examples from the repository; the index lists each file and its run command. |
 
 ## Why DI Bag? In practice
 
@@ -26,7 +26,7 @@ Each guide contains three complete, independently runnable application examples.
 
 | Guide | Scenarios |
 | --- | --- |
-| [Radical modularity](guides/examples-modularity.md) | The recommended module layout, independent features, isolated automated tests, and contributed tools. |
+| [Modules as units of work](guides/examples-modularity.md) | The recommended module layout, independent features, isolated automated tests, and contributed tools. |
 | [TypeScript-first composition](guides/examples-type-checking.md) | Missing dependencies, incompatible contracts, and checked replacements. |
 | [Custom tooling](guides/examples-extensibility.md) | A programmable DI layer for metadata-driven actions, acquisition diagnostics, and custom instrumentation. |
 | [Simple service injection](guides/examples-plain-services.md) | TypeScript-first composition with ordinary functions, undecorated classes, and arbitrary service values. |

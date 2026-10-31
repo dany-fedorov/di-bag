@@ -1,53 +1,51 @@
 # DI Bag
 
-TypeScript dependency composition and resource ownership for modular codebases.
-Built for coding agents that ship one feature at a time.
+Dependency injection for TypeScript where the compiler checks the wiring.
+A module keeps a feature's services private behind named exports; a container
+creates services on first use and releases what it owns when closed.
+
+[![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
+[![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
+Using a coding agent? Point it at `node_modules/di-bag/AGENTS.md`, which ships
+in the package with the [API card](docs/agent/api-card.md), [recipes](docs/agent/recipes.md),
+and [every error message](docs/agent/errors.md). The same pages are at
+[llms.txt](https://dany-fedorov.github.io/di-bag/llms.txt).
+
 ## Why DI Bag?
 
-Compose ordinary TypeScript factories into reusable features. DI Bag checks
-declared dependencies, keeps module internals private, and manages resource
-creation and disposal. Build each feature against an explicit contract, test it
-with replaced dependencies, and let the compiler check the composition when
-independently developed features come together.
+- **A missing dependency is a type error, not a crash on the first request.**
+  Delete a factory and `tsc` names the missing service. Change a contract and
+  `tsc` rejects the consumer that no longer fits. [See it](#what-the-compiler-catches).
+- **One feature is one directory that type-checks alone.** A module exports the
+  services it names and hides the rest, so two modules can both have a private
+  `store`. A one-statement check file and a per-module `tsconfig.json` verify the
+  module without the rest of the application. [See a module](#a-module-in-one-screen).
+- **Resources have one owner.** Attach a disposer to a factory and `close()`
+  runs it, dependents first. A child container per request releases what the
+  request acquired. [See ownership](#give-resources-a-clear-owner).
 
-- **[Modules a single owner can build in isolation](docs/guides/examples-modularity.md).**
-  A person or a coding agent implements one feature against its contract
-  without exposing its internals or reading another feature's source.
-- **[Compile-time wiring checks](docs/guides/examples-type-checking.md).**
-  Catch missing dependencies and incompatible replacements before starting the app.
-- **[Metadata inspection without creating services](docs/guides/examples-extensibility.md).**
-  Build capability catalogs without running factories or opening clients.
-- **[Inject anything with a simple factory function](docs/guides/examples-plain-services.md).**
-  Supply functions, objects, clients, or promises without decorators or base classes.
+No decorators, no reflection metadata, no base classes, and zero runtime
+dependencies. Runs on Node, Bun, Deno, browsers, and workers.
 
 ## Install
-
-Install [di-bag from npm](https://www.npmjs.com/package/di-bag):
 
 ```sh
 npm install di-bag
 ```
 
-The API is pre-1.0 and includes breaking changes. Run the 0.4-to-0.5 codemod
-before upgrading, then review the changelog and the
-[0.5 migration guide](docs/guides/migrating-to-0.5.md).
-
-The minimum supported TypeScript version is **6.0.3**; enable `strict` in your
-`tsconfig.json`. The repository checks classic TypeScript 6.0.3 and native 7.0.2.
-For browsers and workers, see [runtime support](#runtime-support).
+TypeScript 6.0.3 or later with `strict` enabled. Browsers and workers need one
+extra option per factory; see [runtime support](#runtime-support). Coming from
+0.4? See [upgrading](#upgrading).
 
 ## Quickstart
 
-A **service** can be a configuration object, a database client, or a function.
-A **factory** creates a service. A **container** resolves its factories' declared
-dependencies. Services are created when needed. The container disposes owned
-resources when you close it.
-
-Import from `di-bag`. Here, `greeter` needs `config`. Its parameter
-type describes that dependency, and its return value is the service it provides:
+A **factory** creates a **service**. The type of a factory's one object
+parameter declares what it depends on. A **container** calls factories on first
+use:
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -68,14 +66,80 @@ console.log(greeter.greet('Ada')); // Hello, Ada!
 await app.close();
 ```
 
-`withServices({...})` adds factories to an immutable builder. `buildContainer()`
-checks the declared graph and creates a container. `resolve('greeter')` creates
-the greeter and its config on first use. The default scoped lifetime returns the
-same greeter on later resolutions in this container. Provider order does not matter.
+`resolve('greeter')` creates the greeter and its config the first time, and
+returns the same greeter afterwards. TypeScript knows that `greeter` has a
+`greet(name: string): string` method, with no cast and no token.
 
-TypeScript knows that `greeter` has a `greet(name: string): string` method.
-Removing the `config` factory makes `buildContainer()` a compile-time error. Changing
-`greeting` to a number also fails the type check because the greeter needs a string.
+## What the compiler catches
+
+Remove the `config` factory. `buildContainer()` no longer type-checks, and the
+message names the missing service:
+
+```ts
+import { DiBag } from 'di-bag';
+
+const incomplete = DiBag.createBuilder().withServices({
+  greeter: ({ config }: { config: { greeting: string } }) => ({
+    greet(name: string) {
+      return `${config.greeting}, ${name}!`;
+    },
+  }),
+});
+
+// @ts-expect-error required services are missing: config
+incomplete.buildContainer();
+```
+
+```text
+required services are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
+```
+
+Change `greeting` to a number and, with default settings, the message is
+`provided service does not satisfy its consumer dependency`. With
+`"noErrorTruncation": true` in `tsconfig.json`, the details name the consumer,
+the dependency, the expected type, and the provided type. The
+[error index](https://dany-fedorov.github.io/di-bag/agent/errors.html#compile-time) lists every message with its
+cause and fix. The directive above is not decoration: this repository compiles
+the block in CI, and an unused `@ts-expect-error` fails the build.
+
+## A module in one screen
+
+A module is a builder sealed with the names it exports. The host supplies what
+the module requires. In a project each comment below is a file; the layout and
+the per-module check command are in [AGENTS.md](AGENTS.md#module-layout).
+
+```ts
+import { DiBag } from 'di-bag';
+
+// src/features/greeting/contract.ts: what the module exports and what it needs
+type Greeter = { greet(name: string): string };
+type GreetingConfig = { greeting: string };
+
+// src/features/greeting/module.ts: private factories, named exports
+const greetingModule = DiBag.createBuilder()
+  .withServices({
+    template: ({ config }: { config: GreetingConfig }) => config.greeting,
+    greeter: ({ template }: { template: string }): Greeter => ({
+      greet: name => `${template}, ${name}!`,
+    }),
+  })
+  .buildModule({ exportedServiceKeys: ['greeter'], moduleLabel: 'greeting' });
+
+// src/app.ts: the host supplies config; template stays private
+const app = DiBag.createBuilder()
+  .withInstalledModules([greetingModule])
+  .withServices({ config: (): GreetingConfig => ({ greeting: 'Hello' }) })
+  .buildContainer();
+
+console.log(app.resolve('greeter').greet('Ada')); // Hello, Ada!
+await app.close();
+```
+
+`app.resolve('template')` is a type error: the module did not export it. Leave
+out the `config` factory and the host fails with
+`required services are missing: config`. Another module may also call a private
+service `template`; the names never meet. [Modules as units of work](#modules-as-units-of-work)
+explains the layout, the check file, and the merge check.
 
 ## Swap a dependency for a test
 
@@ -160,7 +224,7 @@ be asynchronous. Dependents close before their dependencies, and resources that
 were never created need no disposal. Ordinary factories return borrowed values.
 Having a `close()` method alone does not transfer ownership to the container.
 
-## Child and independent containers {#child-and-independent-containers}
+## Child and independent containers
 
 | Operation | What it creates | Who closes it? |
 | --- | --- | --- |
@@ -175,46 +239,40 @@ For request handling, checked test replacements, and loading dynamic features,
 see the [server guide](docs/guides/server-integration.md) and
 [integration recipes](docs/guides/enterprise-integration.md).
 
-The [tutorial](docs/guides/tutorial.md) also covers modules with private services,
+The [tutorial](docs/guides/tutorial.md) also covers
 typed tokens, class and function adapters, optional and lazy dependencies,
 collections, service readiness, metadata, observers, and plugin validation.
 
 ## Modules as units of work
 
-A DI Bag **module** is the unit of work that one person or one coding agent can
-own: a directory with a small exported contract, private services, and its own
-tests. The composition is checked when the modules meet, so several modules can
-be developed in parallel and merged with confidence.
+A module is the unit of work one person or one coding agent can own: a
+directory with a small exported contract, private services, and its own tests.
+Composition is checked when the modules meet, so several can be developed in
+parallel and merged with confidence.
 
-- **A boundary an owner can hold.** `buildModule({ exportedServiceKeys })` seals a feature and
+- **A boundary an owner can hold.** `buildModule({ exportedServiceKeys })`
   exports only the named services. Private services and their types stay
-  inside, and two modules can use the same private names without collision.
-- **Verification without the whole application.** A module declares what its host
-  must supply. A small check file installs the module with typed fixtures and calls
-  `verifyGraphAtCompileTime()`. Tests can use `createIndependentContainer(keys, providers)`
-  for checked replacements without live clients.
+  inside, and two modules can use the same private names.
+- **Verification without the whole application.** A module declares what its
+  host must supply. A one-statement check file installs the module with typed
+  fixtures and calls `verifyGraphAtCompileTime()`; tests use
+  `createIndependentContainer(keys, providers)` for checked replacements.
 - **Checks at merge time.** Installing every module into one builder is where
-  independently developed work meets. A missing requirement, an incompatible
-  replacement, or a contract that no longer matches its consumers fails at
-  `buildContainer()` or `verifyGraphAtCompileTime()`. The `di-bag-graph` tool exports the declared
-  edges and cycles for review.
+  independently developed work meets. A missing requirement or a contract that
+  no longer matches its consumers fails at `buildContainer()` or
+  `verifyGraphAtCompileTime()`; `di-bag-graph` exports the declared edges and
+  cycles for review.
 
-Install modules with `withInstalledModules([...])`. If two modules require the
-same name for different contracts, rename each requirement before installation
-with `withRenamedRequirement({ currentRequirementKey, newRequirementKey })`. Use
-`withRenamedExport({ currentExportKey, newExportKey })` for colliding exports.
+If two modules require the same name for different contracts, rename each
+requirement at the install site with
+`withRenamedRequirement({ currentRequirementKey, newRequirementKey })`, and
+colliding exports with `withRenamedExport({ currentExportKey, newExportKey })`.
 
-For discovery, the directory layout is the map: one directory per module, the
-contract first. The [modularity guide](docs/guides/examples-modularity.md)
-describes the recommended layout and shows separately owned features, isolated
-tests, and contributed tools in three runnable programs.
-
-DI Bag's dependency graph describes how services are supplied, not what runs
-next. LLM harnesses and agent graphs are one application of the module pattern:
-model clients, tools, and context sources become modules, and the harness or
-graph framework owns routing, retries, persistence, and execution. The
-[agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md) is a
-complete example.
+The directory layout is the map: one directory per module, the contract first.
+The [modules guide](docs/guides/examples-modularity.md) shows the layout and
+three runnable programs. LLM harnesses and agent graphs are one application of
+the pattern; the [agent harness guide](docs/guides/agent-harnesses-and-graphs.md)
+is a complete example.
 
 ## How it compares
 
@@ -279,21 +337,17 @@ Promise factories with `'native-promise'`. See
 | [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request containers, service readiness, and shutdown. |
 | [React guide](docs/guides/react-integration.md) | Browser applications: one app runtime at bootstrap, project runtimes owned from effects, Strict Mode, cancellation, bounded teardown, and `useSyncExternalStore`. |
-| [Radical modularity](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
+| [Modules as units of work](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
 | [Agent docs](AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](docs/agent/recipes.md) and [errors](docs/agent/errors.md). Shipped in the package. |
 | [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | One worked application: model and tool modules, metadata inspection, and node tests with typed fixtures. |
 | [Static dependency graph](docs/agent/recipes.md#review-merge) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph` for merge review and CI. |
-| [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, child containers, and provider metadata. |
+| [Runnable examples](examples/README.md) | One program per topic: modules, tokens, composition, collections, plugins, observers, child containers, and provider metadata. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/guides/comparison.md) | When DI Bag or another approach may be a better fit, with primary sources. |
 | [Development and verification](docs/guides/development.md) | Full checks, portable runtime testing, compiler scale, and performance evidence. |
 | [Documentation map](docs/README.md) | Every guide, the generated reference, and the contributor documents. |
 
 ## Working on DI Bag
-
-[![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
-[![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
-[![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 After `npm ci`, run the main checks with Node and Bun installed:
 
@@ -306,6 +360,17 @@ npm run check:native
 Run an example with `bun run examples/composition.ts`. The
 [development guide](docs/guides/development.md) covers the remaining compiler,
 platform, and packaging checks and their tool requirements.
+
+## Upgrading
+
+The API is pre-1.0 and includes breaking changes. Run the 0.4-to-0.5 codemod
+before upgrading, while the 0.4 types are still installed, then read the
+[0.5 migration guide](docs/guides/migrating-to-0.5.md) and the
+[changelog](CHANGELOG.md):
+
+```sh
+npx di-bag-codemod --project tsconfig.json --write
+```
 
 ## License
 

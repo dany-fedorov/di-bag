@@ -4,7 +4,7 @@
 
 # Interface: DisposerContext
 
-Defined in: [acquisition-context.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L17)
+Defined in: [acquisition-context.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L33)
 
 Why a pushed disposer is running: the factory never returned, or it did and the
 service disposer — the `withDisposal` on the value this factory returned — has
@@ -14,6 +14,24 @@ just run. Ownership a consumer attaches to a transformed value does not count.
 
 https://dany-fedorov.github.io/di-bag/guides/tutorial.html#release-partial-acquisition
 
+## Example
+
+```ts
+type Socket = { close(): Promise<void> };
+declare function open(url: string): Promise<Socket>;
+declare function authenticate(connection: Socket): Promise<void>;
+const socket = DiBag.providerWithDisposal({
+  provider: DiBag.createProvider(async ({ url }: { url: string }, factoryContext) => {
+    const connection = await open(url);
+    // Runs at once if authenticate() rejects; at close() it sees 'service-disposed' and does nothing.
+    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return connection.close(); });
+    await authenticate(connection);
+    return connection;
+  }, { factoryReceivesContext: true }),
+  disposeService: connection => connection.close(),
+});
+```
+
 ## Properties
 
 ### reason
@@ -22,7 +40,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#release-partial-acqui
 readonly reason: 'factory-failed' | 'no-service-disposer' | 'service-disposed' | 'service-disposal-failed';
 ```
 
-Defined in: [acquisition-context.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L24)
+Defined in: [acquisition-context.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L40)
 
 `'factory-failed'`: the factory threw, rejected, or was cancelled; no service exists.
 `'no-service-disposer'`: the factory returned and no `withDisposal` owns that value.
