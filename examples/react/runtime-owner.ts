@@ -1,6 +1,6 @@
 import { DiBagServiceReadinessCancelledError, type CloseOptions } from '../../src';
 
-/** Anything with an asynchronous close: a DI Bag bag or a wrapper around one. */
+/** Anything with an asynchronous close: a DI Bag container or a wrapper around one. */
 export interface Closable {
   close(options?: CloseOptions): Promise<void>;
 }

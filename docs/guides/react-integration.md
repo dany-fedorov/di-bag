@@ -4,14 +4,13 @@
 
 A project switch in a React app has to stop the old project's work, release its lock,
 and only then open the next one, even when Strict Mode mounts every effect twice.
-This guide does that with a ~190-line framework-free `RuntimeOwner` and a 49-line hook file.
+This guide does that with a 190-line framework-free `RuntimeOwner` and a 49-line hook file.
 In development, the browser lane checks that Strict Mode's setup, effect disposal, and setup
 sequence ends at generation 2 with no console warning.
 
 The complete recipe is in [`examples/react`](../../examples/react). The owner's guarantees
 are pinned by `tests/react` (Bun, no React). The composition is exercised in a real Chromium
-by `npm run check:react-browser`, in development and production builds. The user-session row,
-the SSR advice, and the comparison with other libraries are guidance and are not tested.
+by `npm run check:react-browser`, in development and production builds. The user-session pattern, the SSR advice, the HMR and pagehide hooks, and the comparison with other libraries are guidance and are not tested.
 
 The package stays React-free: components receive narrow services through Context,
 never a container.
@@ -150,8 +149,7 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
 
 export async function createProjectRuntime(app: AppServices, projectId: string, options?: EnsureServicesReadyOptions): Promise<ProjectRuntime> {
   const container = await createProjectBuilder(app, projectId).buildContainer().ensureServicesReady(['lock', 'manifest', 'documents'], options);
-  const manifest = await container.resolve('manifest');
-  const documents = await container.resolve('documents');
+  const [manifest, documents] = await Promise.all([container.resolve('manifest'), container.resolve('documents')]);
   return { services: { projectId, name: manifest.name, documents }, close: closeOptions => container.close(closeOptions) };
 }
 ```
@@ -167,7 +165,6 @@ the manifest, and the document store. `ensureServicesReady` makes the selected
 services ready. The caller's `abortSignal` cancels the wait. Failure disposes
 what the project container acquired. The code is the second half of the block
 above: `createProjectBuilder` and `createProjectRuntime`.
-
 
 When the manifest fetch fails, `ensureServicesReady` rejects with
 `DiBagServiceReadinessError` after releasing the lock it had already acquired.
@@ -374,10 +371,11 @@ not endorsements, and their documented behavior was not re-tested here.
 - **Server rendering.** A runtime created at module import time is shared by every request
   in a server-rendered process. Create the app runtime per request or per worker, never per module.
   See [lifetime rules](tutorial.md#choose-a-lifetime).
+- **HMR and page unload.** The `hot.dispose` and `pagehide` hooks in the development section are shown, not tested; the browser lane runs the built page once.
 
 ## When this becomes a package
 
-The owner is ~200 lines you copy. It becomes an optional package only when a
+The owner is about 190 lines you copy. It becomes an optional package only when a
 second application in another repository adopts `runtime-owner.ts` unchanged
 and the React layer needs a change that would otherwise be copied into both.
 Until then, a peer dependency costs more than the copy.

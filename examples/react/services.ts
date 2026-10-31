@@ -1,6 +1,6 @@
 /**
  * The narrow interfaces the React tree sees. Components receive these through
- * Context; they never receive a bag, a builder, or a `resolve` function.
+ * Context; they never receive a container, a builder, or a `resolve` function.
  */
 
 export type DocumentRecord = { readonly id: string; readonly title: string };

@@ -33,7 +33,7 @@ const rules = [
     .map(([name, pattern]) => ({ kind: 'word', name, pattern })),
 ];
 
-const product = [/DI Bag/g, /(?<![A-Za-z0-9_])DiBag(?![A-Za-z0-9_])/g];
+const product = [/DI Bag/g, /(?<![A-Za-z0-9_])DiBag(?![A-Za-z0-9_])/g, /Promise\.all\(/g];
 const allowed = [...product, /DiBag[A-Za-z]*/g, /di-bag[a-z-]*/g, /DI_BAG_[A-Z_]+/g,
   /\boptions? bags?\b/gi, /\bbags? of options\b/gi, /\b(one|single|the) bag\b(?= of| with| whose| that holds)/gi,
   /\b(in|out of|within) scope\b/gi, /\bfork (the|this|a) repo(sitory)?\b/gi];
