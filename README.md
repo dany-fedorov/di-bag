@@ -224,7 +224,7 @@ be asynchronous. Dependents close before their dependencies, and resources that
 were never created need no disposal. Ordinary factories return borrowed values.
 Having a `close()` method alone does not transfer ownership to the container.
 
-## Child and independent containers {#child-and-independent-containers}
+## Child and independent containers
 
 | Operation | What it creates | Who closes it? |
 | --- | --- | --- |
@@ -245,40 +245,34 @@ collections, service readiness, metadata, observers, and plugin validation.
 
 ## Modules as units of work
 
-A DI Bag **module** is the unit of work that one person or one coding agent can
-own: a directory with a small exported contract, private services, and its own
-tests. The composition is checked when the modules meet, so several modules can
-be developed in parallel and merged with confidence.
+A module is the unit of work one person or one coding agent can own: a
+directory with a small exported contract, private services, and its own tests.
+Composition is checked when the modules meet, so several can be developed in
+parallel and merged with confidence.
 
-- **A boundary an owner can hold.** `buildModule({ exportedServiceKeys })` seals a feature and
+- **A boundary an owner can hold.** `buildModule({ exportedServiceKeys })`
   exports only the named services. Private services and their types stay
-  inside, and two modules can use the same private names without collision.
-- **Verification without the whole application.** A module declares what its host
-  must supply. A small check file installs the module with typed fixtures and calls
-  `verifyGraphAtCompileTime()`. Tests can use `createIndependentContainer(keys, providers)`
-  for checked replacements without live clients.
+  inside, and two modules can use the same private names.
+- **Verification without the whole application.** A module declares what its
+  host must supply. A one-statement check file installs the module with typed
+  fixtures and calls `verifyGraphAtCompileTime()`; tests use
+  `createIndependentContainer(keys, providers)` for checked replacements.
 - **Checks at merge time.** Installing every module into one builder is where
-  independently developed work meets. A missing requirement, an incompatible
-  replacement, or a contract that no longer matches its consumers fails at
-  `buildContainer()` or `verifyGraphAtCompileTime()`. The `di-bag-graph` tool exports the declared
-  edges and cycles for review.
+  independently developed work meets. A missing requirement or a contract that
+  no longer matches its consumers fails at `buildContainer()` or
+  `verifyGraphAtCompileTime()`; `di-bag-graph` exports the declared edges and
+  cycles for review.
 
-Install modules with `withInstalledModules([...])`. If two modules require the
-same name for different contracts, rename each requirement before installation
-with `withRenamedRequirement({ currentRequirementKey, newRequirementKey })`. Use
-`withRenamedExport({ currentExportKey, newExportKey })` for colliding exports.
+If two modules require the same name for different contracts, rename each
+requirement at the install site with
+`withRenamedRequirement({ currentRequirementKey, newRequirementKey })`, and
+colliding exports with `withRenamedExport({ currentExportKey, newExportKey })`.
 
-For discovery, the directory layout is the map: one directory per module, the
-contract first. The [modularity guide](docs/guides/examples-modularity.md)
-describes the recommended layout and shows separately owned features, isolated
-tests, and contributed tools in three runnable programs.
-
-DI Bag's dependency graph describes how services are supplied, not what runs
-next. LLM harnesses and agent graphs are one application of the module pattern:
-model clients, tools, and context sources become modules, and the harness or
-graph framework owns routing, retries, persistence, and execution. The
-[agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md) is a
-complete example.
+The directory layout is the map: one directory per module, the contract first.
+The [modules guide](docs/guides/examples-modularity.md) shows the layout and
+three runnable programs. LLM harnesses and agent graphs are one application of
+the pattern; the [agent harness guide](docs/guides/agent-harnesses-and-graphs.md)
+is a complete example.
 
 ## How it compares
 
@@ -343,7 +337,7 @@ Promise factories with `'native-promise'`. See
 | [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request containers, service readiness, and shutdown. |
 | [React guide](docs/guides/react-integration.md) | Browser applications: one app runtime at bootstrap, project runtimes owned from effects, Strict Mode, cancellation, bounded teardown, and `useSyncExternalStore`. |
-| [Radical modularity](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
+| [Modules as units of work](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
 | [Agent docs](AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](docs/agent/recipes.md) and [errors](docs/agent/errors.md). Shipped in the package. |
 | [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | One worked application: model and tool modules, metadata inspection, and node tests with typed fixtures. |
 | [Static dependency graph](docs/agent/recipes.md#review-merge) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph` for merge review and CI. |
@@ -354,10 +348,6 @@ Promise factories with `'native-promise'`. See
 | [Documentation map](docs/README.md) | Every guide, the generated reference, and the contributor documents. |
 
 ## Working on DI Bag
-
-[![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
-[![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
-[![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 After `npm ci`, run the main checks with Node and Bun installed:
 
@@ -370,6 +360,17 @@ npm run check:native
 Run an example with `bun run examples/composition.ts`. The
 [development guide](docs/guides/development.md) covers the remaining compiler,
 platform, and packaging checks and their tool requirements.
+
+## Upgrading
+
+The API is pre-1.0 and includes breaking changes. From 0.4, run the codemod
+before upgrading, while the 0.4 types are still installed, then read the
+[0.5 migration guide](docs/guides/migrating-to-0.5.md) and the
+[changelog](CHANGELOG.md):
+
+```sh
+npx di-bag-codemod --project tsconfig.json --write
+```
 
 ## License
 
