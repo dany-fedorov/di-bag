@@ -4,7 +4,7 @@
 
 DI Bag's distinguishing check is that a missing or mismatched dependency fails `tsc`, naming
 the service, before any container exists. Typed Inject and Effect also check before running;
-Awilix, InversifyJS, and TSyringe report it when the service is first resolved. The other
+Awilix and InversifyJS report it when the service is first resolved; TSyringe does not check the graph statically. The other
 differences are object-parameter factories with no decorators, modules with private services,
 and explicit ownership of what each container acquired.
 
@@ -83,7 +83,7 @@ cells are not stated in the sources cited below.
 | | Missing dependency found | Async dependency | Who closes child containers | Decorators |
 | --- | --- | --- | --- | --- |
 | DI Bag | [`tsc` at `buildContainer()` / `verifyGraphAtCompileTime()`](#choosing-a-dependency-injection-approach) | [`Promise<T>` service, consumer awaits](#costs-and-limits-of-choosing-di-bag) | [Parent closes tracked children](#awilix) | [None](#choosing-a-dependency-injection-approach) |
-| Awilix | [Resolution; strict mode checks lifetimes at runtime](#awilix) | | [Caller](#awilix) | [None](#awilix) |
+| Awilix | [Resolution (`AwilixResolutionError`); strict mode checks lifetimes at runtime](#awilix) | | [Caller](#awilix) | [None](#awilix) |
 | InversifyJS | [Resolution](#inversifyjs) | [`getAsync` awaits](#inversifyjs) | | [Optional](#inversifyjs) |
 | TSyringe | [Not checked statically](#tsyringe) | [`Promise<T>` value, not awaited](#tsyringe) | | [Documented setup uses emitted decorator metadata](#tsyringe) |
 | Typed Inject | [`tsc`, in registration order](#typed-inject) | [`Promise<T>` value](#typed-inject) | | [None](#typed-inject) |
@@ -110,6 +110,8 @@ supports functions and classes without decorators, three lifetimes, child contai
 mutable registration, and file-based registration. Its current API can infer
 cradle output types from chained registrations. Strict mode checks problematic
 lifetime capture at runtime. [Awilix documentation](https://github.com/jeffijoe/awilix#readme).
+A missing dependency is reported when resolving, as an `AwilixResolutionError`
+([README](https://github.com/jeffijoe/awilix/tree/v13.0.5#awilixresolutionerror)).
 
 That inference does not retain and verify every factory's dependency requirements:
 the [registration signatures](https://github.com/jeffijoe/awilix/blob/v13.0.5/src/container.ts)
