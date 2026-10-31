@@ -287,6 +287,7 @@ and `getState`, a Redux store, or your own. DI Bag adds no observable system.
 `container.close({ waitTimeoutMs })` gives a bounded wait at the library level.
 The error names the disposers still running in `error.details.disposersStillRunning`.
 See [disposal waits for your work by default](../../README.md#tradeoffs-and-limits).
+A container tracks acquisition work and disposal, not every later method call; see [Disconnects, streaming, and WebSockets](server-integration.md#acquisition-not-method-calls).
 
 ## Development HMR and navigation
 

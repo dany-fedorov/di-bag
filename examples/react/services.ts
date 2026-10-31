@@ -27,7 +27,7 @@ export interface Storage {
   lock(projectId: string): Promise<ProjectLock>;
 }
 
-/** App-level network client, e.g. `fetch` with auth. Owned by the app bag, borrowed by project runtimes. */
+/** App-level network client, e.g. `fetch` with auth. Owned by the app container, borrowed by project runtimes. */
 export interface Transport {
   fetchManifest(projectId: string, signal: AbortSignal): Promise<{ readonly name: string }>;
   close(): Promise<void>;

@@ -196,7 +196,7 @@ lifetime to application environments and components.
 
 DI Bag can compose ordinary services alongside a framework, but the application
 must bridge those ownership boundaries. It does not include direct NestJS or
-Angular adapters; the [integration recipes](enterprise-integration.md) explain
+Angular adapters; the [Integration patterns](enterprise-integration.md) guide explains
 what a host would need to connect.
 
 ## Costs and limits of choosing DI Bag

@@ -173,9 +173,10 @@ and tests can use them too.
 Save the following helper as `owned-container.ts`. It is a copy of [examples/integration/owned-container.ts](../../examples/integration/owned-container.ts), which `tests/enterprise-integration.test.ts` exercises.
 
 ```ts
-export async function withOwnedContainer<S extends { close(): Promise<void> }, R>(
-  acquire: () => S | Promise<S>,
-  work: (container: S) => R,
+/** Application recipe: acquire a fresh owned container, run work, then close it. */
+export async function withOwnedContainer<C extends { close(): Promise<void> }, R>(
+  acquire: () => C | Promise<C>,
+  work: (container: C) => R,
 ): Promise<Awaited<R>> {
   const container = await acquire();
   let value: Awaited<R>;
@@ -184,11 +185,8 @@ export async function withOwnedContainer<S extends { close(): Promise<void> }, R
   } catch (error) {
     try {
       await container.close();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        'Work and container disposal both failed',
-      );
+    } catch (disposalError) {
+      throw new AggregateError([error, disposalError], 'Work and container disposal both failed');
     }
     throw error;
   }
@@ -702,7 +700,9 @@ stages need their own `factoryReturnKind`. If `buildContainer()` throws
 `DI_BAG_CLASSIFIER_REQUIRED`, its message names the automatic registrations.
 See [portable host configuration](tutorial.md#portable-mode).
 
-## Disconnects, streaming, and WebSockets
+<a id="disconnects-streaming-and-websockets"></a>
+
+## Disconnects, streaming, and WebSockets {#acquisition-not-method-calls}
 
 The JSON recipes above finish their application work even if a client
 disconnects. To cancel a handler's work, pass an application-controlled signal
@@ -761,7 +761,7 @@ Retries can create fresh containers without replacing the shared application poo
 
 ## Test application services
 
-Use the same request helper to test behavior without opening a socket:
+Use the same request helper to test behavior without opening a socket. The same pattern with a module fixture is the [fixture-test recipe](../agent/recipes.md#fixture-test).
 
 ```ts
 import assert from 'node:assert/strict';

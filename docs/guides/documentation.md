@@ -94,8 +94,9 @@ an unknown call, or the card exceeds 400 lines. Never edit the card by hand.
 and compares it with the committed files. Added, changed, and removed pages all
 count as drift. It then checks the agent documentation:
 
-- **Snippets.** Every `ts` block in `AGENTS.md` and `docs/agent/*.md`, and every
-  `@example` in `src/`, is type-checked in one strict program against
+- **Snippets.** Every `ts` block in `AGENTS.md` and `docs/agent/*.md`, every
+  `@example` in `src/`, and every `ts` block in `README.md` and `docs/guides/*.md`
+  that imports only `di-bag` and `node:*` modules, is type-checked in one strict program against
   declarations emitted from `src/` into a temporary `node_modules/di-bag`, so
 `di-bag` resolves as in a consumer project. No prior build is
   needed. Leading comment lines are markers: `// src/features/x/module.ts` makes
