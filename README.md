@@ -340,7 +340,7 @@ Promise factories with `'native-promise'`. See
 | [Modules as units of work](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
 | [Agent docs](AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](docs/agent/recipes.md) and [errors](docs/agent/errors.md). Shipped in the package. |
 | [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | One worked application: model and tool modules, metadata inspection, and node tests with typed fixtures. |
-| [Static dependency graph](docs/agent/recipes.md#review-merge) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph` for merge review and CI. |
+| [Static dependency graph](https://dany-fedorov.github.io/di-bag/agent/recipes.html#review-merge) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph` for merge review and CI. |
 | [Runnable examples](examples/README.md) | One program per topic: modules, tokens, composition, collections, plugins, observers, child containers, and provider metadata. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/guides/comparison.md) | When DI Bag or another approach may be a better fit, with primary sources. |
