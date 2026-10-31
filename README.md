@@ -26,10 +26,11 @@ https://dany-fedorov.github.io/di-bag/llms.txt instead.
 - **A missing dependency is a type error, not a crash on the first request.**
   Delete a factory and `tsc` names the missing service. Change a contract and
   `tsc` rejects the consumer that no longer fits. [See it](#what-the-compiler-catches).
-- **One feature is one directory that type-checks alone.** A module exports the
-  services it names and hides the rest, so two modules can both have a private
-  `store`. A one-statement check file and a per-module `tsconfig.json` verify the
-  module without the rest of the application. [See a module](#a-module-in-one-screen).
+- **One feature is one directory that type-checks alone.** A module exports
+  only the services it names; everything else stays private, so modules written
+  separately can reuse the same internal names without colliding. A one-statement
+  check file and a per-module `tsconfig.json` verify the module without the rest
+  of the application. [See a module](#a-module-in-one-screen).
 - **Resources have one owner.** Attach a disposer to a factory and `close()`
   runs it, dependents first. A child container per request releases what the
   request acquired. [See ownership](#give-resources-a-clear-owner).
