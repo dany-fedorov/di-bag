@@ -1,53 +1,51 @@
 # DI Bag
 
-TypeScript dependency composition and resource ownership for modular codebases.
-Built for coding agents that ship one feature at a time.
+Dependency injection for TypeScript where the compiler checks the wiring.
+A module keeps a feature's services private behind named exports; a container
+creates services on first use and releases what it owns when closed.
+
+[![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
+[![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
+Using a coding agent? It reads `node_modules/di-bag/AGENTS.md`, which ships
+in the package with the [API card](docs/agent/api-card.md), [recipes](docs/agent/recipes.md),
+and [every error message](docs/agent/errors.md). The same pages are at
+[llms.txt](https://dany-fedorov.github.io/di-bag/llms.txt).
+
 ## Why DI Bag?
 
-Compose ordinary TypeScript factories into reusable features. DI Bag checks
-declared dependencies, keeps module internals private, and manages resource
-creation and disposal. Build each feature against an explicit contract, test it
-with replaced dependencies, and let the compiler check the composition when
-independently developed features come together.
+- **A missing dependency is a type error, not a crash on the first request.**
+  Delete a factory and `tsc` names the missing service. Change a contract and
+  `tsc` names the consumer that no longer fits. [See it](#what-the-compiler-catches).
+- **One feature is one directory that type-checks alone.** A module exports the
+  services it names and hides the rest, so two modules can both have a private
+  `store`. A one-statement check file with its own `tsconfig.json` verifies the
+  module without the rest of the application. [See a module](#a-module-in-one-screen).
+- **Resources have one owner.** Attach a disposer to a factory and `close()`
+  runs it, dependents first. A child container per request releases what the
+  request acquired. [See ownership](#give-resources-a-clear-owner).
 
-- **[Modules a single owner can build in isolation](docs/guides/examples-modularity.md).**
-  A person or a coding agent implements one feature against its contract
-  without exposing its internals or reading another feature's source.
-- **[Compile-time wiring checks](docs/guides/examples-type-checking.md).**
-  Catch missing dependencies and incompatible replacements before starting the app.
-- **[Metadata inspection without creating services](docs/guides/examples-extensibility.md).**
-  Build capability catalogs without running factories or opening clients.
-- **[Inject anything with a simple factory function](docs/guides/examples-plain-services.md).**
-  Supply functions, objects, clients, or promises without decorators or base classes.
+No decorators, no reflection metadata, no base classes, and zero runtime
+dependencies. Runs on Node, Bun, Deno, browsers, and workers.
 
 ## Install
-
-Install [di-bag from npm](https://www.npmjs.com/package/di-bag):
 
 ```sh
 npm install di-bag
 ```
 
-The API is pre-1.0 and includes breaking changes. Run the 0.4-to-0.5 codemod
-before upgrading, then review the changelog and the
-[0.5 migration guide](docs/guides/migrating-to-0.5.md).
-
-The minimum supported TypeScript version is **6.0.3**; enable `strict` in your
-`tsconfig.json`. The repository checks classic TypeScript 6.0.3 and native 7.0.2.
-For browsers and workers, see [runtime support](#runtime-support).
+TypeScript 6.0.3 or later with `strict` enabled. Browsers and workers need one
+extra option per factory; see [runtime support](#runtime-support). Coming from
+0.4? See [upgrading](#upgrading).
 
 ## Quickstart
 
-A **service** can be a configuration object, a database client, or a function.
-A **factory** creates a service. A **container** resolves its factories' declared
-dependencies. Services are created when needed. The container disposes owned
-resources when you close it.
-
-Import from `di-bag`. Here, `greeter` needs `config`. Its parameter
-type describes that dependency, and its return value is the service it provides:
+A **factory** creates a **service**. The type of a factory's one object
+parameter declares what it depends on. A **container** calls factories on first
+use:
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -68,14 +66,79 @@ console.log(greeter.greet('Ada')); // Hello, Ada!
 await app.close();
 ```
 
-`withServices({...})` adds factories to an immutable builder. `buildContainer()`
-checks the declared graph and creates a container. `resolve('greeter')` creates
-the greeter and its config on first use. The default scoped lifetime returns the
-same greeter on later resolutions in this container. Provider order does not matter.
+`resolve('greeter')` creates the greeter and its config the first time, and
+returns the same greeter afterwards. TypeScript knows that `greeter` has a
+`greet(name: string): string` method, with no cast and no token.
 
-TypeScript knows that `greeter` has a `greet(name: string): string` method.
-Removing the `config` factory makes `buildContainer()` a compile-time error. Changing
-`greeting` to a number also fails the type check because the greeter needs a string.
+## What the compiler catches
+
+Remove the `config` factory. `buildContainer()` no longer type-checks, and the
+message names the missing service:
+
+```ts
+import { DiBag } from 'di-bag';
+
+const incomplete = DiBag.createBuilder().withServices({
+  greeter: ({ config }: { config: { greeting: string } }) => ({
+    greet(name: string) {
+      return `${config.greeting}, ${name}!`;
+    },
+  }),
+});
+
+// @ts-expect-error required services are missing: config
+incomplete.buildContainer();
+```
+
+```text
+required services are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
+```
+
+Change `greeting` to a number and the message names the consumer that no longer
+fits: `provided service does not satisfy its consumer dependency`, with the
+consumer, the dependency, the expected type, and the provided type. The
+[error index](docs/agent/errors.md#compile-time) lists every message with its
+cause and fix. The directive above is not decoration: this repository compiles
+the block in CI, and an unused `@ts-expect-error` fails the build.
+
+## A module in one screen
+
+A module is a builder sealed with the names it exports. The host supplies what
+the module requires. In a project each comment below is a file; the layout and
+the per-module check command are in [AGENTS.md](AGENTS.md#module-layout).
+
+```ts
+import { DiBag } from 'di-bag';
+
+// src/features/greeting/contract.ts: what the module exports and what it needs
+type Greeter = { greet(name: string): string };
+type GreetingConfig = { greeting: string };
+
+// src/features/greeting/module.ts: private factories, named exports
+const greetingModule = DiBag.createBuilder()
+  .withServices({
+    template: ({ config }: { config: GreetingConfig }) => config.greeting,
+    greeter: ({ template }: { template: string }): Greeter => ({
+      greet: name => `${template}, ${name}!`,
+    }),
+  })
+  .buildModule({ exportedServiceKeys: ['greeter'], moduleLabel: 'greeting' });
+
+// src/app.ts: the host supplies config; template stays private
+const app = DiBag.createBuilder()
+  .withInstalledModules([greetingModule])
+  .withServices({ config: (): GreetingConfig => ({ greeting: 'Hello' }) })
+  .buildContainer();
+
+console.log(app.resolve('greeter').greet('Ada')); // Hello, Ada!
+await app.close();
+```
+
+`app.resolve('template')` is a type error: the module did not export it. Leave
+out the `config` factory and the host fails with
+`required services are missing: config`. Another module may also call a private
+service `template`; the names never meet. [Modules as units of work](#modules-as-units-of-work)
+explains the layout, the check file, and the merge check.
 
 ## Swap a dependency for a test
 
