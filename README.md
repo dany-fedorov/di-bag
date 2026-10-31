@@ -10,10 +10,16 @@ creates services on first use and releases what it owns when closed.
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
-Using a coding agent? Point it at `node_modules/di-bag/AGENTS.md`, which ships
-in the package with the [API card](docs/agent/api-card.md), [recipes](docs/agent/recipes.md),
-and [every error message](docs/agent/errors.md). The same pages are at
-[llms.txt](https://dany-fedorov.github.io/di-bag/llms.txt).
+Using a coding agent? The rules, the API card, the recipes, and every error
+message ship in the package. Paste this into your agent:
+
+```text
+Before writing any di-bag code, read node_modules/di-bag/AGENTS.md and follow its rules.
+For a call's signature and example use node_modules/di-bag/docs/agent/api-card.md, for a task use
+node_modules/di-bag/docs/agent/recipes.md, and for a compiler or runtime message use
+node_modules/di-bag/docs/agent/errors.md. If the package is not installed yet, read
+https://dany-fedorov.github.io/di-bag/llms.txt instead.
+```
 
 ## Why DI Bag?
 
