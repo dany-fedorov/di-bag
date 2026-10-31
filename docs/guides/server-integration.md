@@ -11,30 +11,84 @@ The examples use TypeScript files in an application with `"type": "module"` in
 `package.json`. Node examples can run with `node server.ts` on Node 24; Bun
 examples use `bun run server.ts`. Runtime execution does not replace type
 checking with the [supported compiler](development.md).
-
 ## Contents
 
-- [One child container per request](#request-containers)
 - [Build the application once](#build-the-application-once)
-- [Close each request container](#close-each-request-container)
 - [Choose the owner of each service](#choose-the-owner-of-each-service)
+- [One child container per request](#request-containers)
+- [Close each request container](#close-each-request-container)
+- [Readiness failures and deadlines](#readiness-failures-and-deadlines)
 - [Connect a shutdown signal](#connect-a-shutdown-signal)
 - [Node HTTP](#node-http)
 - [Express](#express)
 - [Fastify](#fastify)
 - [Bun](#bun)
 - [Elysia](#elysia)
-- [Deno and portable acquisition](#deno-and-portable-acquisition)
-- [Readiness failures and deadlines](#readiness-failures-and-deadlines)
+- [Deno](#deno-and-portable-acquisition)
+- [Bound the shutdown wait](#bound-the-shutdown-wait)
+- [Browsers, workers, and other hosts without process.getBuiltinModule](#browsers-workers-and-other-hosts-without-process-getbuiltinmodule)
 - [Disconnects, streaming, and WebSockets](#disconnects-streaming-and-websockets)
 - [Background jobs and message consumers](#background-jobs-and-message-consumers)
 - [Test application services](#test-application-services)
 - [Organize a larger application](#organize-a-larger-application)
 - [Troubleshooting](#troubleshooting)
 
+## Build the application once
+
+When no service needs request state, one container can serve every request.
+Use this `application.ts`:
+
+```ts
+import { DiBag } from 'di-bag';
+
+type Catalog = Map<string, string>;
+
+export function createApplication() {
+  const app = DiBag.createBuilder()
+    .withServices({
+      catalog: DiBag.providerWithDisposal({
+        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+        disposeService: catalog => catalog.clear(),
+      }),
+      handler: ({ catalog }: { catalog: Promise<Catalog> }) => ({
+        async list() {
+          return { items: Array.from((await catalog).values()) };
+        },
+      }),
+    })
+    .buildContainer();
+  return app.ensureServicesReady(['catalog']);
+}
+
+export type Application = Awaited<ReturnType<typeof createApplication>>;
+```
+
+`buildContainer()` creates the application container. `ensureServicesReady`
+waits for the catalog before the server listens. The catalog still resolves as
+`Promise<Catalog>`. Readiness does not rewrite its public type. Every request
+can call `app.resolve('handler').list()`. The container closes during server
+shutdown.
+
+## Choose the owner of each service
+
+| Service | Typical lifetime | Owner |
+| --- | --- | --- |
+| Configuration, connection pool, application cache | `'singleton:one-per-container-tree'` when shared across children | Application container |
+| Request ID, authenticated caller, transaction, request logger | `'scoped:one-per-container'` (default) | Request's child container |
+| A fresh operation object on each lookup | `'transient:one-per-resolve'` | Resolving container |
+| A replacement graph for an isolated test | Independent container | Test fixture |
+
+Singleton providers are explicit when children should share them. Use
+`DiBag.providerWithLifetime({ provider, lifetime })` to select a lifetime.
+Use `DiBag.providerWithDisposal({ provider, disposeService })` to attach
+disposal. These are separate choices. A singleton cannot depend on a scoped
+provider unless it explicitly allows scoped dependencies. That exception uses
+the defining container's context, not the current request's identity. See
+[lifetime rules](tutorial.md#choose-a-lifetime).
+
 ## One child container per request {#request-containers}
 
-Save this as `application.ts`. The in-memory catalog makes the example runnable
+Add a per-request value to the application from the previous section. The in-memory catalog makes the example runnable
 without a database. In an application, its async factory could open a client
 or pool. Its disposer could call that client's shutdown method. The catalog is
 explicitly shared across the container tree. The request and its dependent
@@ -81,42 +135,6 @@ the child container so it sees the request's replacement. A scoped provider is
 the default. The compiler rejects a singleton that depends on a scoped
 provider. Keep application services independent of the HTTP library so jobs
 and tests can use them too.
-
-## Build the application once
-
-When no service needs request state, one container can serve every request.
-Use this smaller `application.ts` instead:
-
-```ts
-import { DiBag } from 'di-bag';
-
-type Catalog = Map<string, string>;
-
-export function createApplication() {
-  const app = DiBag.createBuilder()
-    .withServices({
-      catalog: DiBag.providerWithDisposal({
-        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
-        disposeService: catalog => catalog.clear(),
-      }),
-      handler: ({ catalog }: { catalog: Promise<Catalog> }) => ({
-        async list() {
-          return { items: Array.from((await catalog).values()) };
-        },
-      }),
-    })
-    .buildContainer();
-  return app.ensureServicesReady(['catalog']);
-}
-
-export type Application = Awaited<ReturnType<typeof createApplication>>;
-```
-
-`buildContainer()` creates the application container. `ensureServicesReady`
-waits for the catalog before the server listens. The catalog still resolves as
-`Promise<Catalog>`. Readiness does not rewrite its public type. Every request
-can call `app.resolve('handler').list()`. The container closes during server
-shutdown.
 
 ## Close each request container {#close-each-request-container}
 
@@ -176,22 +194,43 @@ When requests need no request state, use the
 [single-container application](#build-the-application-once) and call
 `app.resolve('handler').list()` directly.
 
-## Choose the owner of each service
+## Readiness failures and deadlines {#readiness-failures-and-deadlines}
 
-| Service | Typical lifetime | Owner |
-| --- | --- | --- |
-| Configuration, connection pool, application cache | `'singleton:one-per-container-tree'` when shared across children | Application container |
-| Request ID, authenticated caller, transaction, request logger | `'scoped:one-per-container'` (default) | Request's child container |
-| A fresh operation object on each lookup | `'transient:one-per-resolve'` | Resolving container |
-| A replacement graph for an isolated test | Independent container | Test fixture |
+Use `builder.buildContainer()` for a lazy container. Call
+`container.ensureServicesReady(serviceKeys, options)` before opening a listener
+when selected services must be ready. Readiness
+does not eagerly resolve unrelated registrations.
 
-Singleton providers are explicit when children should share them. Use
-`DiBag.providerWithLifetime({ provider, lifetime })` to select a lifetime.
-Use `DiBag.providerWithDisposal({ provider, disposeService })` to attach
-disposal. These are separate choices. A singleton cannot depend on a scoped
-provider unless it explicitly allows scoped dependencies. That exception uses
-the defining container's context, not the current request's identity. See
-[lifetime rules](tutorial.md#choose-a-lifetime).
+```ts
+import { DiBag, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from 'di-bag';
+
+const builder = DiBag.createBuilder().withServices({
+  catalog: async () => new Map([['book', 'A good book']]),
+});
+const app = builder.buildContainer();
+try {
+  await app.ensureServicesReady(['catalog'], {
+    totalTimeoutMs: 5_000,
+  });
+  // Start the listener, then close app during server shutdown.
+} catch (error) {
+  if (error instanceof DiBagServiceReadinessCancelledError) {
+    try {
+      await error.disposalPromise;
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        'Readiness cancellation and disposal failed',
+      );
+    }
+  } else if (error instanceof DiBagServiceReadinessError) {
+    console.error(error.cause, error.disposalFailures);
+  }
+  throw error;
+}
+```
+
+A failed `ensureServicesReady` has already closed the container, so the catch block only reports the failure. `totalTimeoutMs` and `abortSignal` bound the wait.
 
 ## Connect a shutdown signal
 
@@ -216,38 +255,6 @@ export function onShutdown(stop: () => Promise<void>) {
 The recipes stop accepting work, let active handlers finish, and then close the
 application container. Calling `app.close()` first begins closing its children and
 blocks new resolutions, which can interrupt requests you intended to drain.
-An operational shutdown deadline belongs to the host; DI Bag cannot force an
-uncooperative factory or disposer to settle. Use `waitTimeoutMs` to bound the
-wait while disposal continues:
-
-```ts
-import { DiBag, DiBagCloseCancelledError } from 'di-bag';
-
-const app = DiBag.createBuilder()
-  .withServices({ resource: () => ({ ready: true }) })
-  .buildContainer();
-
-try {
-  await app.close({ waitTimeoutMs: 5_000 });
-} catch (error) {
-  if (error instanceof DiBagCloseCancelledError) {
-    // Observe eventual disposal without extending this bounded wait.
-    void error.disposalPromise.catch(disposalError => {
-      console.error('Disposal failed after the shutdown deadline', disposalError);
-      process.exitCode = 1;
-    });
-  } else {
-    throw error;
-  }
-}
-```
-
-The catch branch returns after the bounded wait; it does not wait for disposal to
-finish. The deadline does not release pending resources or cancel a disposer.
-The rejection handler reports any eventual disposal failure, while the host decides
-when to exit and how to handle still-pending resources.
-`abortSignal` can also end the wait. The same principle applies to `disposalPromise` on
-`DiBagServiceReadinessCancelledError`.
 
 ## Node HTTP
 
@@ -524,13 +531,100 @@ The `onStop` hook closes the application
 container. Coordinate request draining and process exit with the host's
 shutdown policy; a TypeScript check does not establish their runtime order.
 
-## Deno and portable acquisition
+## Deno {#deno-and-portable-acquisition}
 
 Deno runs the same `application.ts`: `di-bag` finds the native-Promise
 classifier through `process.getBuiltinModule` there, as on Node and Bun. Resolve
 the bare import through the local npm installation from the README; if needed,
 use `"nodeModulesDir": "manual"` in `deno.json`. See
 [Deno's manual npm installation mode](https://docs.deno.com/runtime/fundamentals/node/#manual-node_modules-creation).
+
+Save this as `server.ts` and run `deno run --allow-net server.ts`:
+
+```ts
+import { createApplication } from './application.ts';
+import { handleRequest } from './handle-request.ts';
+
+const app = await createApplication();
+const server = await (async () => {
+  try {
+    return Deno.serve({ port: 3000, hostname: '127.0.0.1' }, async (request) => {
+      if (request.method !== 'GET' || new URL(request.url).pathname !== '/items') {
+        return new Response('Not found', { status: 404 });
+      }
+      try {
+        return Response.json(await handleRequest(app, crypto.randomUUID()));
+      } catch (error) {
+        console.error(error);
+        return new Response('Internal server error', { status: 500 });
+      }
+    });
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
+})();
+
+let stopping = false;
+const shutdown = () => {
+  if (stopping) return;
+  stopping = true;
+  void server.shutdown().catch(console.error);
+};
+Deno.addSignalListener('SIGINT', shutdown);
+Deno.addSignalListener('SIGTERM', shutdown);
+
+try {
+  await server.finished;
+} finally {
+  Deno.removeSignalListener('SIGINT', shutdown);
+  Deno.removeSignalListener('SIGTERM', shutdown);
+  await app.close();
+}
+```
+
+Use signal names supported by your host. Deno's `shutdown()` stops admission and
+lets pending requests finish; `finished` observes server completion. See
+[Deno's HTTP server API](https://docs.deno.com/api/deno/http-server/).
+
+## Bound the shutdown wait
+
+An operational shutdown deadline belongs to the host; DI Bag cannot force an
+uncooperative factory or disposer to settle. Use `waitTimeoutMs` to bound the
+wait while disposal continues:
+
+```ts
+import { DiBag, DiBagCloseCancelledError } from 'di-bag';
+
+const app = DiBag.createBuilder()
+  .withServices({ resource: () => ({ ready: true }) })
+  .buildContainer();
+
+try {
+  await app.close({ waitTimeoutMs: 5_000 });
+} catch (error) {
+  if (error instanceof DiBagCloseCancelledError) {
+    // Observe eventual disposal without extending this bounded wait.
+    void error.disposalPromise.catch(disposalError => {
+      console.error('Disposal failed after the shutdown deadline', disposalError);
+      process.exitCode = 1;
+    });
+  } else {
+    throw error;
+  }
+}
+```
+
+The catch branch returns after the bounded wait; it does not wait for disposal to
+finish. The deadline does not release pending resources or cancel a disposer.
+The rejection handler reports any eventual disposal failure, while the host decides
+when to exit and how to handle still-pending resources.
+`abortSignal` can also end the wait. The same principle applies to `disposalPromise` on
+`DiBagServiceReadinessCancelledError`.
+
+## Browsers, workers, and other hosts without process.getBuiltinModule
+
+No server on this page needs this. Read it when the same `application.ts` must also load in a browser or worker; the [React guide](react-integration.md#build-the-application-runtime-once) is the browser recipe.
 
 Hosts without `process.getBuiltinModule`, such as browsers and workers, have no
 automatic native-Promise predicate. There, say on **every factory stage**,
@@ -593,103 +687,6 @@ its fulfillment to the disposer. `DiBag.providerWithDisposal` and
 stages need their own `factoryReturnKind`. If `buildContainer()` throws
 `DI_BAG_CLASSIFIER_REQUIRED`, its message names the automatic registrations.
 See [portable host configuration](tutorial.md#portable-mode).
-
-Save this as `server.ts` and run `deno run --allow-net server.ts`:
-
-```ts
-import { createApplication } from './application.ts';
-import { handleRequest } from './handle-request.ts';
-
-const app = await createApplication();
-const server = await (async () => {
-  try {
-    return Deno.serve({ port: 3000, hostname: '127.0.0.1' }, async (request) => {
-      if (request.method !== 'GET' || new URL(request.url).pathname !== '/items') {
-        return new Response('Not found', { status: 404 });
-      }
-      try {
-        return Response.json(await handleRequest(app, crypto.randomUUID()));
-      } catch (error) {
-        console.error(error);
-        return new Response('Internal server error', { status: 500 });
-      }
-    });
-  } catch (error) {
-    await app.close();
-    throw error;
-  }
-})();
-
-let stopping = false;
-const shutdown = () => {
-  if (stopping) return;
-  stopping = true;
-  void server.shutdown().catch(console.error);
-};
-Deno.addSignalListener('SIGINT', shutdown);
-Deno.addSignalListener('SIGTERM', shutdown);
-
-try {
-  await server.finished;
-} finally {
-  Deno.removeSignalListener('SIGINT', shutdown);
-  Deno.removeSignalListener('SIGTERM', shutdown);
-  await app.close();
-}
-```
-
-Use signal names supported by your host. Deno's `shutdown()` stops admission and
-lets pending requests finish; `finished` observes server completion. See
-[Deno's HTTP server API](https://docs.deno.com/api/deno/http-server/).
-
-## Readiness failures and deadlines {#readiness-failures-and-deadlines}
-
-Use `builder.buildContainer()` for a lazy container. Call
-`container.ensureServicesReady(serviceKeys, options)` before opening a listener
-when selected services must be ready. Readiness
-does not eagerly resolve unrelated registrations.
-
-```ts
-import { DiBag, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from 'di-bag';
-
-const builder = DiBag.createBuilder().withServices({
-  catalog: async () => new Map([['book', 'A good book']]),
-});
-const app = builder.buildContainer();
-try {
-  await app.ensureServicesReady(['catalog'], {
-    totalTimeoutMs: 5_000,
-  });
-  // Start the listener, then close app during server shutdown.
-} catch (error) {
-  if (error instanceof DiBagServiceReadinessCancelledError) {
-    try {
-      await error.disposalPromise;
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        'Readiness cancellation and disposal failed',
-      );
-    }
-  } else if (error instanceof DiBagServiceReadinessError) {
-    console.error(error.cause, error.disposalFailures);
-  }
-  throw error;
-}
-```
-
-Cancellation rejects promptly, so disposal may still be running. A factory
-using `DiBag.createProvider` with `factoryReceivesContext: true` can forward
-its `abortSignal` to a cooperative operation such as `fetch`. Cancelling the
-readiness wait cannot terminate arbitrary code. The full
-[readiness API](tutorial.md#make-selected-services-ready) covers external
-signals, sequential or bounded readiness, and disposal. When selected
-providers compete for connections or temporary workspace, use a positive safe
-integer such as `maxConcurrentServiceKeys: 8` to limit simultaneous selected
-readiness waits. The default stays parallel; `1` follows sequential readiness.
-Dependencies started inside each selected provider can still fan out beyond that
-bound. On failure or cancellation, queued selections stay unstarted. Already
-started work remains owned through disposal.
 
 ## Disconnects, streaming, and WebSockets
 
