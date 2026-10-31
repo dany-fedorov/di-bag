@@ -3,7 +3,7 @@
 Measures whether coding agents that see only the installed `di-bag` package,
 its shipped agent docs, and one module directory can build modules in parallel
 that merge cleanly. It is step L8 "Eval" of
-`docs/superpowers/specs/2026-09-13-agent-friendly-loop.md`.
+the agent-friendly loop specification (2026-09, repository history).
 
 The maintainer runs it by hand before a release and records the result under
 `docs/benchmarks/`. It is not a CI gate: every run starts paid agent sessions,
