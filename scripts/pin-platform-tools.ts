@@ -47,7 +47,7 @@ export async function pinPlatformTools(root: string, all: boolean): Promise<Plat
     node: captureToolPin([node], '24.20.0'),
     npm: captureToolPin([node, executable('npm')], '11.19.0'),
     classic6: captureToolPin([node, join(root, 'node_modules/typescript/bin/tsc6')], '6.0.3'),
-    bun: captureToolPin([executable('bun')], '1.4.0'),
+    bun: captureToolPin([executable('bun')], '1.4.4'),
     deno: unavailable, esbuild: unavailable, playwright: unavailable, chromium: unavailable,
   };
   if (all) {

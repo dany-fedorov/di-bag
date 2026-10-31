@@ -15,7 +15,7 @@ tool versions, native diagnostic inventory, build output, dry-run and actual pac
 JSON, archive bytes and hashes, and every supervised command record.
 
 Verify the public API and inferred consumer declarations in the packed
-archive. The documented local version is `0.5.1`; select and verify each
+archive. The documented local version is `0.5.2`; select and verify each
 subsequent version before publication.
 
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
@@ -152,7 +152,7 @@ mode-700 user-config directory; the exit trap removes that file and directory.
 Never put a registry token in an argument, this document, or a retained log.
 Confirm `npm whoami` names the intended publisher.
 The version check must report that the exact version is absent; an existing
-version, unexpected owner, or failed login stops the release. This 0.5.1
+version, unexpected owner, or failed login stops the release. This 0.5.2
 candidate publishes only `di-bag` from its exact verified archive. Provenance
 is omitted because this is a local-token publication rather than a CI identity.
 
@@ -162,7 +162,7 @@ chmod 700 "$release_scratch"
 trap 'rm -f "$release_scratch/publish.npmrc"; rmdir "$release_scratch"' EXIT
 npm login --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
 npm whoami --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm view di-bag@0.5.1 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
-npm publish /tmp/di-bag-release-candidate/di-bag-0.5.1.tgz --access public --userconfig "$release_scratch/publish.npmrc"
-npm dist-tag add di-bag@0.5.1 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm view di-bag@0.5.2 version --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
+npm publish /tmp/di-bag-release-candidate/di-bag-0.5.2.tgz --access public --userconfig "$release_scratch/publish.npmrc"
+npm dist-tag add di-bag@0.5.2 latest --registry=https://registry.npmjs.org --userconfig "$release_scratch/publish.npmrc"
 ```
