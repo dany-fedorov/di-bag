@@ -332,6 +332,9 @@ declare function fetchCatalog(signal: AbortSignal): Promise<string[]>;
 const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) => fetchCatalog(factoryContext.abortSignal), {
   factoryReceivesContext: true, factoryReturnKind: 'native-promise',
 });
+const container = DiBag.createBuilder().withServices({ catalog }).buildContainer();
+const names: Promise<string[]> = container.resolve('catalog'); // close() aborts the signal while fetchCatalog is pending
+await container.close();
 ```
 
 ### `factoryContext.pushDisposer(disposer)` {#factorycontext-pushdisposer}
@@ -345,6 +348,9 @@ const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryCo
   await verify(name);
   return { name };
 }, { factoryReceivesContext: true });
+const container = DiBag.createBuilder().withServices({ name: () => 'nightly', worker }).buildContainer();
+const started: Promise<{ name: string }> = container.resolve('worker');
+await container.close(); // runs lock.release() after the worker settled
 ```
 
 ## Errors {#errors}

@@ -5,7 +5,7 @@ const site = 'https://dany-fedorov.github.io/di-bag/';
 
 /** The pages an agent needs, in reading order, with their website address. */
 const pages = [
-  { file: 'AGENTS.md', title: 'AGENTS.md', url: `${site}llms-full.txt#agents-md` },
+  { file: 'AGENTS.md', title: 'AGENTS.md', url: 'https://github.com/dany-fedorov/di-bag/blob/main/AGENTS.md' },
   { file: 'docs/agent/api-card.md', title: 'API card', url: `${site}agent/api-card.html` },
   { file: 'docs/agent/recipes.md', title: 'Recipes', url: `${site}agent/recipes.html` },
   { file: 'docs/agent/errors.md', title: 'Errors and messages', url: `${site}agent/errors.html` },
@@ -15,7 +15,7 @@ const pages = [
 function absoluteLinks(markdown) {
   return markdown.replace(/\]\((?:\.\.\/\.\.\/|docs\/agent\/|)?(AGENTS\.md|api-card\.md|recipes\.md|errors\.md)(#[^)]*)?\)/g, (_, file, fragment = '') => {
     const page = pages.find(page => page.file.endsWith(`/${file}`) || page.file === file);
-    return `](${page.url.split('#')[0]}${file === 'AGENTS.md' ? '#agents-md' : fragment})`;
+    return `](${page.url}${fragment})`;
   });
 }
 
@@ -36,6 +36,6 @@ export function renderLlmsIndex() {
 export function renderLlmsFull(root) {
   return pages.map(page => {
     const text = readFileSync(join(root, page.file), 'utf8').replace(/\n$/, '');
-    return `<!-- ${page.file} -->\n${page.file === 'AGENTS.md' ? '<a id="agents-md"></a>\n' : ''}${absoluteLinks(text)}\n`;
+    return `<!-- ${page.file} -->\n${absoluteLinks(text)}\n`;
   }).join('\n');
 }

@@ -388,7 +388,7 @@ await app.close();
 ```
 
 `buildModule({ exportedServiceKeys })` seals the builder's graph and chooses its public string
-names and typed tokens. An empty export tuple is valid; contributions are still
+names and [typed tokens](#use-typed-tokens-for-explicit-positional-injection). An empty export tuple is valid; contributions are still
 installed. Where `buildContainer()` rejects a missing dependency, `buildModule` records
 it as a requirement the installing host must satisfy. A sealed module cannot
 resolve, start, or close anything; `withInstalledModules([module])` gives module
@@ -404,7 +404,7 @@ replaces that export, while one satisfied privately is final.
 
 `buildModule({ exportedServiceKeys, moduleLabel: 'reports' })` names each installation's private
 bindings `reports/connection` in error messages, cycle paths, `graphSnapshot()`,
-and observer events. Exported bindings keep their bare key. Labels compose when
+and [observer events](#observe-lifecycle-transitions). Exported bindings keep their bare key. Labels compose when
 modules nest: a private `state` of an `inner` module installed in an `outer`
 module appears as `outer/inner/state`. Without a label, bindings keep their bare
 key. `module.moduleLabel` returns the exact label supplied at sealing, or
@@ -414,7 +414,7 @@ label nor a binding-label prefix identifies an installation.
 
 Private providers keep their external requirements, including requirements from
 providers that are not currently reachable from an export. The host may satisfy
-them later with `withServices`, another installation, or a forward registration before
+them later with `withServices`, another installation, or a [forward registration](#compose-services) before
 `buildContainer()`. Each installation gets fresh private binding identities and ownership.
 
 `module.withRenamedExport({ currentExportKey, newExportKey })` returns a new export view. It changes a public
@@ -440,7 +440,7 @@ Use `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })
 when a string requirement needs a different host key. Internal dependency names
 stay the same. Token requirements keep their global symbol identity.
 
-Host `withReplacedService` and selected container replacements are visible to consumers inside the
+Host `withReplacedService` and selected [container replacements](#create-child-containers) are visible to consumers inside the
 installed module, including its
 private providers. Module constraints keep those replacements checked. Preserve
 inferred module types with `typeof` or `ReturnType`; see the [exported type

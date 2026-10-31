@@ -22,7 +22,7 @@ import type { TokenDependencyContract } from './token-types';
  *   provider: DiBag.createProvider(async ({ url }: { url: string }, factoryContext) => {
  *     const connection = await open(url);
  *     // Runs at once if authenticate() rejects; at close() it sees 'service-disposed' and does nothing.
- *     factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return connection.close(); });
+ *     factoryContext.pushDisposer(async disposerContext => { if (disposerContext.reason !== 'service-disposed') await connection.close(); });
  *     await authenticate(connection);
  *     return connection;
  *   }, { factoryReceivesContext: true }),
@@ -52,6 +52,9 @@ export interface FactoryContext {
    * const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) => fetchCatalog(factoryContext.abortSignal), {
    *   factoryReceivesContext: true, factoryReturnKind: 'native-promise',
    * });
+   * const container = DiBag.createBuilder().withServices({ catalog }).buildContainer();
+   * const names: Promise<string[]> = container.resolve('catalog'); // close() aborts the signal while fetchCatalog is pending
+   * await container.close();
    * ```
    */
   readonly abortSignal: AbortSignal;
@@ -70,6 +73,9 @@ export interface FactoryContext {
    *   await verify(name);
    *   return { name };
    * }, { factoryReceivesContext: true });
+   * const container = DiBag.createBuilder().withServices({ name: () => 'nightly', worker }).buildContainer();
+   * const started: Promise<{ name: string }> = container.resolve('worker');
+   * await container.close(); // runs lock.release() after the worker settled
    * ```
    */
   pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
