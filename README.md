@@ -94,8 +94,8 @@ incomplete.buildContainer();
 required services are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
 ```
 
-Change `greeting` to a number and the message names the consumer that no longer
-fits: `provided service does not satisfy its consumer dependency`. With
+Change `greeting` to a number and, with default settings, the message is
+`provided service does not satisfy its consumer dependency`. With
 `"noErrorTruncation": true` in `tsconfig.json`, the details name the consumer,
 the dependency, the expected type, and the provided type. The
 [error index](docs/agent/errors.md#compile-time) lists every message with its
