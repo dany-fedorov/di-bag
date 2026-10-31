@@ -1,39 +1,60 @@
-# Choosing a dependency injection approach
+# Comparison with alternatives {#choosing-a-dependency-injection-approach}
 
 [README](../../README.md) · [Tutorial](tutorial.md) · [API reference](api-reference.md)
 
-DI Bag is a good fit when you want ordinary TypeScript factories, checked
-composition, and explicit ownership of resources across requests, jobs, or tests.
-Its useful combination is named object dependencies, checked replacements and
-module boundaries, inspectable metadata, configurable provider policies, lazy
-creation, tracked child containers, and service readiness with rollback. See the
-[worked examples](../../README.md#why-di-bag) and [tutorial](tutorial.md).
+DI Bag's distinguishing check is that a missing or mismatched dependency fails `tsc`, naming
+the service, before any container exists; most of the alternatives below find it when the
+service is first resolved. The other differences are object-parameter factories, modules with
+private services, and explicit ownership of what each container acquired.
 
-An unmarked DI Bag provider is scoped, with one instance per container. Choose
-`'singleton:one-per-container-tree'` to share one instance across a container tree,
-`'scoped:one-per-container'` for one instance per container, or
-`'transient:one-per-resolve'` for a new instance at each resolution. The compiler
-rejects a singleton that depends on a scoped service. It also rejects a child
-container replacement of a singleton.
+```ts
+import { DiBag } from 'di-bag';
+
+type Db = { query(sql: string): Promise<readonly unknown[]> };
+
+const builder = DiBag.createBuilder().withServices({
+  repository: ({ db }: { db: Db }) => ({ list: () => db.query('select 1') }),
+});
+
+// @ts-expect-error required services are missing: db
+builder.buildContainer();
+```
+
+The message is `required services are missing: db`; `builder.verifyGraphAtCompileTime() satisfies void;` reports it without building. See the [error index](../agent/errors.md#missing-service).
+
+| Alternative | Reasons to choose it | DI Bag's different emphasis |
+| --- | --- | --- |
+| [Manual dependency injection](#plain-functions-and-constructors) | Direct function calls may be all a small application needs. TypeScript checks their arguments. | Adds lazy caching, graph-wide composition checks, child containers, and coordinated disposal. |
+| [Awilix](#awilix) | Function and class registration, inferred cradle types, lifetime options, and runtime strict checks. | Checks declared factory requirements against the registrations at compile time. |
+| [InversifyJS](#inversifyjs) / [TSyringe](#tsyringe) | Token and class-oriented containers; Inversify also offers decorator-free factory bindings and awaited async resolution. | Starts with object-parameter factories and immutable builders; checks accumulated graph contracts. |
+| [Typed Inject](#typed-inject) | A close alternative with compile-time dependency checks, explicit dependency tuples, child injectors, and disposal. | Adds object-parameter dependencies, forward references, private module exports, and selected service readiness with rollback. |
+| [Effect Context / Layer](#effect-context-and-layer) | Typed requirements, scoped resources, and composition within Effect's broader async and error model. | Keeps ordinary `T` and `Promise<T>` service values and explicit container ownership. |
+| [NestJS / Angular DI](#nestjs-and-angular) | Their native containers connect directly to framework components, testing tools, and lifecycles. | Provides standalone composition; applications supply the framework integration. |
 
 These are reasons to consider it, not exclusive features. Other libraries also
 support decorator-free composition, compile-time dependency checks, async
 factories, and disposal. The choice depends on which contracts and programming
 style your application needs.
 
-“Radical modularity” describes small features with explicit contracts that can
+"Modules as units of work" describes small features with explicit contracts that can
 be composed and tested independently. The
-[modularity examples](examples-modularity.md) show why it can suit work divided
+[modularity examples](examples-modularity.md) and the
+[module layout](../../AGENTS.md#module-layout) show why it can suit work divided
 among coding agents: each feature exposes a contract, keeps helpers private, and
 can be tested with replacement dependencies. Test cross-feature behavior at the
 integration boundary. Metadata inspection supplies application-defined data,
 not reflection over erased TypeScript types.
 
 This guide reviews selected alternatives against their official documentation and
-public source on **2026-09-10**. Effect links explicitly target its v3 guides.
+public source on **2026-10-31**. Effect links explicitly target its v3 guides.
 Upstream default-branch sources can change; this is not a benchmark, a release
 certification, or an exhaustive feature audit. Recommendations below are judgments
 based on the cited behavior.
+
+Versions reviewed: Awilix 13.0.5, InversifyJS 8.2.3, TSyringe 4.10.0,
+Typed Inject 5.0.0, Effect 3.22.4 (the v3 line the links target). Source links
+for Awilix and Typed Inject use the tag of that version; the TSyringe source
+links stay on the default branch because no tag URL resolved.
 
 ## What “type-safe” means here
 
@@ -46,9 +67,23 @@ registration, modules, and checked replacement, then checks completeness at
 
 This only covers dependencies expressed through the supported types. It cannot
 validate arbitrary JavaScript, dishonest casts, external data, or the behavior of
-a factory. Dependency cycles are detected during resolution, and factory failures
+a factory. Dependency cycles are detected at resolution, or before running by [`di-bag-graph`](../../tools/graph/README.md), and factory failures
 remain possible after compilation. See [boundaries](tutorial.md#boundaries) and
 [async behavior](tutorial.md#async-edges-are-explicit).
+
+## Summary by library
+
+Reviewed 2026-10-31. Each filled cell links the sentence it summarizes; blank
+cells are not stated in the sources cited below.
+
+| | Missing dependency found | Async dependency | Who closes child containers | Decorators |
+| --- | --- | --- | --- | --- |
+| DI Bag | [`tsc` at `buildContainer()` / `verifyGraphAtCompileTime()`](#what-type-safe-means-here) | [`Promise<T>` service, consumer awaits](#costs-and-limits-of-choosing-di-bag) | [Parent closes tracked children](#awilix) | [None](#what-type-safe-means-here) |
+| Awilix | [Resolution; strict mode checks lifetimes at runtime](#awilix) | | [Caller](#awilix) | [None](#awilix) |
+| InversifyJS | [Resolution](#inversifyjs) | [`getAsync` awaits](#inversifyjs) | | [Optional](#inversifyjs) |
+| TSyringe | [Not checked statically](#tsyringe) | [`Promise<T>` value, not awaited](#tsyringe) | | [Documented setup uses emitted decorator metadata](#tsyringe) |
+| Typed Inject | [`tsc`, in registration order](#typed-inject) | [`Promise<T>` value](#typed-inject) | [Child-first `dispose()`](#typed-inject) | [None](#typed-inject) |
+| Effect | [Program type](#effect-context-and-layer) | | [Scoped resource finalization](#effect-context-and-layer) | |
 
 ## Alternatives worth considering
 
@@ -73,7 +108,7 @@ cradle output types from chained registrations. Strict mode checks problematic
 lifetime capture at runtime. [Awilix documentation](https://github.com/jeffijoe/awilix#readme).
 
 That inference does not retain and verify every factory's dependency requirements:
-the [registration signatures](https://github.com/jeffijoe/awilix/blob/master/src/container.ts)
+the [registration signatures](https://github.com/jeffijoe/awilix/blob/v13.0.5/src/container.ts)
 accumulate resolver outputs. DI Bag adds checking of declared requirements and
 replacements. Ownership also differs: Awilix disposes its own cached scoped or
 singleton values; callers dispose child containers separately. DI Bag's parent closes
@@ -119,7 +154,7 @@ Typed Inject is a direct alternative when compile-time dependency checking and
 avoiding decorators matter. Its typed injector accumulates available services and
 checks ordered dependency tuples against that context. Dependencies normally need
 to be provided before their consumers. DI Bag's object-parameter factories can be
-registered in any order before finalization. [Typed Inject interface](https://github.com/nicojs/typed-inject/blob/master/src/api/Injector.ts).
+registered in any order before finalization. [Typed Inject interface](https://github.com/nicojs/typed-inject/blob/v5.0.0/src/api/Injector.ts).
 
 Typed Inject offers singleton/transient caching and child-first disposal of
 instances created by registered classes or factories when they implement
@@ -127,7 +162,7 @@ instances created by registered classes or factories when they implement
 Factory results can also be Promises. Detecting `dispose()` on a returned Promise differs from
 owning the resource it eventually fulfills with. DI Bag makes that ownership
 explicit and adds selected service readiness with rollback. [Disposal and lifetimes](https://github.com/nicojs/typed-inject#readme),
-[factory result handling](https://github.com/nicojs/typed-inject/blob/master/src/InjectorImpl.ts).
+[factory result handling](https://github.com/nicojs/typed-inject/blob/v5.0.0/src/InjectorImpl.ts).
 
 ### Effect Context and Layer
 
@@ -160,6 +195,14 @@ what a host would need to connect.
 
 ## Costs and limits of choosing DI Bag
 
+- **Lifetimes.** An unmarked DI Bag provider is scoped, with one instance per container. Choose
+  `'singleton:one-per-container-tree'` to share one instance across a container tree,
+  `'scoped:one-per-container'` for one instance per container, or
+  `'transient:one-per-resolve'` for a new instance at each resolution. The compiler
+  rejects a singleton that depends on a scoped service unless that
+  registration sets `allowsScopedDependencies: true`, and it names both services:
+  `singleton lifetime cannot capture scoped dependency: <singleton> -> <scoped>`.
+  It also rejects a child container replacement of a singleton.
 - **Explicit async edges.** Consumers declare and await Promise-valued
   dependencies. There is no transparent conversion of every dependency to its
   fulfilled value. See [async services](tutorial.md#async-edges-are-explicit).
