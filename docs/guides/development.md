@@ -5,7 +5,7 @@
 Build, test, and release-candidate workflows, with the compiler and performance
 limits that the checks enforce. Run commands from the repository root. The
 [CI workflow](../../.github/workflows/ci.yml) pins Node 24.20.0, npm 11.19.0, and
-Bun 1.4.0; use those versions to reproduce its checks.
+Bun 1.4.4; use those versions to reproduce its checks.
 
 ## Package entry points and release-candidate checks
 

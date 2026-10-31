@@ -52,9 +52,9 @@
       "/home/df/.bun/bin/bun",
       "--version"
     ],
-    "version": "1.4.0",
-    "versionText": "1.4.0\n",
-    "sha256": "33d56b070be6a9e3da0ab013038b43d1645d0534ca811ecdba4472599117eb4b"
+    "version": "1.4.4",
+    "versionText": "1.4.4\n",
+    "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
   },
   "deno": {
     "status": "unavailable",
