@@ -1,5 +1,5 @@
 // scripts/evidence-cases.mjs
-// Runs the compile-budget cases of docs/superpowers/plans/2026-09-21-00-swift-api-style-master.md
+// Runs the compile-budget cases of the 0.5.0 rename program (2026-09)
 // ("Evidence") one after another, each in a fresh Node process, and prints a Markdown table.
 //
 //   node scripts/evidence-cases.mjs                                   run the twelve cases

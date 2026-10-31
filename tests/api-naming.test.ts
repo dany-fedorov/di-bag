@@ -2,10 +2,10 @@
 // The naming ratchet for docs/guides/api-naming.md.
 //
 // tests/api-naming-known-violations.json lists the violations that existed when the Swift API
-// style program started (docs/superpowers/specs/2026-09-20-swift-api-style.md). The list can only
+// style program started (the 0.5.0 rename program, 2026-09). The list can only
 // shrink: a violation that is not listed fails this test, and so does a listed violation that no
 // longer occurs. The list must be empty at the end of phase 11 of
-// docs/superpowers/plans/2026-09-21-00-swift-api-style-master.md, and it stays empty afterwards.
+// the 0.5.0 rename program, and it stays empty afterwards.
 //
 // After fixing names, shrink the list with:
 //   UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts

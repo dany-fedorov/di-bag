@@ -12,9 +12,9 @@ The standard is the
 [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/),
 translated to TypeScript. The
 [W3C Web Platform Design Principles](https://www.w3.org/TR/design-principles/)
-are the secondary source for option dictionaries and string values. The decision
-and the complete 0.4.0 to 0.5.0 rename map are recorded in the
-[Swift API style design note](../superpowers/specs/2026-09-20-swift-api-style.md).
+are the secondary source for option dictionaries and string values. The complete
+0.4.0 to 0.5.0 rename map is in the [migration guide](migrating-to-0.5.md) and
+the [changelog](../../CHANGELOG.md).
 
 ## From Swift to TypeScript
 
@@ -204,9 +204,8 @@ The test is a ratchet.
 [`tests/api-naming-known-violations.json`](../../tests/api-naming-known-violations.json)
 lists the violations that existed in 0.4.0. A violation that is not listed fails
 the test, and so does a listed violation that no longer occurs, so the list can
-only shrink. It must be empty when phase 11 of the
-[Swift API style program](../superpowers/plans/2026-09-21-00-swift-api-style-master.md)
-ends, and it stays empty afterwards. After fixing names, shrink the list:
+only shrink. It has been empty since the 0.5.0 rename
+program ended, and it stays empty. After fixing names, shrink the list:
 
 ```sh
 UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
@@ -221,13 +220,13 @@ Rule 15 allows a shape to fall back to its previous form when the compiler canno
 support it within the compile budget: a case of
 [`scripts/evidence-cases.mjs`](../../scripts/evidence-cases.mjs) may grow by at
 most 10% in instantiations over
-[the 0.4.0 baseline](../superpowers/plans/evidence/baseline.md). Each exception is
+the 0.4.0 baseline measured for the rename program. Each exception is
 one row here, added by the change that takes the fallback.
 
 | Shape in the design note | Fallback taken | Measurement that forced it | Recorded in |
 | --- | --- | --- | --- |
-| Collection-token branches on `resolve` and `inspect` | Explicit `resolveCollection` and `inspectCollection` methods | The bounded compiler fixture repairs exhausted three attempts before S5 measurement; contextual collection replacement diagnostics remained unstable | [Phase 04 evidence](../superpowers/plans/evidence/phase-04.md) |
-| `withTokenService({ token, provider })` | `withTokenService(token, provider)` | The bag shape measured 1,206,389 instantiations at 100 bindings (+42.4% over the 847,247 baseline) and 19,720,389 at 500 (+62.3% over 12,153,047) | [Phase 05 evidence](../superpowers/plans/evidence/phase-05.md) |
-| singleton default | scoped default | bulk 100 uses 236,619 instantiations against baseline 159,001, +48.82% over the +10% limit | [Phase 10 evidence](../superpowers/plans/evidence/phase-10.md) |
-| `withReplacedService({ serviceKey, provider })` | `withReplacedService(serviceKey, provider)` | Two bounded bag-signature repairs retained an unannotated replacement-output inference regression; the positional fallback measured 1,114,200 instantiations at 100 replacements (+8.04% over baseline) and 21,853,000 at 500 (+0.39%) | [Phase 05 evidence](../superpowers/plans/evidence/phase-05.md) |
-| Replacement fields inside the optional `createChildContainer` and `createIndependentContainer` bags | Positional selected keys and replacement providers; child sharing remains an optional bag | Three bounded bag signatures failed contextual provider inference or overflowed the compiler; the fallback's twelve cumulative rows all pass, with a maximum increase of +0.1% | [Phase 06 evidence](../superpowers/plans/evidence/phase-06.md) |
+| Collection-token branches on `resolve` and `inspect` | Explicit `resolveCollection` and `inspectCollection` methods | The bounded compiler fixture repairs exhausted three attempts before S5 measurement; contextual collection replacement diagnostics remained unstable | Phase 04 evidence (rename program, 2026-09) |
+| `withTokenService({ token, provider })` | `withTokenService(token, provider)` | The bag shape measured 1,206,389 instantiations at 100 bindings (+42.4% over the 847,247 baseline) and 19,720,389 at 500 (+62.3% over 12,153,047) | Phase 05 evidence (rename program, 2026-09) |
+| singleton default | scoped default | bulk 100 uses 236,619 instantiations against baseline 159,001, +48.82% over the +10% limit | Phase 10 evidence (rename program, 2026-09) |
+| `withReplacedService({ serviceKey, provider })` | `withReplacedService(serviceKey, provider)` | Two bounded bag-signature repairs retained an unannotated replacement-output inference regression; the positional fallback measured 1,114,200 instantiations at 100 replacements (+8.04% over baseline) and 21,853,000 at 500 (+0.39%) | Phase 05 evidence (rename program, 2026-09) |
+| Replacement fields inside the optional `createChildContainer` and `createIndependentContainer` bags | Positional selected keys and replacement providers; child sharing remains an optional bag | Three bounded bag signatures failed contextual provider inference or overflowed the compiler; the fallback's twelve cumulative rows all pass, with a maximum increase of +0.1% | Phase 06 evidence (rename program, 2026-09) |
