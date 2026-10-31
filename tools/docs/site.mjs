@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { checkMessageUrlsInBuild } from './lib/agent-docs.mjs';
+import { renderLlmsFull, renderLlmsIndex } from './lib/llms.mjs';
 import { listFiles, rewriteMarkdownLinks, sitePages } from './lib/markdown.mjs';
 import { verifyBuiltSite } from './lib/site-check.mjs';
 
@@ -36,6 +37,8 @@ function prepare() {
   for (const file of listFiles(join(directory, 'theme'))) {
     writeChanged(join(site, '.vitepress/theme', file), readFileSync(join(directory, 'theme', file)));
   }
+  writeChanged(join(site, 'public/llms.txt'), renderLlmsIndex(root));
+  writeChanged(join(site, 'public/llms-full.txt'), renderLlmsFull(root));
   return pages.size;
 }
 

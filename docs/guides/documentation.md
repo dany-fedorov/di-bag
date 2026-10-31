@@ -44,6 +44,7 @@ npm run docs:preview
 | A signature's explanation, parameters, return value, or failure behavior | The public declaration's comment in [src](../../src), then regenerate |
 | A call's line and example in the API card | That call's JSDoc summary, `@throws`, and `@example` in [src](../../src), then regenerate |
 | The card's "one way per task" table | [api-card-tasks.json](../../tools/docs/api-card-tasks.json), then regenerate |
+| `llms.txt` and `llms-full.txt` on the website | [llms.mjs](../../tools/docs/lib/llms.mjs); the full text is AGENTS.md and `docs/agent/` as they are |
 | A rule a coding agent must follow, the per-module check, the fast check | [AGENTS.md](../../AGENTS.md) |
 | The recommended module layout | [examples-modularity.md](examples-modularity.md#recommended-module-layout); copy the block byte for byte into `AGENTS.md` |
 | How to do one agent task | [recipes.md](../agent/recipes.md) |
