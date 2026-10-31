@@ -18,7 +18,7 @@ The guides below describe the current public API.
 | [Agent docs](../AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](agent/recipes.md) and [errors and messages](agent/errors.md). Shipped in the package. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |
 | [Generated reference](reference/index.md) | Read exact signatures and source comments for the package entry point. |
-| [Runnable examples](../examples) | Execute focused examples from the repository. |
+| [Runnable examples](../examples/README.md) | Execute focused examples from the repository; the index lists each file and its run command. |
 
 ## Why DI Bag? In practice
 
