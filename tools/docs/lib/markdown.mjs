@@ -63,3 +63,29 @@ export function rewriteMarkdownLinks(markdown, sourcePath, pages, root) {
     });
   }).join('');
 }
+
+/** The VitePress home front matter; the README body renders under the hero. */
+const homeFrontMatter = `---
+layout: home
+hero:
+  name: DI Bag
+  text: Ordinary services. Checked composition. Explicit ownership.
+  tagline: Dependency injection for TypeScript where the compiler checks the wiring, modules keep a feature's services private, and a container releases what it owns.
+  actions:
+    - theme: brand
+      text: Quickstart
+      link: /#quickstart
+    - theme: alt
+      text: Modules as units of work
+      link: /guides/examples-modularity
+    - theme: alt
+      text: API card for agents
+      link: /agent/api-card
+---
+`;
+
+/** Turn the rewritten README into the site's home page. */
+export function homePage(markdown) {
+  if (!markdown.startsWith('# DI Bag\n')) throw new Error('README.md must start with the "# DI Bag" title on its first line');
+  return `${homeFrontMatter}\n${markdown.slice('# DI Bag\n'.length).replace(/^\n+/, '')}`;
+}

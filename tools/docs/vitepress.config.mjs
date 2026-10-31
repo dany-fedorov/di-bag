@@ -9,13 +9,13 @@ const api = generated.map(group => ({ ...group, text: labels[group.text] ?? grou
 const guide = [
   { text: 'Start here', items: [
     { text: 'Introduction', link: '/' },
-    { text: 'Comparison with alternatives', link: '/guides/comparison' },
     { text: 'Complete tutorial', link: '/guides/tutorial' },
-    { text: 'Migrating to 0.5', link: '/guides/migrating-to-0.5' },
+    { text: 'Modules as units of work', link: '/guides/examples-modularity' },
     { text: 'Server recipes', link: '/guides/server-integration' },
     { text: 'React and browser runtimes', link: '/guides/react-integration' },
     { text: 'Integration patterns', link: '/guides/enterprise-integration' },
     { text: 'Agent harnesses and graphs', link: '/guides/agent-harnesses-and-graphs' },
+    { text: 'Comparison with alternatives', link: '/guides/comparison' },
   ] },
   { text: 'Agent docs', items: [
     { text: 'API card', link: '/agent/api-card' },
@@ -23,7 +23,6 @@ const guide = [
     { text: 'Errors and messages', link: '/agent/errors' },
   ] },
   { text: 'Why DI Bag? · Worked examples', items: [
-    { text: 'Radical modularity', link: '/guides/examples-modularity' },
     { text: 'TypeScript-first composition', link: '/guides/examples-type-checking' },
     { text: 'Custom tooling', link: '/guides/examples-extensibility' },
     { text: 'Simple service injection', link: '/guides/examples-plain-services' },
@@ -34,6 +33,7 @@ const guide = [
     { text: 'Builder', link: '/reference/index/interfaces/Builder' },
     { text: 'Container', link: '/reference/index/interfaces/Container' },
     { text: 'All generated APIs', link: '/reference/' },
+    { text: 'Migrating to 0.5', link: '/guides/migrating-to-0.5' },
   ] },
   { text: 'Contribute', items: [
     { text: 'Development', link: '/guides/development' },
