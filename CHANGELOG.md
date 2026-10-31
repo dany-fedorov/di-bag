@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.5.2
+
+### Documentation
+
+- The README opens with the compiler message for a missing dependency, three
+  verifiable reasons to use DI Bag, a module in one screen, and a copy-pasteable
+  prompt for coding agents; upgrade notes moved to an "Upgrading" section.
+- The shipped agent pages are complete: the API card covers
+  `module.withRenamedExport`, `module.moduleLabel`,
+  `factoryContext.pushDisposer`, and `factoryContext.abortSignal`, its task
+  table grew from 21 to 32 rows, and every example reads the value it creates.
+  `AGENTS.md` says what ships in the package and links the website guides.
+- The website publishes `llms.txt` and `llms-full.txt`, has a home hero, and
+  lists the tutorial and the modules guide first. The tutorial teaches modules
+  directly after ownership.
+- The server, React, integration, and comparison guides were reviewed against
+  three goals (a true hook, gradual exposition, agent-ready detail) and
+  reworked: every "tested" or "verified" claim now names a check that exists,
+  the server guide reads from one container to request containers to hosts with
+  a troubleshooting table of messages and codes, and the comparison guide opens
+  with a compile-checked rejection.
+- `examples/integration/owned-scope.ts` is now `owned-container.ts`
+  (`withOwnedContainer`), the helper the guides teach and the integration suite
+  exercises. `examples/README.md` indexes the runnable examples.
+
+This patch releases `di-bag` only. `di-bag-graph` remains at 0.2.0 and
+`di-bag-codemod` remains at 0.1.0.
+
 ## 0.5.1
 
 ### Added
