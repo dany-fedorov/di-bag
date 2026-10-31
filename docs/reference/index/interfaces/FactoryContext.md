@@ -4,7 +4,7 @@
 
 # Interface: FactoryContext
 
-Defined in: [acquisition-context.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L44)
+Defined in: [acquisition-context.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L46)
 
 Cooperative cancellation and acquisition-local ownership supplied to a context-aware factory.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-service
 readonly abortSignal: AbortSignal;
 ```
 
-Defined in: [acquisition-context.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L55)
+Defined in: [acquisition-context.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L57)
 
 Return the signal that aborts when the acquisition's owning container begins closing.
 
@@ -41,7 +41,7 @@ const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) =
 pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
 ```
 
-Defined in: [acquisition-context.ts:71](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L71)
+Defined in: [acquisition-context.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L75)
 
 Attach a disposer for a resource acquired during this factory call; pushed disposers run once in reverse order.
 Pass the release callback itself, such as `() => socket.close()`, rather than calling it here.
@@ -61,9 +61,11 @@ Pass the release callback itself, such as `() => socket.close()`, rather than ca
 
 ```ts
 declare function openLock(name: string): Promise<{ release(): Promise<void> }>;
+declare function verify(name: string): Promise<void>;
 const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryContext) => {
   const lock = await openLock(name);
-  factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if the next line throws
+  factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if verify() rejects
+  await verify(name);
   return { name };
 }, { factoryReceivesContext: true });
 ```

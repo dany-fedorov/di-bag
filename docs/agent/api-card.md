@@ -12,9 +12,14 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
 | Register services by name | [`builder.withServices(providersByName)`](#builder-withservices) |
+| Register the service of a typed token | [`builder.withTokenService(token, provider)`](#builder-withtokenservice) |
 | Create a collection token | [`DiBag.createToken(symbol)`](#dibag-createtoken) |
 | Contribute a collection member | [`builder.withCollectionContribution(options)`](#builder-withcollectioncontribution) |
+| Give a service a second name | [`builder.withServiceAlias(options)`](#builder-withservicealias) |
+| Replace a provider in a builder | [`builder.withReplacedService(serviceKey, provider)`](#builder-withreplacedservice) |
 | Register a portable factory | [`DiBag.createProvider(factory, options)`](#dibag-createprovider) |
+| Adapt a class to positional dependencies | [`DiBag.createProviderFromClass(options)`](#dibag-createproviderfromclass) |
+| Adapt a positional function | [`DiBag.createProviderFromFunction(options)`](#dibag-createproviderfromfunction) |
 | Attach disposal | [`DiBag.providerWithDisposal(options)`](#dibag-providerwithdisposal) |
 | Choose a lifetime | [`DiBag.providerWithLifetime(options)`](#dibag-providerwithlifetime) |
 | Attach registration metadata | [`DiBag.providerWithRegistrationMetadata(options)`](#dibag-providerwithregistrationmetadata) |
@@ -23,6 +28,8 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Seal a module | [`builder.buildModule(options)`](#builder-buildmodule) |
 | Install modules | [`builder.withInstalledModules(modules)`](#builder-withinstalledmodules) |
 | Rename a module requirement | [`module.withRenamedRequirement(options)`](#module-withrenamedrequirement) |
+| Rename a module export | [`module.withRenamedExport(options)`](#module-withrenamedexport) |
+| Read the label a module was sealed with | [`module.moduleLabel`](#module-modulelabel) |
 | Check the graph on its own line | [`builder.verifyGraphAtCompileTime()`](#builder-verifygraphatcompiletime) |
 | Build a container | [`builder.buildContainer()`](#builder-buildcontainer) |
 | Wait for services before accepting work | [`container.ensureServicesReady(serviceKeys, options?)`](#container-ensureservicesready) |
@@ -30,7 +37,11 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Open a child container | [`container.createChildContainer(options?)`](#container-createchildcontainer) |
 | Resolve | [`container.resolve(token)`](#container-resolve) |
 | Resolve a collection | [`container.resolveCollection(token)`](#container-resolvecollection) |
+| Inspect one service without resolving it | [`container.serviceSnapshot(serviceKey)`](#container-servicesnapshot) |
+| Inspect every binding and module installation | [`container.graphSnapshot()`](#container-graphsnapshot) |
 | Close | [`container.close(options?)`](#container-close) |
+| Own a resource acquired inside a factory | [`factoryContext.pushDisposer(disposer)`](#factorycontext-pushdisposer) |
+| Stop factory work when the container closes | [`factoryContext.abortSignal`](#factorycontext-abortsignal) |
 
 ## DiBag facade {#dibag-facade}
 
@@ -327,9 +338,11 @@ const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) =
 Attach a disposer for a resource acquired during this factory call; pushed disposers run once in reverse order. Throws: [`DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY`](errors.md#di-bag-disposer-pushed-after-factory).
 ```ts
 declare function openLock(name: string): Promise<{ release(): Promise<void> }>;
+declare function verify(name: string): Promise<void>;
 const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryContext) => {
   const lock = await openLock(name);
-  factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if the next line throws
+  factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if verify() rejects
+  await verify(name);
   return { name };
 }, { factoryReceivesContext: true });
 ```

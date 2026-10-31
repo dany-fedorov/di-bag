@@ -17,11 +17,13 @@ import type { TokenDependencyContract } from './token-types';
  * ```ts
  * type Socket = { close(): Promise<void> };
  * declare function open(url: string): Promise<Socket>;
+ * declare function authenticate(connection: Socket): Promise<void>;
  * const socket = DiBag.providerWithDisposal({
  *   provider: DiBag.createProvider(async ({ url }: { url: string }, factoryContext) => {
  *     const connection = await open(url);
- *     // Runs at once if a later step fails; at close() it sees 'service-disposed' and does nothing.
+ *     // Runs at once if authenticate() rejects; at close() it sees 'service-disposed' and does nothing.
  *     factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return connection.close(); });
+ *     await authenticate(connection);
  *     return connection;
  *   }, { factoryReceivesContext: true }),
  *   disposeService: connection => connection.close(),
@@ -61,9 +63,11 @@ export interface FactoryContext {
    * @example
    * ```ts
    * declare function openLock(name: string): Promise<{ release(): Promise<void> }>;
+   * declare function verify(name: string): Promise<void>;
    * const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryContext) => {
    *   const lock = await openLock(name);
-   *   factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if the next line throws
+   *   factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if verify() rejects
+   *   await verify(name);
    *   return { name };
    * }, { factoryReceivesContext: true });
    * ```

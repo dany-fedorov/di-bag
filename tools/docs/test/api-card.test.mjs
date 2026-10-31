@@ -127,3 +127,20 @@ test('the card lists module views, the module label, and the factory context', (
   assert.ok(card.indexOf('## Module {#module}') < card.indexOf('## Container {#container}'));
   assert.ok(card.indexOf('## Container {#container}') < card.indexOf('## Factory context {#factory-context}'));
 });
+
+test('the task table covers inspection, renames, aliases, adapters, and factory-owned resources', () => {
+  const card = renderApiCard(project, tasks);
+  for (const [task, call] of [
+    ['Inspect one service without resolving it', 'container.serviceSnapshot(serviceKey)'],
+    ['Inspect every binding and module installation', 'container.graphSnapshot()'],
+    ['Rename a module export', 'module.withRenamedExport(options)'],
+    ['Read the label a module was sealed with', 'module.moduleLabel'],
+    ['Replace a provider in a builder', 'builder.withReplacedService(serviceKey, provider)'],
+    ['Give a service a second name', 'builder.withServiceAlias(options)'],
+    ['Register the service of a typed token', 'builder.withTokenService(token, provider)'],
+    ['Adapt a class to positional dependencies', 'DiBag.createProviderFromClass(options)'],
+    ['Adapt a positional function', 'DiBag.createProviderFromFunction(options)'],
+    ['Own a resource acquired inside a factory', 'factoryContext.pushDisposer(disposer)'],
+    ['Stop factory work when the container closes', 'factoryContext.abortSignal'],
+  ]) assert.ok(card.includes(`| ${task} | [\`${call}\`]`), task);
+});
