@@ -10,20 +10,35 @@ creates services on first use and releases what it owns when closed.
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
-Using a coding agent? Point it at `node_modules/di-bag/AGENTS.md`, which ships
-in the package with the [API card](docs/agent/api-card.md), [recipes](docs/agent/recipes.md),
-and [every error message](docs/agent/errors.md). The same pages are at
-[llms.txt](https://dany-fedorov.github.io/di-bag/llms.txt).
+Using a coding agent? The rules, the API card, the recipes, and every error
+message ship in the package. Paste this into your agent:
+
+```text
+If di-bag is installed: read node_modules/di-bag/AGENTS.md first and follow its rules.
+Use node_modules/di-bag/docs/agent/api-card.md for a call's signature and example,
+node_modules/di-bag/docs/agent/recipes.md for a task, and
+node_modules/di-bag/docs/agent/errors.md for a compiler or runtime message.
+
+If di-bag is not installed: evaluate it from these pages before deciding.
+- https://dany-fedorov.github.io/di-bag/ : what it does, the compiler check, a module in one screen
+- https://dany-fedorov.github.io/di-bag/llms-full.txt : AGENTS.md, the API card, recipes, and errors in one file
+- https://dany-fedorov.github.io/di-bag/guides/examples-modularity.html : the module layout and three runnable programs
+- https://dany-fedorov.github.io/di-bag/guides/comparison.html : how it differs from Awilix, InversifyJS, TSyringe, Typed Inject, Effect, and NestJS
+To install: npm install di-bag. It needs TypeScript 6.0.3 or later with "strict": true and has no
+runtime dependencies. Node, Bun, and Deno need nothing else; in browsers and workers, pass
+factoryReturnKind to each factory. After installing, read node_modules/di-bag/AGENTS.md.
+```
 
 ## Why DI Bag?
 
 - **A missing dependency is a type error, not a crash on the first request.**
   Delete a factory and `tsc` names the missing service. Change a contract and
   `tsc` rejects the consumer that no longer fits. [See it](#what-the-compiler-catches).
-- **One feature is one directory that type-checks alone.** A module exports the
-  services it names and hides the rest, so two modules can both have a private
-  `store`. A one-statement check file and a per-module `tsconfig.json` verify the
-  module without the rest of the application. [See a module](#a-module-in-one-screen).
+- **One feature is one directory that type-checks alone.** A module exports
+  only the services it names; everything else stays private, so modules written
+  separately can reuse the same internal names without colliding. A one-statement
+  check file and a per-module `tsconfig.json` verify the module without the rest
+  of the application. [See a module](#a-module-in-one-screen).
 - **Resources have one owner.** Attach a disposer to a factory and `close()`
   runs it, dependents first. A child container per request releases what the
   request acquired. [See ownership](#give-resources-a-clear-owner).
