@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+
+- The README opens with the compiler message for a missing dependency, three
+  verifiable reasons to use DI Bag, and a module in one screen; upgrade notes
+  moved to an "Upgrading" section.
+- The API card covers `module.withRenamedExport`, `module.moduleLabel`,
+  `factoryContext.pushDisposer`, and `factoryContext.abortSignal`, and its task
+  table grew from 21 to 32 rows. Snapshot examples read the fields they return.
+- The website publishes `llms.txt` and `llms-full.txt`, has a home hero, and
+  lists the tutorial and the modules guide first.
+- The tutorial teaches modules directly after ownership. The modules and
+  type-checking guides open with the layout and the programs. The module concept
+  is called "Modules as units of work" on every surface.
+- `examples/README.md` indexes the runnable examples.
+
 ## 0.5.1
 
 ### Added
