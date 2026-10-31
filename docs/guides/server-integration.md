@@ -266,7 +266,7 @@ A failed `ensureServicesReady` has already closed the container, so the catch bl
 
 ## Connect a shutdown signal
 
-For the Node, Express, Fastify, and Bun recipes, save `node-shutdown.ts`:
+For the Node, Express, Fastify, Bun, and Elysia recipes, save `node-shutdown.ts`:
 
 ```ts
 export function onShutdown(stop: () => Promise<void>) {
@@ -865,15 +865,17 @@ describes the integration responsibilities.
 | Symptom or message | Code / section | What to check |
 | --- | --- | --- |
 | `required services are missing: <key>` | [missing-service](../agent/errors.md#missing-service) | Register `<key>`, or supply it from the host when it is a module requirement. |
-| `singleton lifetime cannot capture scoped dependency: <a> -> <b>` | [singleton-captures-scoped](../agent/errors.md#singleton-captures-scoped) | Make `<b>` singleton or `<a>` scoped; `allowsScopedDependencies: true` only for a deliberate capture. |
+| `singleton lifetime cannot capture scoped dependency: <a> -> <b>` | [singleton-captures-scoped](../agent/errors.md#singleton-captures-scoped), [`DI_BAG_LIFETIME_DEPENDENCY`](../agent/errors.md#di-bag-lifetime-dependency) at run time | Make `<b>` singleton or `<a>` scoped; `allowsScopedDependencies: true` only for a deliberate capture. |
 | `createChildContainer cannot replace singleton service: <key>` | [`DI_BAG_SINGLETON_REPLACEMENT`](../agent/errors.md#di-bag-singleton-replacement) | Mark it `'scoped:one-per-container'`, or use `createIndependentContainer`. |
-| Every request sees the placeholder ID | — | Resolve the handler from `createRequestContainer`, not the application container. |
-| A child override does not reach a handler | — | The handler is singleton or listed in `sharedParentServiceKeys`; keep it scoped. |
+| Every request sees the placeholder ID |  | Resolve the handler from `createRequestContainer`, not the application container. |
+| A child override does not reach a handler |  | The handler is singleton or listed in `sharedParentServiceKeys`; keep it scoped. |
 | `buildContainer()` throws in a browser or worker | [`DI_BAG_CLASSIFIER_REQUIRED`](../agent/errors.md#di-bag-classifier-required) | `details.bindings` names each factory; give it `factoryReturnKind`. |
 | A dependency object cannot be spread or enumerated | [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](../agent/errors.md#di-bag-invalid-dependency-access) | Read declared properties directly. |
-| `ensureServicesReady` rejects | [`DI_BAG_SERVICE_READINESS_FAILED`](../agent/errors.md#di-bag-service-readiness-failed) / [`_CANCELLED`](../agent/errors.md#di-bag-service-readiness-cancelled) | The container is already closed; read `cause`, or await `disposalPromise`. |
+| `ensureServicesReady` rejects with `DI_BAG_SERVICE_READINESS_FAILED` | [`DI_BAG_SERVICE_READINESS_FAILED`](../agent/errors.md#di-bag-service-readiness-failed) | The container is already closed; read `cause` and `disposalFailures`. |
+| `ensureServicesReady` rejects with `DI_BAG_SERVICE_READINESS_CANCELLED` | [`DI_BAG_SERVICE_READINESS_CANCELLED`](../agent/errors.md#di-bag-service-readiness-cancelled) | `abortSignal` fired or `totalTimeoutMs` elapsed (`cause` is then `DI_BAG_SERVICE_READINESS_TIMEOUT`); the container is closing, so await `disposalPromise`. |
 | `close()` rejects after `waitTimeoutMs` | [`DI_BAG_CLOSE_TIMEOUT`](../agent/errors.md#di-bag-close-timeout) | `details.disposersStillRunning` names the disposer that never settles. |
-| Disposal never runs | — | Attach `DiBag.providerWithDisposal` and close the owning container. |
+| Property 'x' does not exist on type 'Promise<...>' | [AGENTS.md rule 4](../../AGENTS.md#rules) | The factory is async, so its service is a Promise; declare `{ x: Promise<T> }` in the consumer and `await` it. |
+| Disposal never runs |  | Attach `DiBag.providerWithDisposal` and close the owning container. |
 
 The [complete API guide](api-reference.md) explains each method and its options.
 The [development guide](development.md) describes the repository's verification
