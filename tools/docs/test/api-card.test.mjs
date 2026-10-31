@@ -102,16 +102,20 @@ test('requirement renaming has one task and a documented runtime call', () => {
 test('every public Module method is classified for the API card', () => {
   const included = new Set(['withRenamedExport', 'withRenamedRequirement']);
   const excluded = new Set();
+  const accessors = new Set(['moduleLabel']);
   const module = project.children.find(child => child.name === 'index').children.find(child => child.name === 'Module');
   const reflected = module.children.filter(child => child.kind === ReflectionKind.Method).map(child => child.name);
-  const checkClassification = names => {
+  const reflectedAccessors = module.children.filter(child => child.kind === ReflectionKind.Accessor).map(child => child.name);
+  const checkClassification = (names, accessorNames = reflectedAccessors) => {
     assert.deepEqual([...included].filter(name => excluded.has(name)), [], 'included and excluded Module methods must be disjoint');
     assert.deepEqual([...names].sort(), [...included, ...excluded].sort(), 'every reflected public Module method must be classified');
+    assert.deepEqual([...accessorNames].sort(), [...accessors].sort(), 'every reflected public Module accessor must be listed');
     assert.deepEqual(runtimeSurface(project).filter(item => item.group === 'Module').map(item => item.name),
-      ['module.moduleLabel', ...[...included].map(name => `module.${name}`)]); // the accessor is the one non-method member
+      [...[...accessors].map(name => `module.${name}`), ...[...included].map(name => `module.${name}`)]);
   };
   checkClassification(reflected);
   assert.throws(() => checkClassification([...reflected, 'withFutureMethod']), /every reflected public Module method must be classified/);
+  assert.throws(() => checkClassification(reflected, [...reflectedAccessors, 'futureLabel']), /every reflected public Module accessor must be listed/);
 });
 
 test('the card lists module views, the module label, and the factory context', () => {

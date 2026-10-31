@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-service
 readonly abortSignal: AbortSignal;
 ```
 
-Defined in: [acquisition-context.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L57)
+Defined in: [acquisition-context.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L60)
 
 Return the signal that aborts when the acquisition's owning container begins closing.
 
@@ -31,6 +31,9 @@ declare function fetchCatalog(signal: AbortSignal): Promise<string[]>;
 const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) => fetchCatalog(factoryContext.abortSignal), {
   factoryReceivesContext: true, factoryReturnKind: 'native-promise',
 });
+const container = DiBag.createBuilder().withServices({ catalog }).buildContainer();
+const names: Promise<string[]> = container.resolve('catalog'); // close() aborts the signal while fetchCatalog is pending
+await container.close();
 ```
 
 ## Methods
@@ -41,7 +44,7 @@ const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) =
 pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
 ```
 
-Defined in: [acquisition-context.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L75)
+Defined in: [acquisition-context.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L81)
 
 Attach a disposer for a resource acquired during this factory call; pushed disposers run once in reverse order.
 Pass the release callback itself, such as `() => socket.close()`, rather than calling it here.
@@ -68,4 +71,7 @@ const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryCo
   await verify(name);
   return { name };
 }, { factoryReceivesContext: true });
+const container = DiBag.createBuilder().withServices({ name: () => 'nightly', worker }).buildContainer();
+const started: Promise<{ name: string }> = container.resolve('worker');
+await container.close(); // runs lock.release() after the worker settled
 ```

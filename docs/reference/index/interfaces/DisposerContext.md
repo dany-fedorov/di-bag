@@ -24,7 +24,7 @@ const socket = DiBag.providerWithDisposal({
   provider: DiBag.createProvider(async ({ url }: { url: string }, factoryContext) => {
     const connection = await open(url);
     // Runs at once if authenticate() rejects; at close() it sees 'service-disposed' and does nothing.
-    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return connection.close(); });
+    factoryContext.pushDisposer(async disposerContext => { if (disposerContext.reason !== 'service-disposed') await connection.close(); });
     await authenticate(connection);
     return connection;
   }, { factoryReceivesContext: true }),
