@@ -3,9 +3,10 @@
 [README](../../README.md) · [Tutorial](tutorial.md) · [API reference](api-reference.md)
 
 DI Bag's distinguishing check is that a missing or mismatched dependency fails `tsc`, naming
-the service, before any container exists; most of the alternatives below find it when the
-service is first resolved. The other differences are object-parameter factories, modules with
-private services, and explicit ownership of what each container acquired.
+the service, before any container exists. Typed Inject and Effect also check before running;
+Awilix, InversifyJS, and TSyringe report it when the service is first resolved. The other
+differences are object-parameter factories with no decorators, modules with private services,
+and explicit ownership of what each container acquired.
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -31,7 +32,7 @@ The message is `required services are missing: db`; `builder.verifyGraphAtCompil
 | [Effect Context / Layer](#effect-context-and-layer) | Typed requirements, scoped resources, and composition within Effect's broader async and error model. | Keeps ordinary `T` and `Promise<T>` service values and explicit container ownership. |
 | [NestJS / Angular DI](#nestjs-and-angular) | Their native containers connect directly to framework components, testing tools, and lifecycles. | Provides standalone composition; applications supply the framework integration. |
 
-These are reasons to consider it, not exclusive features. Other libraries also
+These are reasons to consider DI Bag, not exclusive features. Other libraries also
 support decorator-free composition, compile-time dependency checks, async
 factories, and disposal. The choice depends on which contracts and programming
 style your application needs.
@@ -46,13 +47,16 @@ integration boundary. Metadata inspection supplies application-defined data,
 not reflection over erased TypeScript types.
 
 This guide reviews selected alternatives against their official documentation and
-public source on **2026-10-31**. Effect links explicitly target its v3 guides.
+public source. Awilix, Typed Inject, and TSyringe were re-checked against their
+READMEs on 2026-10-31; the InversifyJS, Effect, NestJS, and Angular claims carry over
+from the 2026-09-10 review. Effect links explicitly target its v3 guides.
 Upstream default-branch sources can change; this is not a benchmark, a release
 certification, or an exhaustive feature audit. Recommendations below are judgments
 based on the cited behavior.
 
 Versions reviewed: Awilix 13.0.5, InversifyJS 8.2.3, TSyringe 4.10.0,
-Typed Inject 5.0.0, Effect 3.22.4 (the v3 line the links target). Source links
+Typed Inject 5.0.0, Effect 3.22.4 (the v3 line the links target), NestJS 12.3.2
+(`@nestjs/core`), Angular 22.2.4 (`@angular/core`). Source-file links
 for Awilix and Typed Inject use the tag of that version; the TSyringe source
 links stay on the default branch because no tag URL resolved.
 
@@ -73,17 +77,17 @@ remain possible after compilation. See [boundaries](tutorial.md#boundaries) and
 
 ## Summary by library
 
-Reviewed 2026-10-31. Each filled cell links the sentence it summarizes; blank
+Each filled cell links the sentence it summarizes; blank
 cells are not stated in the sources cited below.
 
 | | Missing dependency found | Async dependency | Who closes child containers | Decorators |
 | --- | --- | --- | --- | --- |
-| DI Bag | [`tsc` at `buildContainer()` / `verifyGraphAtCompileTime()`](#what-type-safe-means-here) | [`Promise<T>` service, consumer awaits](#costs-and-limits-of-choosing-di-bag) | [Parent closes tracked children](#awilix) | [None](#what-type-safe-means-here) |
+| DI Bag | [`tsc` at `buildContainer()` / `verifyGraphAtCompileTime()`](#choosing-a-dependency-injection-approach) | [`Promise<T>` service, consumer awaits](#costs-and-limits-of-choosing-di-bag) | [Parent closes tracked children](#awilix) | [None](#choosing-a-dependency-injection-approach) |
 | Awilix | [Resolution; strict mode checks lifetimes at runtime](#awilix) | | [Caller](#awilix) | [None](#awilix) |
 | InversifyJS | [Resolution](#inversifyjs) | [`getAsync` awaits](#inversifyjs) | | [Optional](#inversifyjs) |
 | TSyringe | [Not checked statically](#tsyringe) | [`Promise<T>` value, not awaited](#tsyringe) | | [Documented setup uses emitted decorator metadata](#tsyringe) |
-| Typed Inject | [`tsc`, in registration order](#typed-inject) | [`Promise<T>` value](#typed-inject) | [Child-first `dispose()`](#typed-inject) | [None](#typed-inject) |
-| Effect | [Program type](#effect-context-and-layer) | | [Scoped resource finalization](#effect-context-and-layer) | |
+| Typed Inject | [`tsc`, in registration order](#typed-inject) | [`Promise<T>` value](#typed-inject) | | [None](#typed-inject) |
+| Effect | [Program type](#effect-context-and-layer) | | | |
 
 ## Alternatives worth considering
 
