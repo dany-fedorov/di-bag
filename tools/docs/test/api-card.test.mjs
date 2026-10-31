@@ -91,25 +91,39 @@ test('requirement renaming has one task and a documented runtime call', () => {
   const installIndex = tasks.findIndex(task => task.call === 'builder.withInstalledModules');
   assert.deepEqual(tasks[installIndex + 1], { task: 'Rename a module requirement', call: 'module.withRenamedRequirement' });
   const moduleEntries = runtimeSurface(project).filter(item => item.group === 'Module');
-  assert.deepEqual(moduleEntries.map(item => item.name), ['module.withRenamedRequirement']);
-  assert(moduleEntries[0].examples.length > 0);
-  assert.deepEqual(moduleEntries[0].codes, [
+  assert.deepEqual(moduleEntries.map(item => item.name), ['module.moduleLabel', 'module.withRenamedExport', 'module.withRenamedRequirement']);
+  moduleEntries.forEach(item => assert(item.examples.length > 0, item.name));
+  assert.deepEqual(moduleEntries[2].codes, [
     'DI_BAG_INVALID_ARGUMENT', 'DI_BAG_UNKNOWN_SERVICE_KEY', 'DI_BAG_DUPLICATE_SERVICE_KEY',
   ]);
   assert.match(renderApiCard(project, tasks), /\| Rename a module requirement \| \[`module\.withRenamedRequirement\(options\)`\]\(#module-withrenamedrequirement\) \|/);
 });
 
 test('every public Module method is classified for the API card', () => {
-  const included = new Set(['withRenamedRequirement']);
-  const excluded = new Set(['withRenamedExport']);
+  const included = new Set(['withRenamedExport', 'withRenamedRequirement']);
+  const excluded = new Set();
   const module = project.children.find(child => child.name === 'index').children.find(child => child.name === 'Module');
   const reflected = module.children.filter(child => child.kind === ReflectionKind.Method).map(child => child.name);
   const checkClassification = names => {
     assert.deepEqual([...included].filter(name => excluded.has(name)), [], 'included and excluded Module methods must be disjoint');
     assert.deepEqual([...names].sort(), [...included, ...excluded].sort(), 'every reflected public Module method must be classified');
     assert.deepEqual(runtimeSurface(project).filter(item => item.group === 'Module').map(item => item.name),
-      [...included].map(name => `module.${name}`));
+      ['module.moduleLabel', ...[...included].map(name => `module.${name}`)]); // the accessor is the one non-method member
   };
   checkClassification(reflected);
   assert.throws(() => checkClassification([...reflected, 'withFutureMethod']), /every reflected public Module method must be classified/);
+});
+
+test('the card lists module views, the module label, and the factory context', () => {
+  const names = runtimeSurface(project).map(item => item.name);
+  for (const name of ['module.withRenamedRequirement', 'module.withRenamedExport', 'module.moduleLabel', 'factoryContext.abortSignal', 'factoryContext.pushDisposer']) {
+    assert(names.includes(name), name);
+  }
+  const card = renderApiCard(project, tasks);
+  assert.ok(card.includes('### `module.moduleLabel` {#module-modulelabel}'), 'accessor title has no parentheses');
+  assert.ok(card.includes('### `factoryContext.abortSignal` {#factorycontext-abortsignal}'), 'property title has no parentheses');
+  assert.ok(card.includes('### `factoryContext.pushDisposer(disposer)` {#factorycontext-pushdisposer}'));
+  assert.ok(card.includes('## Factory context {#factory-context}'));
+  assert.ok(card.indexOf('## Module {#module}') < card.indexOf('## Container {#container}'));
+  assert.ok(card.indexOf('## Container {#container}') < card.indexOf('## Factory context {#factory-context}'));
 });

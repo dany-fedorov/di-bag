@@ -35,9 +35,17 @@ get moduleLabel(): string | undefined {
 }
 ```
 
-Defined in: [module.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L62)
+Defined in: [module.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L70)
 
-The exact label supplied when this module was sealed, if any. Reading it never acquires a service.
+Return the exact label supplied when this module was sealed, if any. Reading it never acquires a service.
+
+##### Example
+
+```ts
+const feature = DiBag.createBuilder().withServices({ answer: () => 42 })
+  .buildModule({ exportedServiceKeys: ['answer'], moduleLabel: 'answers' });
+const label: string | undefined = feature.moduleLabel; // 'answers'
+```
 
 ## Methods
 
@@ -50,7 +58,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 }): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:78](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L78)
+Defined in: [module.ts:89](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L89)
 
 Return a module view with one string-named export renamed through an options object.
 
@@ -81,6 +89,9 @@ A new sealed module, or the same instance when both names are equal.
 const feature = DiBag.createBuilder().withServices({ service: () => 1 })
   .buildModule({ exportedServiceKeys: ['service'] });
 const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+const app = DiBag.createBuilder().withInstalledModules([renamed]).buildContainer();
+const value: number = app.resolve('featureService');
+await app.close();
 ```
 
 ***
@@ -94,7 +105,7 @@ withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequ
 }): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>>;
 ```
 
-Defined in: [module.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L137)
+Defined in: [module.ts:148](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L148)
 
 Return a module view that asks its host for a requirement under a new name.
 Factory parameter names and private bindings retain their lexical meaning.

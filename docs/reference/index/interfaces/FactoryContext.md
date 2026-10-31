@@ -4,7 +4,7 @@
 
 # Interface: FactoryContext
 
-Defined in: [acquisition-context.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L30)
+Defined in: [acquisition-context.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L44)
 
 Cooperative cancellation and acquisition-local ownership supplied to a context-aware factory.
 
@@ -20,9 +20,18 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-service
 readonly abortSignal: AbortSignal;
 ```
 
-Defined in: [acquisition-context.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L32)
+Defined in: [acquisition-context.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L55)
 
-Aborted when the acquisition's owning container begins closing.
+Return the signal that aborts when the acquisition's owning container begins closing.
+
+#### Example
+
+```ts
+declare function fetchCatalog(signal: AbortSignal): Promise<string[]>;
+const catalog = DiBag.createProvider(async (_dependencies: {}, factoryContext) => fetchCatalog(factoryContext.abortSignal), {
+  factoryReceivesContext: true, factoryReturnKind: 'native-promise',
+});
+```
 
 ## Methods
 
@@ -32,9 +41,9 @@ Aborted when the acquisition's owning container begins closing.
 pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
 ```
 
-Defined in: [acquisition-context.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L38)
+Defined in: [acquisition-context.ts:71](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L71)
 
-Own a resource acquired during this factory call; pushed disposers run once in reverse order.
+Attach a disposer for a resource acquired during this factory call; pushed disposers run once in reverse order.
 Pass the release callback itself, such as `() => socket.close()`, rather than calling it here.
 
 #### Parameters
@@ -43,3 +52,18 @@ Pass the release callback itself, such as `() => socket.close()`, rather than ca
 | ------ | ------ |
 | `this` | - |
 | `disposer` | Releases the acquired resource when the factory fails or the container closes. |
+
+#### Throws
+
+`DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY` when called after the factory settled.
+
+#### Example
+
+```ts
+declare function openLock(name: string): Promise<{ release(): Promise<void> }>;
+const worker = DiBag.createProvider(async ({ name }: { name: string }, factoryContext) => {
+  const lock = await openLock(name);
+  factoryContext.pushDisposer(() => lock.release()); // released at close(), or at once if the next line throws
+  return { name };
+}, { factoryReceivesContext: true });
+```

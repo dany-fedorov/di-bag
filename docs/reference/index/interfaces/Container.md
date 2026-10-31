@@ -30,7 +30,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#container
 close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:398](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L398)
+Defined in: [di-bag.ts:403](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L403)
 
 Close this container, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -73,7 +73,7 @@ await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(
 createChildContainer(options?: CreateChildContainerOptions<ServiceRegistrations, readonly [], Constraints>): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:278](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L278)
+Defined in: [di-bag.ts:283](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L283)
 
 Create a tracked child container with fresh ownership for unshared services.
 Share selected non-transient parent acquisitions through the optional options object. To replace services,
@@ -113,7 +113,7 @@ await parent.close();
 createChildContainer<const SharedParentServiceKeys extends readonly unknown[]>(options: CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>): Container<ScopedAliases<ServiceRegistrations, ServiceRegistrations, SharedParentServiceKeys>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:281](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L281)
+Defined in: [di-bag.ts:286](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L286)
 
 Create a tracked child container with fresh ownership for unshared services.
 Share selected non-transient parent acquisitions through the optional options object. To replace services,
@@ -159,7 +159,7 @@ await parent.close();
 createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>, replacementProviders: ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys> & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>, options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'> & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>): Container<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 ```
 
-Defined in: [di-bag.ts:284](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L284)
+Defined in: [di-bag.ts:289](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L289)
 
 Create a tracked child container with fresh ownership for unshared services.
 Share selected non-transient parent acquisitions through the optional options object. To replace services,
@@ -213,7 +213,7 @@ await parent.close();
 createIndependentContainer(this: Container<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>, options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:312](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L312)
+Defined in: [di-bag.ts:317](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L317)
 
 Create an independent container with fresh instances and no replacements.
 Pass no argument, `undefined`, or an empty options object.
@@ -239,7 +239,7 @@ A container with independent acquisition and ownership state.
 createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>(replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>, replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>): Container<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 ```
 
-Defined in: [di-bag.ts:330](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L330)
+Defined in: [di-bag.ts:335](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L335)
 
 Create an independent container with fresh instances and checked replacements.
 
@@ -284,7 +284,7 @@ await parent.close();
 ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, Constraints, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>;
 ```
 
-Defined in: [di-bag.ts:371](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L371)
+Defined in: [di-bag.ts:376](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L376)
 
 Make the listed services ready before continuing, then resolve to this same container.
 Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;
@@ -334,7 +334,7 @@ const container = await DiBag.createBuilder()
 graphSnapshot(): GraphSnapshot;
 ```
 
-Defined in: [di-bag.ts:257](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L257)
+Defined in: [di-bag.ts:262](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L262)
 
 Describe every resolvable binding and the dependency edges observed so far.
 
@@ -345,8 +345,12 @@ A frozen point-in-time graph snapshot without acquiring services.
 #### Example
 
 ```ts
-const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-const labels = container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
+const billing = DiBag.createBuilder().withServices({ ledger: () => new Map<string, number>() })
+  .buildModule({ exportedServiceKeys: ['ledger'], moduleLabel: 'billing' });
+const container = DiBag.createBuilder().withInstalledModules([billing]).buildContainer();
+const graph = container.graphSnapshot();
+const installation = graph.moduleInstallations[0]!; // { installationId, moduleLabel: 'billing', parentInstallationId: undefined }
+const owned = graph.bindings.filter(binding => binding.moduleInstallationId === installation.installationId).map(binding => binding.bindingLabel);
 await container.close();
 ```
 
@@ -448,7 +452,7 @@ const names: readonly string[] = container.resolveCollection(tools);
 serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(serviceKey: ServiceKey & ([ServiceKey] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>), ...invalid: [ServiceKey] extends [never] ? [never] : []): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>>;
 ```
 
-Defined in: [di-bag.ts:197](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L197)
+Defined in: [di-bag.ts:198](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L198)
 
 Inspect a service binding through any supported public key without resolving it.
 
@@ -478,6 +482,7 @@ The service snapshot, or one snapshot per collection contribution.
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
 const snapshot = container.serviceSnapshot('greeting');
+console.log(snapshot.bindingLabel, snapshot.acquisitions.length); // greeting 0
 await container.close();
 ```
 
@@ -487,7 +492,7 @@ await container.close();
 serviceSnapshot<CollectionToken extends CollectionTokenBase>(collectionToken: CollectionToken & CollectionTokenMember<Constraints, CollectionToken>, ...invalid: [CollectionToken] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
 ```
 
-Defined in: [di-bag.ts:220](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L220)
+Defined in: [di-bag.ts:221](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L221)
 
 Inspect every contribution to a collection without resolving it.
 
@@ -532,7 +537,7 @@ serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | Token
 ] extends [string] ? unknown : [ServiceKey] extends [CollectionTokenBase] ? CollectionTokenMember<Constraints, ServiceKey> : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>), ...invalid: [ServiceKey] extends [never] ? [never] : []): TokenBase extends ServiceKey ? RegistrationSnapshot<object, readonly unknown[]> | readonly RegistrationSnapshot<object, readonly unknown[]>[] : ServiceKey extends CollectionTokenBase ? readonly RegistrationSnapshot<object, readonly unknown[]>[] : RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>>;
 ```
 
-Defined in: [di-bag.ts:224](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L224)
+Defined in: [di-bag.ts:225](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L225)
 
 Inspect a service binding through any supported public key without resolving it.
 
@@ -562,5 +567,6 @@ The service snapshot, or one snapshot per collection contribution.
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
 const snapshot = container.serviceSnapshot('greeting');
+console.log(snapshot.bindingLabel, snapshot.acquisitions.length); // greeting 0
 await container.close();
 ```

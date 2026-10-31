@@ -123,8 +123,8 @@ test('budgets, layout identity, and error coverage report drift', () => {
     writeFileSync(join(root, 'AGENTS.md'), `# A\n${fence('src/features/x/\n module.ts', 'text')}${'\n'.repeat(150)}`);
     assert.match(checkBudgets(root)[0], /AGENTS.md has 15\d lines; the budget is 150/);
     assert.match(checkLayoutBlock(root)[0], /differs/);
-    writeFileSync(join(root, 'docs/agent/api-card.md'), 'x\n'.repeat(401));
-    assert.match(checkBudgets(root)[1], /api-card.md has 401 lines/);
+    writeFileSync(join(root, 'docs/agent/api-card.md'), 'x\n'.repeat(461));
+    assert.match(checkBudgets(root)[1], /api-card.md has 461 lines/);
     writeFileSync(join(root, 'docs/agent/recipes.md'), `# Recipes\n## Short {#short}\n${'x\n'.repeat(57)}\n## Long {#long}\n${'x\n'.repeat(59)}`);
     assert.deepEqual(checkBudgets(root).slice(2), ['docs/agent/recipes.md#long has 60 lines; recipes stay under 60']);
     writeFileSync(join(root, 'src/b.ts'), "libraryError('DI_BAG_NEW', 'new');");

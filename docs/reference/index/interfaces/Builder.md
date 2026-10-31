@@ -4,7 +4,7 @@
 
 # Interface: Builder\<Entries *extends* `Entry`, Constraints *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:413](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L413)
+Defined in: [di-bag.ts:418](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L418)
 
 An immutable, type-checked graph builder. Every operation returns a new builder.
 Create one with [DiBagApi.createBuilder](DiBagApi.md#createbuilder). The same builder value can
@@ -31,7 +31,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
 readonly buildModule: BuilderBuildModule<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:610](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L610)
+Defined in: [di-bag.ts:615](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L615)
 
 Seal this graph as a reusable module and select its public names and typed tokens.
 Unselected services stay private to each installation; unmet dependencies
@@ -74,7 +74,7 @@ const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer(
 readonly withCollectionContribution: BuilderWithCollectionContribution<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:508](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L508)
+Defined in: [di-bag.ts:513](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L513)
 
 Append a provider to the list of a collection token.
 
@@ -108,7 +108,7 @@ const builder = DiBag.createBuilder().withCollectionContribution({ collectionTok
 readonly withInstalledModules: BuilderWithInstalledModules<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:558](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L558)
+Defined in: [di-bag.ts:563](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L563)
 
 Install sealed modules in list order, allocating fresh private bindings for each installation.
 Each module is checked against this builder plus the modules before it in the list.
@@ -144,7 +144,7 @@ const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices(
 readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:530](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L530)
+Defined in: [di-bag.ts:535](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L535)
 
 Replace an existing binding with a compatible provider, selecting it by name, service token, collection token.
 
@@ -183,7 +183,7 @@ const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).
 readonly withServiceAlias: BuilderWithServiceAlias<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:480](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L480)
+Defined in: [di-bag.ts:485](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L485)
 
 Add another lookup name for an existing service.
 
@@ -216,7 +216,7 @@ const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).
 readonly withServices: BuilderWithServices<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:441](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L441)
+Defined in: [di-bag.ts:446](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L446)
 
 Add new string-named services.
 A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
@@ -252,7 +252,7 @@ const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now:
 readonly withTokenService: BuilderWithTokenService<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:461](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L461)
+Defined in: [di-bag.ts:466](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L466)
 
 Add the single service of a typed token.
 
@@ -293,7 +293,7 @@ const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () =
 buildContainer(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Container<RegistrationsFromEntries<Entries>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:628](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L628)
+Defined in: [di-bag.ts:633](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L633)
 
 Finish a complete graph as a lazy container.
 The container owns what it acquires; close it when done.
@@ -328,7 +328,7 @@ await app.close();
 verifyGraphAtCompileTime<Self extends Builder<Entries, Constraints>>(this: Self): CompositionReport<Self>;
 ```
 
-Defined in: [di-bag.ts:586](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L586)
+Defined in: [di-bag.ts:591](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L591)
 
 Report at the type level why this graph would not build; the runtime call does nothing.
 Write `builder.verifyGraphAtCompileTime() satisfies void;` so a rejected graph fails on that line with
