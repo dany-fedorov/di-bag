@@ -10,7 +10,7 @@ creates services on first use and releases what it owns when closed.
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
-Using a coding agent? It reads `node_modules/di-bag/AGENTS.md`, which ships
+Using a coding agent? Point it at `node_modules/di-bag/AGENTS.md`, which ships
 in the package with the [API card](docs/agent/api-card.md), [recipes](docs/agent/recipes.md),
 and [every error message](docs/agent/errors.md). The same pages are at
 [llms.txt](https://dany-fedorov.github.io/di-bag/llms.txt).
@@ -19,10 +19,10 @@ and [every error message](docs/agent/errors.md). The same pages are at
 
 - **A missing dependency is a type error, not a crash on the first request.**
   Delete a factory and `tsc` names the missing service. Change a contract and
-  `tsc` names the consumer that no longer fits. [See it](#what-the-compiler-catches).
+  `tsc` rejects the consumer that no longer fits. [See it](#what-the-compiler-catches).
 - **One feature is one directory that type-checks alone.** A module exports the
   services it names and hides the rest, so two modules can both have a private
-  `store`. A one-statement check file with its own `tsconfig.json` verifies the
+  `store`. A one-statement check file and a per-module `tsconfig.json` verify the
   module without the rest of the application. [See a module](#a-module-in-one-screen).
 - **Resources have one owner.** Attach a disposer to a factory and `close()`
   runs it, dependents first. A child container per request releases what the
@@ -95,8 +95,9 @@ required services are missing: config; see https://dany-fedorov.github.io/di-bag
 ```
 
 Change `greeting` to a number and the message names the consumer that no longer
-fits: `provided service does not satisfy its consumer dependency`, with the
-consumer, the dependency, the expected type, and the provided type. The
+fits: `provided service does not satisfy its consumer dependency`. With
+`"noErrorTruncation": true` in `tsconfig.json`, the details name the consumer,
+the dependency, the expected type, and the provided type. The
 [error index](docs/agent/errors.md#compile-time) lists every message with its
 cause and fix. The directive above is not decoration: this repository compiles
 the block in CI, and an unused `@ts-expect-error` fails the build.
