@@ -14,11 +14,19 @@ Using a coding agent? The rules, the API card, the recipes, and every error
 message ship in the package. Paste this into your agent:
 
 ```text
-Before writing any di-bag code, read node_modules/di-bag/AGENTS.md and follow its rules.
-For a call's signature and example use node_modules/di-bag/docs/agent/api-card.md, for a task use
-node_modules/di-bag/docs/agent/recipes.md, and for a compiler or runtime message use
-node_modules/di-bag/docs/agent/errors.md. If the package is not installed yet, read
-https://dany-fedorov.github.io/di-bag/llms.txt instead.
+If di-bag is installed: read node_modules/di-bag/AGENTS.md first and follow its rules.
+Use node_modules/di-bag/docs/agent/api-card.md for a call's signature and example,
+node_modules/di-bag/docs/agent/recipes.md for a task, and
+node_modules/di-bag/docs/agent/errors.md for a compiler or runtime message.
+
+If di-bag is not installed: evaluate it from these pages before deciding.
+- https://dany-fedorov.github.io/di-bag/ : what it does, the compiler check, a module in one screen
+- https://dany-fedorov.github.io/di-bag/llms-full.txt : AGENTS.md, the API card, recipes, and errors in one file
+- https://dany-fedorov.github.io/di-bag/guides/examples-modularity.html : the module layout and three runnable programs
+- https://dany-fedorov.github.io/di-bag/guides/comparison.html : how it differs from Awilix, InversifyJS, TSyringe, Typed Inject, Effect, and NestJS
+To install: npm install di-bag. It needs TypeScript 6.0.3 or later with "strict": true and has no
+runtime dependencies. Node, Bun, and Deno need nothing else; in browsers and workers, pass
+factoryReturnKind to each factory. After installing, read node_modules/di-bag/AGENTS.md.
 ```
 
 ## Why DI Bag?
