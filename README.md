@@ -363,7 +363,7 @@ platform, and packaging checks and their tool requirements.
 
 ## Upgrading
 
-The API is pre-1.0 and includes breaking changes. From 0.4, run the codemod
+The API is pre-1.0 and includes breaking changes. Run the 0.4-to-0.5 codemod
 before upgrading, while the 0.4 types are still installed, then read the
 [0.5 migration guide](docs/guides/migrating-to-0.5.md) and the
 [changelog](CHANGELOG.md):
