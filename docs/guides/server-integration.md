@@ -2,17 +2,23 @@
 
 [← README](../../README.md) · [Complete API guide](api-reference.md) · [Ownership recipes](enterprise-integration.md)
 
-This guide builds one small application and connects it to Node HTTP, Express,
-Fastify, Bun, and Deno. The application owns its services. The server owns its
-listener and decides when requests begin and end.
+Each request gets a child container. Its request ID, caller, and transaction belong to that
+child and are released when the child closes. The connection pool is created once in the
+application container. If a shared service starts depending on per-request state, `tsc` rejects
+the graph with `singleton lifetime cannot capture scoped dependency: <shared> -> <request>`
+before any request runs.
 
-Start with the [README installation instructions](../../README.md#install).
-The examples use TypeScript files in an application with `"type": "module"` in
-`package.json`. Node examples can run with `node server.ts` on Node 24; Bun
-examples use `bun run server.ts`. Runtime execution does not replace type
-checking with the [supported compiler](development.md).
+One `application.ts` below serves Node HTTP, Express, Fastify, Bun, Elysia, and Deno; only the
+server file changes. `ensureServicesReady` makes the pool ready before the listener opens.
+If it fails, the container is already closed.
+
+The examples are TypeScript files in a package with `"type": "module"`. Node 24 runs them
+with `node server.ts`; Bun with `bun run server.ts`. Type-check them with the settings in
+[Type-check the recipes](#type-check-the-recipes).
+
 ## Contents
 
+- [Type-check the recipes](#type-check-the-recipes)
 - [Build the application once](#build-the-application-once)
 - [Choose the owner of each service](#choose-the-owner-of-each-service)
 - [One child container per request](#request-containers)
@@ -33,10 +39,35 @@ checking with the [supported compiler](development.md).
 - [Organize a larger application](#organize-a-larger-application)
 - [Troubleshooting](#troubleshooting)
 
+## Type-check the recipes {#type-check-the-recipes}
+
+The recipes import sibling files with a `.ts` extension, so Node 24 and Bun can run them
+directly. Type-check them with:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  }
+}
+```
+
+```sh
+npx tsc -p tsconfig.json
+```
+
+To emit JavaScript instead, replace `noEmit` and `allowImportingTsExtensions` with
+`"rewriteRelativeImportExtensions": true`.
+
 ## Build the application once
 
 When no service needs request state, one container can serve every request.
-Use this `application.ts`:
+Use this `application.ts` (save it under that name):
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -63,8 +94,8 @@ export function createApplication() {
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 ```
 
-`buildContainer()` creates the application container. `ensureServicesReady`
-waits for the catalog before the server listens. The catalog still resolves as
+`buildContainer()` creates the application container.
+[`ensureServicesReady`](#readiness-failures-and-deadlines) waits for the catalog before the server listens. The catalog still resolves as
 `Promise<Catalog>`. Readiness does not rewrite its public type. Every request
 can call `app.resolve('handler').list()`. The container closes during server
 shutdown.
@@ -82,14 +113,15 @@ Singleton providers are explicit when children should share them. Use
 `DiBag.providerWithLifetime({ provider, lifetime })` to select a lifetime.
 Use `DiBag.providerWithDisposal({ provider, disposeService })` to attach
 disposal. These are separate choices. A singleton cannot depend on a scoped
-provider unless it explicitly allows scoped dependencies. That exception uses
+provider unless its `providerWithLifetime` call sets `allowsScopedDependencies: true`. That exception uses
 the defining container's context, not the current request's identity. See
 [lifetime rules](tutorial.md#choose-a-lifetime).
 
 ## One child container per request {#request-containers}
 
-Add a per-request value to the application from the previous section. The in-memory catalog makes the example runnable
-without a database. In an application, its async factory could open a client
+Add a per-request value to the `application.ts` from
+[Build the application once](#build-the-application-once). The in-memory catalog
+makes the example runnable without a database. In an application, its async factory could open a client
 or pool. Its disposer could call that client's shutdown method. The catalog is
 explicitly shared across the container tree. The request and its dependent
 handler use the scoped default, so each child gets its own instances.
@@ -230,7 +262,7 @@ try {
 }
 ```
 
-A failed `ensureServicesReady` has already closed the container, so the catch block only reports the failure. `totalTimeoutMs` and `abortSignal` bound the wait.
+A failed `ensureServicesReady` has already closed the container, so the catch block only reports the failure. `totalTimeoutMs` and `abortSignal` bound the wait. The full readiness API, including `maxConcurrentServiceKeys` and cooperative `abortSignal` forwarding, is in the [tutorial](tutorial.md#make-selected-services-ready).
 
 ## Connect a shutdown signal
 
@@ -465,35 +497,16 @@ shutdown policy. Keep the child container open longer when returning a streaming
 
 ## Elysia
 
-Install `elysia@1.4.30` in the application. This version of the recipe was
-type-checked against that package and the built DI Bag package. It creates a
-child container for each request. Save this as `server.ts` and run it with Bun:
+Install `elysia@1.4.30` in the application. This recipe is not compiled or run by this
+repository's checks; verify it against your Elysia version. It creates a child container
+for each request. Save this as `server.ts` and run it with Bun:
 
 ```ts
 import { Elysia } from 'elysia';
-import { DiBag } from 'di-bag';
+import { createApplication, createRequestContainer } from './application.ts';
+import { onShutdown } from './node-shutdown.ts';
 
-type RequestContext = { id: string };
-type Catalog = Map<string, string>;
-
-const app = await DiBag.createBuilder()
-  .withServices({
-    catalog: DiBag.providerWithLifetime({
-      provider: DiBag.providerWithDisposal({
-        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
-        disposeService: catalog => catalog.clear(),
-      }),
-      lifetime: 'singleton:one-per-container-tree',
-    }),
-    request: (): RequestContext => ({ id: 'outside-request' }),
-    handler: ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
-      async list() {
-        return { requestId: request.id, items: Array.from((await catalog).values()) };
-      },
-    }),
-  })
-  .buildContainer()
-  .ensureServicesReady(['catalog']);
+const app = await createApplication();
 
 const closingContainers = new WeakSet<object>();
 function closeRequestContainer(requestContainer: { close(): Promise<void> } | undefined) {
@@ -504,9 +517,7 @@ function closeRequestContainer(requestContainer: { close(): Promise<void> } | un
 
 const requestContainerPlugin = new Elysia({ name: 'di-bag-request-container' })
   .derive({ as: 'global' }, () => ({
-    requestContainer: app.createChildContainer(['request'], {
-      request: (): RequestContext => ({ id: crypto.randomUUID() }),
-    }),
+    requestContainer: createRequestContainer(app, crypto.randomUUID()),
   }))
   .onAfterResponse({ as: 'global' }, ({ requestContainer }) => {
     closeRequestContainer(requestContainer);
@@ -519,9 +530,11 @@ const server = new Elysia()
   .use(requestContainerPlugin)
   .get('/items', ({ requestContainer }) => requestContainer.resolve('handler').list())
   .onStop(() => app.close())
-  .listen(3000);
+  .listen({ port: 3000, hostname: '127.0.0.1' });
 
-process.once('SIGTERM', () => { void server.stop(); });
+onShutdown(async () => {
+  await server.stop();
+});
 ```
 
 The response and error hooks may both run for one request. Either hook can
@@ -538,6 +551,7 @@ classifier through `process.getBuiltinModule` there, as on Node and Bun. Resolve
 the bare import through the local npm installation from the README; if needed,
 use `"nodeModulesDir": "manual"` in `deno.json`. See
 [Deno's manual npm installation mode](https://docs.deno.com/runtime/fundamentals/node/#manual-node_modules-creation).
+Keep `owned-container.ts` and `handle-request.ts` from the earlier sections.
 
 Save this as `server.ts` and run `deno run --allow-net server.ts`:
 
@@ -734,9 +748,11 @@ const result = await withOwnedContainer(
   () => createRequestContainer(app, 'job-42'),
   container => container.resolve('handler').list(),
 );
-// Acknowledge the message after work and disposal succeed.
+// The request helper is reused on purpose: a job is one owned operation.
 console.log(result);
 ```
+
+Acknowledge the message only after this call resolves.
 
 Give detached work its own container. A job that outlives an HTTP request must not
 reuse that request's scoped connection or transaction. Pass plain job input,
@@ -789,9 +805,47 @@ well when validating routing, serialization, disconnects, or streaming.
 
 ## Organize a larger application
 
+### Split features into modules
+
+Move each feature's factories into `src/features/<name>/module.ts` and export only the
+services the server resolves. Install every module in one list in `src/app.ts`, and keep a
+`src/app.check.ts` that verifies the merged graph without building it. The layout and the
+per-module check command are in [AGENTS.md](../../AGENTS.md#module-layout); the
+[modules guide](examples-modularity.md) has runnable programs.
+
+```ts
+import { DiBag } from 'di-bag';
+
+type Catalog = Map<string, string>;
+type RequestContext = { id: string };
+
+// src/features/catalog/module.ts
+const catalogModule = DiBag.createBuilder()
+  .withServices({
+    handler: ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
+      async list() {
+        return { requestId: request.id, items: Array.from((await catalog).values()) };
+      },
+    }),
+  })
+  .buildModule({ exportedServiceKeys: ['handler'], moduleLabel: 'catalog' });
+
+// src/app.check.ts
+DiBag.createBuilder()
+  .withInstalledModules([catalogModule])
+  .withServices({
+    catalog: DiBag.providerWithLifetime({
+      provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+      lifetime: 'singleton:one-per-container-tree',
+    }),
+    request: (): RequestContext => ({ id: 'outside-request' }),
+  })
+  .verifyGraphAtCompileTime() satisfies void;
+```
+
 | Need | API and example |
 | --- | --- |
-| Keep a feature's connection private while exposing its service | [`buildModule`, `withInstalledModules`, `withRenamedExport`](tutorial.md#reuse-named-modules) |
+| Keep a feature's connection private while exposing its service | `buildModule`, `withInstalledModules`, `withRenamedRequirement`, `withRenamedExport`: [Build modules as units of work](tutorial.md#reuse-named-modules) |
 | Inject a database contract into existing classes | [`createToken`, `withTokenService`, `createProviderFromClass`](tutorial.md#adapt-classes-and-positional-functions) |
 | Assemble ordered middleware or job handlers | [`withCollectionContribution`, `createToken(...).forCollectionOf`, `resolveCollection`](tutorial.md#compose-an-ordered-collection) |
 | Enable optional telemetry | [`optional`](tutorial.md#declare-optional-and-lazy-dependencies) |
@@ -808,16 +862,18 @@ describes the integration responsibilities.
 
 ## Troubleshooting
 
-| Symptom | What to check |
-| --- | --- |
-| Every request sees the placeholder ID | Resolve the handler from `createRequestContainer`, not the application container. |
-| A client intended to be shared opens once per request | Mark its registration `'singleton:one-per-container-tree'` with `DiBag.providerWithLifetime`. |
-| A child override does not affect a shared handler | Sharing borrows the parent's complete acquisition and original dependencies. Keep the handler scoped. |
-| A promise appears where a service was expected | Async factories expose promises. Declare and await that dependency explicitly. |
-| `buildContainer()` rejects with `DI_BAG_CLASSIFIER_REQUIRED` in a browser or worker | Its message and `details.bindings` name automatic registrations. Set `factoryReturnKind` for each factory stage, including replacements. |
-| Disposal never runs | Attach `DiBag.providerWithDisposal` and close the owning container. A method named `close` does not imply ownership. |
-| Shutdown remains pending | Look for unfinished acquisitions, uncooperative disposers, active streams, or server connections. |
-| A dependency object cannot be spread or enumerated | Read declared properties directly; the runtime proxy cannot recover an erased parameter type's keys. |
+| Symptom or message | Code / section | What to check |
+| --- | --- | --- |
+| `required services are missing: <key>` | [missing-service](../agent/errors.md#missing-service) | Register `<key>`, or supply it from the host when it is a module requirement. |
+| `singleton lifetime cannot capture scoped dependency: <a> -> <b>` | [singleton-captures-scoped](../agent/errors.md#singleton-captures-scoped) | Make `<b>` singleton or `<a>` scoped; `allowsScopedDependencies: true` only for a deliberate capture. |
+| `createChildContainer cannot replace singleton service: <key>` | [`DI_BAG_SINGLETON_REPLACEMENT`](../agent/errors.md#di-bag-singleton-replacement) | Mark it `'scoped:one-per-container'`, or use `createIndependentContainer`. |
+| Every request sees the placeholder ID | — | Resolve the handler from `createRequestContainer`, not the application container. |
+| A child override does not reach a handler | — | The handler is singleton or listed in `sharedParentServiceKeys`; keep it scoped. |
+| `buildContainer()` throws in a browser or worker | [`DI_BAG_CLASSIFIER_REQUIRED`](../agent/errors.md#di-bag-classifier-required) | `details.bindings` names each factory; give it `factoryReturnKind`. |
+| A dependency object cannot be spread or enumerated | [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](../agent/errors.md#di-bag-invalid-dependency-access) | Read declared properties directly. |
+| `ensureServicesReady` rejects | [`DI_BAG_SERVICE_READINESS_FAILED`](../agent/errors.md#di-bag-service-readiness-failed) / [`_CANCELLED`](../agent/errors.md#di-bag-service-readiness-cancelled) | The container is already closed; read `cause`, or await `disposalPromise`. |
+| `close()` rejects after `waitTimeoutMs` | [`DI_BAG_CLOSE_TIMEOUT`](../agent/errors.md#di-bag-close-timeout) | `details.disposersStillRunning` names the disposer that never settles. |
+| Disposal never runs | — | Attach `DiBag.providerWithDisposal` and close the owning container. |
 
 The [complete API guide](api-reference.md) explains each method and its options.
 The [development guide](development.md) describes the repository's verification
