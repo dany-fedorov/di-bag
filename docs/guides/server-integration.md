@@ -3,18 +3,19 @@
 [← README](../../README.md) · [Complete API guide](api-reference.md) · [Integration patterns](enterprise-integration.md)
 
 Each request gets a child container. Its request ID, caller, and transaction belong to that
-child and are released when the child closes. The connection pool is created once in the
+child and are released when the child closes. The catalog (a connection pool in a real application) is created once in the
 application container. If a shared service starts depending on per-request state, `tsc` rejects
 the graph with `singleton lifetime cannot capture scoped dependency: <shared> -> <request>`
 before any request runs.
 
 One `application.ts` below serves Node HTTP, Express, Fastify, Bun, Elysia, and Deno; only the
-server file changes. `ensureServicesReady` makes the pool ready before the listener opens.
-If it fails, the container is already closed.
+server file changes. `ensureServicesReady` makes the catalog ready before the listener opens.
+If it fails, the container closes itself; on cancellation, await `disposalPromise`.
 
 The examples are TypeScript files in a package with `"type": "module"`. Node 24 runs them
 with `node server.ts`; Bun with `bun run server.ts`. Type-check them with the settings in
 [Type-check the recipes](#type-check-the-recipes).
+Install `di-bag` as in the [README](../../README.md#install); the type check needs TypeScript 6.0.3 or later.
 
 ## Contents
 
@@ -119,7 +120,7 @@ the defining container's context, not the current request's identity. See
 
 ## One child container per request {#request-containers}
 
-Add a per-request value to the `application.ts` from
+Replace `application.ts` with this version, which adds a per-request value to the one from
 [Build the application once](#build-the-application-once). The in-memory catalog
 makes the example runnable without a database. In an application, its async factory could open a client
 or pool. Its disposer could call that client's shutdown method. The catalog is
@@ -165,7 +166,7 @@ export function createRequestContainer(app: Application, requestId: string) {
 The placeholder gives checked replacements a type. Resolve the handler from
 the child container so it sees the request's replacement. A scoped provider is
 the default. The compiler rejects a singleton that depends on a scoped
-provider. Keep application services independent of the HTTP library so jobs
+provider (unless it opts in with `allowsScopedDependencies: true`, above). Keep application services independent of the HTTP library so jobs
 and tests can use them too.
 
 ## Close each request container {#close-each-request-container}
@@ -247,9 +248,9 @@ try {
   if (error instanceof DiBagServiceReadinessCancelledError) {
     try {
       await error.disposalPromise;
-    } catch (cleanupError) {
+    } catch (disposalError) {
       throw new AggregateError(
-        [error, cleanupError],
+        [error, disposalError],
         'Readiness cancellation and disposal failed',
       );
     }
@@ -700,9 +701,7 @@ stages need their own `factoryReturnKind`. If `buildContainer()` throws
 `DI_BAG_CLASSIFIER_REQUIRED`, its message names the automatic registrations.
 See [portable host configuration](tutorial.md#portable-mode).
 
-<a id="disconnects-streaming-and-websockets"></a>
-
-## Disconnects, streaming, and WebSockets {#acquisition-not-method-calls}
+## Disconnects, streaming, and WebSockets
 
 The JSON recipes above finish their application work even if a client
 disconnects. To cancel a handler's work, pass an application-controlled signal
@@ -745,10 +744,10 @@ application, handle one job like this:
 
 ```ts
 const result = await withOwnedContainer(
+  // The request helper is reused on purpose: a job is one owned operation.
   () => createRequestContainer(app, 'job-42'),
   container => container.resolve('handler').list(),
 );
-// The request helper is reused on purpose: a job is one owned operation.
 console.log(result);
 ```
 
@@ -874,7 +873,7 @@ describes the integration responsibilities.
 | `ensureServicesReady` rejects with `DI_BAG_SERVICE_READINESS_FAILED` | [`DI_BAG_SERVICE_READINESS_FAILED`](../agent/errors.md#di-bag-service-readiness-failed) | The container is already closed; read `cause` and `disposalFailures`. |
 | `ensureServicesReady` rejects with `DI_BAG_SERVICE_READINESS_CANCELLED` | [`DI_BAG_SERVICE_READINESS_CANCELLED`](../agent/errors.md#di-bag-service-readiness-cancelled) | `abortSignal` fired or `totalTimeoutMs` elapsed (`cause` is then `DI_BAG_SERVICE_READINESS_TIMEOUT`); the container is closing, so await `disposalPromise`. |
 | `close()` rejects after `waitTimeoutMs` | [`DI_BAG_CLOSE_TIMEOUT`](../agent/errors.md#di-bag-close-timeout) | `details.disposersStillRunning` names the disposer that never settles. |
-| Property 'x' does not exist on type 'Promise<...>' | [AGENTS.md rule 4](../../AGENTS.md#rules) | The factory is async, so its service is a Promise; declare `{ x: Promise<T> }` in the consumer and `await` it. |
+| `Property 'x' does not exist on type 'Promise<...>'` | [AGENTS.md rule 4](../../AGENTS.md#rules) | The factory is async, so its service is a Promise; declare `{ x: Promise<T> }` in the consumer and `await` it. |
 | Disposal never runs |  | Attach `DiBag.providerWithDisposal` and close the owning container. |
 
 The [complete API guide](api-reference.md) explains each method and its options.

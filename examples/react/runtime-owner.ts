@@ -42,7 +42,7 @@ interface Slot<T> {
   readonly identity: string;
   readonly controller: AbortController;
   runtime: T | undefined;
-  /** Settles once this slot owes nothing more: its startup settled and any teardown it owes finished. */
+  /** Settles once this slot owes nothing more: its readiness settled and any teardown it owes finished. */
   readonly done: Promise<void>;
   finish(): void;
 }
@@ -84,7 +84,7 @@ export class RuntimeOwner<T extends Closable> {
     return selection;
   }
 
-  /** Start the live identity again after a failed startup. */
+  /** Start the live identity again after a failed start. */
   retry(): void {
     if (this.live !== undefined && this.status.state === 'failed') this.replace(this.live.identity);
   }
@@ -120,7 +120,7 @@ export class RuntimeOwner<T extends Closable> {
     void this.run(slot);
   }
 
-  /** Abort the slot's startup or close its runtime, and make every later startup wait for it. */
+  /** Abort the slot's readiness wait or close its runtime, and make every later start wait for it. */
   private retire(slot: Slot<T>): void {
     slot.controller.abort(new Error(`runtime ${slot.identity}#${slot.generation} was released`));
     const runtime = slot.runtime;

@@ -3,8 +3,8 @@
 [← README](../../README.md) · [Server recipes](server-integration.md) · [Complete API guide](api-reference.md)
 
 A project switch in a React app has to stop the old project's work, release its lock,
-and only then open the next one, even when Strict Mode mounts every effect twice.
-This guide does that with a 190-line framework-free `RuntimeOwner` and a 49-line hook file.
+and only then open the next one, even when Strict Mode mounts every effect twice in development.
+This guide does that with a framework-free `RuntimeOwner` of about 190 lines and a 49-line hook file.
 In development, the browser lane checks that Strict Mode's setup, effect disposal, and setup
 sequence ends at generation 2 with no console warning.
 
@@ -287,7 +287,7 @@ and `getState`, a Redux store, or your own. DI Bag adds no observable system.
 `container.close({ waitTimeoutMs })` gives a bounded wait at the library level.
 The error names the disposers still running in `error.details.disposersStillRunning`.
 See [disposal waits for your work by default](../../README.md#tradeoffs-and-limits).
-A container tracks acquisition work and disposal, not every later method call; see [Disconnects, streaming, and WebSockets](server-integration.md#acquisition-not-method-calls).
+A container tracks acquisition work and disposal, not every later method call; see [Disconnects, streaming, and WebSockets](server-integration.md#disconnects-streaming-and-websockets).
 
 ## Development HMR and navigation
 
@@ -372,7 +372,7 @@ not endorsements, and their documented behavior was not re-tested here.
 - **Server rendering.** A runtime created at module import time is shared by every request
   in a server-rendered process. Create the app runtime per request or per worker, never per module.
   See [lifetime rules](tutorial.md#choose-a-lifetime).
-- **HMR and page unload.** The `hot.dispose` and `pagehide` hooks in the development section are shown, not tested; the browser lane runs the built page once.
+- **HMR and page unload.** The `hot.dispose` and `pagehide` hooks in the development section are shown, not tested; the browser lane runs each built page once.
 
 ## When this becomes a package
 

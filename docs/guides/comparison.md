@@ -4,7 +4,7 @@
 
 DI Bag's distinguishing check is that a missing or mismatched dependency fails `tsc`, naming
 the service, before any container exists. Typed Inject and Effect also check before running;
-Awilix and InversifyJS report it when the service is first resolved; TSyringe does not check the graph statically. The other
+Awilix and InversifyJS report it at resolution; TSyringe does not check the graph statically. The other
 differences are object-parameter factories with no decorators, modules with private services,
 and explicit ownership of what each container acquired.
 
@@ -54,11 +54,12 @@ Upstream default-branch sources can change; this is not a benchmark, a release
 certification, or an exhaustive feature audit. Recommendations below are judgments
 based on the cited behavior.
 
-Versions reviewed: Awilix 13.0.5, InversifyJS 8.2.3, TSyringe 4.10.0,
+Current versions on 2026-10-31: Awilix 13.0.5, InversifyJS 8.2.3, TSyringe 4.10.0,
 Typed Inject 5.0.0, Effect 3.22.4 (the v3 line the links target), NestJS 12.3.2
 (`@nestjs/core`), Angular 22.2.4 (`@angular/core`). Source-file links
 for Awilix and Typed Inject use the tag of that version; the TSyringe source
 links stay on the default branch because no tag URL resolved.
+Only the Awilix, Typed Inject, and TSyringe claims were re-read against these versions.
 
 ## What “type-safe” means here
 

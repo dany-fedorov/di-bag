@@ -327,7 +327,7 @@ Promise factories with `'native-promise'`. See
 - **Framework integration belongs to the application.** DI Bag provides the
   composition and ownership primitives; the host connects request, job, or UI
   lifecycles. The [server guide](docs/guides/server-integration.md) and the
-  [React guide](docs/guides/react-integration.md) are recipes for both; the React recipe runs in CI, the server recipes compile where they import only di-bag.
+  [React guide](docs/guides/react-integration.md) are recipes for both; the React recipe runs in CI, the server recipes compile where they import only `di-bag` and `node:*`.
 
 ## Explore further
 

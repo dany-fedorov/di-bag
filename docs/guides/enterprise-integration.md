@@ -55,8 +55,8 @@ work, close the child, and keep both errors if both fail. The
 [server guide](server-integration.md#close-each-request-container) builds it step by step;
 [`examples/integration/owned-container.ts`](../../examples/integration/owned-container.ts)
 is the tested `withOwnedContainer` helper. Two facts are specific to
-embedding: never pass the shared application container as `acquire()`, and a failed
-`ensureServicesReady` has already closed its container.
+embedding: never pass the shared application container as `acquire()` for a request or job; only the shutdown path owns it. A failed
+`ensureServicesReady` closes its container itself; on cancellation, await `disposalPromise`.
 
 ## Checked test substitutions
 
