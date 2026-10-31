@@ -1,18 +1,10 @@
-# Radical modularity for agentic development
+# Modules as units of work
 
-In this guide, **radical modularity** means making independently composable,
-replaceable, and testable units the normal way to build an application—not an
-afterthought. DI Bag modules declare their dependencies, keep unexported services
-private to an installation, and expose a small public surface.
-
-A module is the unit of work that one person or one coding agent can own. It
-gives them a bounded assignment: implement a feature against its contracts, test
-it with controlled dependencies, and integrate it without reaching into another
-feature's internals. Several such assignments can run in parallel; the
-composition is checked when the modules are installed together. Choose
-boundaries around coherent features, not a target number of modules. Keep
-cross-feature invariants in integration tests and include the affected contracts
-when a task spans modules.
+A module is the unit of work that one person or one coding agent can own:
+implement a feature against its contracts, test it with controlled
+dependencies, and integrate it without reaching into another feature's
+internals. This guide gives the directory layout, then three runnable programs:
+separately owned features, isolated tests, and contributed tools.
 
 ## Recommended module layout
 
@@ -59,9 +51,8 @@ layout to model clients, tools, and graph nodes.
 
 The three programs below are independent. After [installing DI Bag](../../README.md#install),
 save any block as a TypeScript file and run it with Bun, or compile it as an ES
-module and run the output with Node. Each includes executable assertions. The
-in-memory adapters make the examples deterministic; no database, payment account,
-or language-model API is needed.
+module and run the output with Node. Each includes executable assertions and
+in-memory adapters; no database, payment account, or language-model API is needed.
 
 ## 1. Integrate separately owned fulfillment and invoicing features
 
@@ -369,5 +360,13 @@ another feature's source. Agree on contracts, keep each module in its own
 directory with its tests, and retain integration tests alongside isolated tests.
 For the precise module API and its compiler limits, see the
 [tutorial](tutorial.md#reuse-named-modules) and [compiler evidence](../benchmarks/typescript.md).
+
+**Radical modularity** is the name this documentation uses for the practice:
+independently composable, replaceable, and testable units are the normal way
+to build the application, not an afterthought. Several such assignments can run
+in parallel; the composition is checked when the modules are installed
+together. Choose boundaries around coherent features, not a target number of
+modules. Keep cross-feature invariants in integration tests and include the
+affected contracts when a task spans modules.
 
 Return to [Why DI Bag?](../../README.md#why-di-bag).
