@@ -98,7 +98,7 @@ Change `greeting` to a number and, with default settings, the message is
 `provided service does not satisfy its consumer dependency`. With
 `"noErrorTruncation": true` in `tsconfig.json`, the details name the consumer,
 the dependency, the expected type, and the provided type. The
-[error index](docs/agent/errors.md#compile-time) lists every message with its
+[error index](https://dany-fedorov.github.io/di-bag/agent/errors.html#compile-time) lists every message with its
 cause and fix. The directive above is not decoration: this repository compiles
 the block in CI, and an unused `@ts-expect-error` fails the build.
 
@@ -239,7 +239,7 @@ For request handling, checked test replacements, and loading dynamic features,
 see the [server guide](docs/guides/server-integration.md) and
 [integration recipes](docs/guides/enterprise-integration.md).
 
-The [tutorial](docs/guides/tutorial.md) also covers modules with private services,
+The [tutorial](docs/guides/tutorial.md) also covers
 typed tokens, class and function adapters, optional and lazy dependencies,
 collections, service readiness, metadata, observers, and plugin validation.
 

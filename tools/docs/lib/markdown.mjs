@@ -70,7 +70,7 @@ layout: home
 hero:
   name: DI Bag
   text: Ordinary services. Checked composition. Explicit ownership.
-  tagline: Dependency injection for TypeScript where the compiler checks the wiring, modules keep a feature's services private, and a container releases what it owns.
+  tagline: A missing dependency is a type error. One feature is one directory that type-checks alone. Resources have one owner.
   actions:
     - theme: brand
       text: Quickstart

@@ -1,7 +1,7 @@
 # Learn DI Bag
 
 [Install DI Bag](../../README.md#install) · [API reference](api-reference.md) ·
-[Server integration](server-integration.md) · [Runnable examples](../../examples)
+[Server integration](server-integration.md) · [Runnable examples](../../examples/README.md)
 
 DI Bag connects ordinary TypeScript factories, checks their dependency shapes,
 creates services when they are first requested, and releases the resources that
@@ -18,7 +18,7 @@ Run repository examples from the repository root with `bun run examples/<name>.t
 
 1. [Compose and resolve services](#compose-services).
 2. Learn how [async work](#async-edges-are-explicit) and [ownership](#attach-disposal-with-providerwithdisposal) behave.
-3. Package a feature as a [module](#reuse-named-modules): private services, named exports, and a check that runs without the host.
+3. Package a feature as a [module](#reuse-named-modules): private services and named exports. The per-module check file is in the [modules guide](examples-modularity.md#recommended-module-layout).
 4. Read how [failures](#errors-and-recovery) and [compile-time rejections](#read-compile-time-rejections) are reported.
 5. Choose between [child containers](#create-child-containers), [independent containers](#create-an-independent-container), and [lifetimes](#choose-a-lifetime).
 6. Use [typed tokens and positional adapters](#use-typed-tokens-for-explicit-positional-injection) when names and object parameters do not fit.

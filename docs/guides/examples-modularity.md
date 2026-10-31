@@ -361,12 +361,6 @@ directory with its tests, and retain integration tests alongside isolated tests.
 For the precise module API and its compiler limits, see the
 [tutorial](tutorial.md#reuse-named-modules) and [compiler evidence](../benchmarks/typescript.md).
 
-**Radical modularity** is the name this documentation uses for the practice:
-independently composable, replaceable, and testable units are the normal way
-to build the application, not an afterthought. Several such assignments can run
-in parallel; the composition is checked when the modules are installed
-together. Choose boundaries around coherent features, not a target number of
-modules. Keep cross-feature invariants in integration tests and include the
-affected contracts when a task spans modules.
+**Radical modularity** is the name this documentation uses for building an application from such modules: independently composable, replaceable, and testable units are the normal way to build it, not an afterthought. Each module is a bounded assignment; several can run in parallel, and the composition is checked when the modules are installed together. Modules declare their dependencies, keep unexported services private to an installation, and expose a small public surface. Choose boundaries around coherent features, not a target number of modules. Keep cross-feature invariants in integration tests and include the affected contracts when a task spans modules.
 
 Return to [Why DI Bag?](../../README.md#why-di-bag).

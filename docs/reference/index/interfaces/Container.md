@@ -350,7 +350,7 @@ const billing = DiBag.createBuilder().withServices({ ledger: () => new Map<strin
 const container = DiBag.createBuilder().withInstalledModules([billing]).buildContainer();
 const graph = container.graphSnapshot();
 const installation = graph.moduleInstallations[0]!; // { installationId, moduleLabel: 'billing', parentInstallationId: undefined }
-const owned = graph.bindings.filter(binding => binding.moduleInstallationId === installation.installationId).map(binding => binding.bindingLabel);
+const owned = graph.bindings.filter(binding => binding.moduleInstallationId === installation.installationId).map(binding => binding.bindingLabel); // ['ledger']
 await container.close();
 ```
 
