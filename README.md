@@ -4,11 +4,12 @@ Dependency injection for TypeScript where the compiler checks the wiring.
 A module keeps a feature's services private behind named exports; a container
 creates services on first use and releases what it owns when closed.
 
+[![npm](https://img.shields.io/npm/v/di-bag?color=cb3837)](https://www.npmjs.com/package/di-bag)
 [![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
 [![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
-[Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
+[Documentation](https://dany-fedorov.github.io/di-bag/) · [npm](https://www.npmjs.com/package/di-bag) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
 Using a coding agent? The rules, the API card, the recipes, and every error
 message ship in the package. Paste this into your agent:
